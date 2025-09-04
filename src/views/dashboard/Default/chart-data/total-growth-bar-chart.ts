@@ -79,3 +79,5 @@ const chartOptions: ChartOptions = {
   },
   grid: { show: true }
 };
+
+export default chartOptions
