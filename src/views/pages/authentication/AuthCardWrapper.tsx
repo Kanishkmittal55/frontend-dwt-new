@@ -1,31 +1,35 @@
-@@ .. @@
--import PropTypes from 'prop-types';
-+import type { FC, ReactNode } from 'react';
-+
- // material-ui
- import Box from '@mui/material/Box';
+import type { FC, ReactNode } from 'react';
 
-@@ .. @@
- // project imports
- import MainCard from 'ui-component/cards/MainCard';
+// material-ui
+import Box from '@mui/material/Box';
 
-+interface AuthCardWrapperProps {
-+  children: ReactNode;
-+  [key: string]: any;
-+}
-+
- // ==============================|| AUTHENTICATION CARD WRAPPER ||============================== //
+// project imports
+import MainCard from 'ui-component/cards/MainCard';
 
--export default function AuthCardWrapper({ children, ...other }) {
-+const AuthCardWrapper: FC<AuthCardWrapperProps> = ({ children, ...other }) => {
-   return (
-     <MainCard
-@@ .. @@
-       <Box sx={{ p: { xs: 2, sm: 3, xl: 5 } }}>{children}</Box>
-     </MainCard>
-   );
--}
-+};
+interface AuthCardWrapperProps {
+  children: ReactNode;
+  [key: string]: any;
+}
 
--AuthCardWrapper.propTypes = { children: PropTypes.any, other: PropTypes.any };
-+export default AuthCardWrapper;
+// ==============================|| AUTHENTICATION CARD WRAPPER ||============================== //
+
+const AuthCardWrapper: FC<AuthCardWrapperProps> = ({ children, ...other }) => {
+  return (
+    <MainCard
+      sx={{
+        maxWidth: { xs: 400, lg: 475 },
+        margin: { xs: 2.5, md: 3 },
+        '& > *': {
+          flexGrow: 1,
+          flexBasis: '50%'
+        }
+      }}
+      content={false}
+      {...other}
+    >
+      <Box sx={{ p: { xs: 2, sm: 3, xl: 5 } }}>{children}</Box>
+    </MainCard>
+  );
+};
+
+export default AuthCardWrapper;
