@@ -1,11 +1,21 @@
-import PropTypes from 'prop-types';
+import type { FC } from 'react';
 
 // third party
 import { motion, useCycle } from 'framer-motion';
 
+// project imports
+import { AnimateButtonProps } from 'types/ui-components';
+
 // ==============================|| ANIMATION BUTTON ||============================== //
 
-function AnimateButton({ children, type = 'scale', direction = 'right', offset = 10, scale = { hover: 1, tap: 0.9 }, ref }) {
+const AnimateButton: FC<AnimateButtonProps> = ({ 
+  children, 
+  type = 'scale', 
+  direction = 'right', 
+  offset = 10, 
+  scale = { hover: 1, tap: 0.9 }, 
+  ref 
+}) => {
   let offset1;
   let offset2;
   switch (direction) {
@@ -69,14 +79,6 @@ function AnimateButton({ children, type = 'scale', direction = 'right', offset =
         </motion.div>
       );
   }
-}
+};
 
 export default AnimateButton;
-
-AnimateButton.propTypes = {
-  children: PropTypes.node,
-  type: PropTypes.oneOf(['slide', 'scale', 'rotate']),
-  direction: PropTypes.oneOf(['up', 'down', 'left', 'right']),
-  offset: PropTypes.number,
-  scale: PropTypes.object
-};

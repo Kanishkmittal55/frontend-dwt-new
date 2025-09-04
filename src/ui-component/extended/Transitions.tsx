@@ -1,4 +1,4 @@
-import PropTypes from 'prop-types';
+import type { FC } from 'react';
 
 // material-ui
 import Collapse from '@mui/material/Collapse';
@@ -8,7 +8,20 @@ import Slide from '@mui/material/Slide';
 import Zoom from '@mui/material/Zoom';
 import Box from '@mui/material/Box';
 
-function Transitions({ children, position = 'top-left', sx, type = 'grow', direction = 'up', ref, ...others }) {
+// project imports
+import { TransitionsProps } from 'types/ui-components';
+
+// ==============================|| TRANSITIONS ||============================== //
+
+const Transitions: FC<TransitionsProps> = ({ 
+  children, 
+  position = 'top-left', 
+  sx, 
+  type = 'grow', 
+  direction = 'up', 
+  ref, 
+  ...others 
+}) => {
   let positionSX = {
     transformOrigin: '0 0 0'
   };
@@ -91,15 +104,6 @@ function Transitions({ children, position = 'top-left', sx, type = 'grow', direc
       )}
     </Box>
   );
-}
+};
 
 export default Transitions;
-
-Transitions.propTypes = {
-  children: PropTypes.node,
-  position: PropTypes.string,
-  sx: PropTypes.any,
-  type: PropTypes.string,
-  direction: PropTypes.oneOf(['up', 'right', 'left', 'down']),
-  others: PropTypes.any
-};
