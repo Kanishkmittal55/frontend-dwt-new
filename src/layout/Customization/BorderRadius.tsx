@@ -5,7 +5,12 @@ import type { FC } from 'react';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
-function valueText(value) {
+// project import
+import useConfig from 'hooks/useConfig';
+
+// ==============================|| CUSTOMIZATION - BORDER RADIUS ||============================== //
+
+function valueText(value: number) {
   return `${value}px`;
 }
 
@@ -15,9 +20,11 @@ const BorderRadius: FC = () => {
   return (
     <Stack spacing={2.5}>
       <Typography variant="h5">Border Radius</Typography>
-      <Grid container spacing={3} alignItems="center">
+      <Grid container spacing={2.5} alignItems="center">
         <Grid item>
-          <Typography variant="h6">4px</Typography>
+          <Typography variant="h6" color="secondary">
+            4px
+          </Typography>
         </Grid>
         <Grid item xs>
           <Slider
@@ -26,13 +33,34 @@ const BorderRadius: FC = () => {
             onChange={onChangeBorderRadius}
             getAriaValueText={valueText}
             valueLabelDisplay="on"
-            valueLabelFormat={valueText}
+            aria-labelledby="discrete-slider-small-steps"
+            marks
+            step={2}
             min={4}
             max={24}
+            color="secondary"
+            sx={{
+              '& .MuiSlider-valueLabel': {
+                fontSize: 14,
+                fontWeight: 'normal',
+                top: -6,
+                backgroundColor: 'unset',
+                color: 'text.primary',
+                '&:before': {
+                  display: 'none'
+                },
+                '& *': {
+                  background: 'transparent',
+                  color: 'text.primary'
+                }
+              }
+            }}
           />
         </Grid>
         <Grid item>
-          <Typography variant="h6">24px</Typography>
+          <Typography variant="h6" color="secondary">
+            24px
+          </Typography>
         </Grid>
       </Grid>
     </Stack>
