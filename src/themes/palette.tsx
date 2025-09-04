@@ -15,7 +15,7 @@ export default function Palette(mode: 'light' | 'dark', presetColor: string) {
       break;
   }
 
-  return createTheme({
+  const theme = createTheme({
     palette: {
       mode,
       common: {
@@ -75,5 +75,7 @@ export default function Palette(mode: 'light' | 'dark', presetColor: string) {
         default: mode === 'dark' ? colors.darkPaper : colors.paper
       }
     }
-  }).palette;
+  });
+
+  return theme;
 }
