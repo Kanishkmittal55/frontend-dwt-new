@@ -60,24 +60,11 @@ const MenuCard: FC = () => {
           height: '157px',
           background:
             theme.palette.mode === 'dark'
-              ? `linear-gradient(210.04deg, ${theme.palette.primary.dark} -50.94%, rgba(144, 202, 249, 0) 83.49%)`
+              ? `linear-gradient(210.04deg, ${theme.palette.primary.dark} -50.94%, rgba(144, 202, 249, 0) 95.49%)`
               : theme.palette.primary[800],
           borderRadius: '50%',
-          top: '-30px',
-          right: '-180px'
-        },
-        '&:before': {
-          content: '""',
-          position: 'absolute',
-          width: '157px',
-          height: '157px',
-          background:
-            theme.palette.mode === 'dark'
-              ? `linear-gradient(140.9deg, ${theme.palette.primary.dark} -14.02%, rgba(144, 202, 249, 0) 70.50%)`
-              : theme.palette.primary[800],
-          borderRadius: '50%',
-          top: '-160px',
-          right: '-130px'
+          top: '-105px',
+          right: '-96px'
         }
       }}
     >
@@ -91,24 +78,32 @@ const MenuCard: FC = () => {
             </Grid>
           </Grid>
           <Grid>
-            <Typography variant="h4" sx={{ fontWeight: 500, color: theme.palette.secondary.dark }}>
-              Materially
-            </Typography>
+            <LinearProgressWithLabel value={80} />
           </Grid>
           <Grid>
-            <Typography variant="subtitle2" sx={{ color: theme.palette.secondary.dark }}>
+            <Typography variant="subtitle2" sx={{ color: theme.palette.grey[800] }}>
               Get extra space for your next project
             </Typography>
-          </Grid>
-          <Grid>
-            <LinearProgressWithLabel value={80} />
           </Grid>
         </Grid>
       </CardContent>
       <Box sx={{ p: 2, pt: 0, mt: -1 }}>
-        <Typography variant="body2" sx={{ color: theme.palette.secondary.dark }}>
-          28/35 GB
-        </Typography>
+        <Grid container direction="column" spacing={1}>
+          <Grid>
+            <Grid container justifyContent="space-between">
+              <Grid>
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  68GB
+                </Typography>
+              </Grid>
+              <Grid>
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  / 100GB
+                </Typography>
+              </Grid>
+            </Grid>
+          </Grid>
+        </Grid>
       </Box>
     </Card>
   );
