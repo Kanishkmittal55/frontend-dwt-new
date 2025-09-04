@@ -1,22 +1,19 @@
-@@ .. @@
- import { Link as RouterLink } from 'react-router-dom';
-+import type { FC } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
+import type { FC } from 'react';
 
- // material-ui
- import Link from '@mui/material/Link';
-@@ .. @@
- import Stack from '@mui/material/Stack';
- import Typography from '@mui/material/Typography';
+// material-ui
+import Link from '@mui/material/Link';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
 
--export default function Footer() {
-+const Footer: FC = () => {
-   return (
-     <Stack
-@@ .. @@
-       </Stack>
-     </Stack>
-   );
--}
-+};
-+
-+export default Footer;
+const Footer: FC = () => {
+  return (
+    <Stack
+    >
+      <Stack>
+      </Stack>
+    </Stack>
+  );
+};
+
+export default Footer;
