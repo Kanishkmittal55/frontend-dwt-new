@@ -8,7 +8,10 @@
  // ==============================|| DEFAULT THEME - PALETTE ||============================== //
  
 -export default function Palette(mode, presetColor) {
+}
 +export default function Palette(mode: 'light' | 'dark', presetColor: string) {
    let colors;
    switch (presetColor) {
      case 'default':
+   }
+}
