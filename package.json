@@ -33,10 +33,12 @@
     "dev": "vite",
     "start": "vite",
     "build": "vite build",
+    "build:ts": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\"",
     "lint:fix": "eslint --fix \"src/**/*.{js,jsx,ts,tsx}\"",
-    "prettier": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\""
+    "prettier": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
+    "type-check": "tsc --noEmit"
   },
   "eslintConfig": {
     "extends": [
@@ -60,6 +62,9 @@
     "@eslint/compat": "1.2.9",
     "@eslint/eslintrc": "3.3.1",
     "@eslint/js": "9.26.0",
+    "@types/node": "^24.3.1",
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
     "eslint": "9.25.1",
     "eslint-config-prettier": "10.1.2",
     "eslint-plugin-jsx-a11y": "6.10.2",
@@ -67,7 +72,8 @@
     "eslint-plugin-react": "7.37.5",
     "eslint-plugin-react-hooks": "5.2.0",
     "prettier": "3.5.3",
-    "sass": "1.87.0"
+    "sass": "1.87.0",
+    "typescript": "^5.9.2"
   },
   "packageManager": "yarn@4.9.1"
 }
