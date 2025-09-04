@@ -8,8 +8,11 @@
  // ==============================|| ELEMENT ERROR - COMMON ||============================== //
  
  export default function ErrorBoundary() {
+ }
 -  const error = useRouteError();
 +  const error = useRouteError() as RouteErrorResponse | Error;
  
    if (isRouteErrorResponse(error)) {
      if (error.status === 404) {
+     }
+   }
