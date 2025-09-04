@@ -39,6 +39,7 @@ const Header: FC = () => {
       elevation={0}
       sx={{
         bgcolor: theme.palette.background.default,
+        zIndex: theme.zIndex.drawer + 1,
         transition: drawerOpen ? theme.transitions.create('width') : 'none'
       }}
     >

@@ -44,15 +44,14 @@ const MainLayout: FC = () => {
           width: '100%', 
           flexGrow: 1, 
           p: { xs: 2, sm: 3 },
-          marginTop: '88px',
-          marginLeft: drawerOpen ? `${drawerWidth}px` : '72px',
+          marginTop: '64px',
+          marginLeft: { xs: 0, md: drawerOpen ? `${drawerWidth}px` : '72px' },
           transition: theme.transitions.create('margin', {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
           }),
         }}
       >
-        <Breadcrumbs separator={IconChevronRight} navigation={navigation} icon title rightAlign />
         <Outlet />
       </Box>
       <Customization />
