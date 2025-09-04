@@ -1,40 +1,41 @@
-@@ .. @@
-+import type { FC } from 'react';
-+
- // material-ui
- import { useTheme } from '@mui/material/styles';
- import Card from '@mui/material/Card';
-@@ .. @@
- // ===============================|| COLOR BOX ||=============================== //
+import type { FC } from 'react';
 
--const ColorBox = ({ bgcolor, title, data, dark }) => (
-+interface ColorData {
-+  label: string;
-+  color: string;
-+}
-+
-+interface ColorBoxProps {
-+  bgcolor: string;
-+  title?: string;
-+  data?: ColorData;
-+  dark?: boolean;
-+}
-+
-+const ColorBox: FC<ColorBoxProps> = ({ bgcolor, title, data, dark }) => (
-   <>
-     <Card sx={{ mb: 3 }}>
-@@ .. @@
- // ===============================|| UI COLOR ||=============================== //
+// material-ui
+import { useTheme } from '@mui/material/styles';
+import Card from '@mui/material/Card';
 
--export default function UIColor() {
-+const UIColor: FC = () => {
-   const theme = useTheme();
+// ===============================|| COLOR BOX ||=============================== //
 
-@@ .. @@
-       </Grid>
-     </MainCard>
-   );
--}
-+};
-+
-+export default UIColor;
+interface ColorData {
+  label: string;
+  color: string;
+}
+
+interface ColorBoxProps {
+  bgcolor: string;
+  title?: string;
+  data?: ColorData;
+  dark?: boolean;
+}
+
+const ColorBox: FC<ColorBoxProps> = ({ bgcolor, title, data, dark }) => (
+  <>
+    <Card sx={{ mb: 3 }}>
+    </Card>
+  </>
+);
+
+// ===============================|| UI COLOR ||=============================== //
+
+const UIColor: FC = () => {
+  const theme = useTheme();
+
+  return (
+    <MainCard>
+      <Grid>
+      </Grid>
+    </MainCard>
+  );
+};
+
+export default UIColor;
