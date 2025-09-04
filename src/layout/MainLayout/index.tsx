@@ -38,7 +38,20 @@ const MainLayout: FC = () => {
     <Box sx={{ display: 'flex' }}>
       <Header />
       <Drawer />
-      <Box component="main" sx={{ width: '100%', flexGrow: 1, p: { xs: 2, sm: 3 } }}>
+      <Box 
+        component="main" 
+        sx={{ 
+          width: '100%', 
+          flexGrow: 1, 
+          p: { xs: 2, sm: 3 },
+          marginTop: '88px',
+          marginLeft: drawerOpen ? `${drawerWidth}px` : '72px',
+          transition: theme.transitions.create('margin', {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
+        }}
+      >
         <Breadcrumbs separator={IconChevronRight} navigation={navigation} icon title rightAlign />
         <Outlet />
       </Box>
