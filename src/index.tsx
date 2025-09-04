@@ -2,7 +2,7 @@ import { createRoot } from 'react-dom/client';
 
 // project imports
 import App from './App';
-import * as serviceWorker from 'serviceWorker';
+import * as serviceWorker from './serviceWorker';
 import reportWebVitals from './reportWebVitals';
 import { ConfigProvider } from 'contexts/ConfigContext';
 

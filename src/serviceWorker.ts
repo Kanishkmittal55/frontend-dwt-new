@@ -20,7 +20,7 @@ const isLocalhost = Boolean(
 
 const publicURL = import.meta.env.PUBLIC_URL || '';
 
-export function register(config) {
+export function register(config?: { onUpdate?: (registration: ServiceWorkerRegistration) => void; onSuccess?: (registration: ServiceWorkerRegistration) => void }) {
   if (import.meta.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
     // The URL constructor is available in all browsers that support SW.
     const publicUrl = new URL(publicURL, window.location.href);
@@ -51,7 +51,7 @@ export function register(config) {
   }
 }
 
-function registerValidSW(swUrl, config) {
+function registerValidSW(swUrl: string, config?: { onUpdate?: (registration: ServiceWorkerRegistration) => void; onSuccess?: (registration: ServiceWorkerRegistration) => void }) {
   navigator.serviceWorker
     .register(swUrl)
     .then((registration) => {
@@ -74,7 +74,7 @@ function registerValidSW(swUrl, config) {
               }
             } else {
               // At this point, everything has been precached.
-              // it&apos;s the perfect time to display a
+              // it's the perfect time to display a
               // "Content is cached for offline use." message.
               console.log('Content is cached for offline use.');
 
@@ -92,7 +92,7 @@ function registerValidSW(swUrl, config) {
     });
 }
 
-function checkValidServiceWorker(swUrl, config) {
+function checkValidServiceWorker(swUrl: string, config?: { onUpdate?: (registration: ServiceWorkerRegistration) => void; onSuccess?: (registration: ServiceWorkerRegistration) => void }) {
   // Check if the service worker can be found. If it can't reload the page.
   fetch(swUrl, {
     headers: { 'Service-Worker': 'script' }
