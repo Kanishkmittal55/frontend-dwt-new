@@ -1,11 +1,12 @@
 // Configuration and Context Types
+import type { ColorScheme, PresetColor } from './theme';
 
 export interface ThemeConfig {
   fontFamily: string;
   borderRadius: number;
-  mode: 'light' | 'dark';
+  mode: ColorScheme;
   outlinedFilled: boolean;
-  presetColor: string;
+  presetColor: PresetColor;
   miniDrawer: boolean;
 }
 

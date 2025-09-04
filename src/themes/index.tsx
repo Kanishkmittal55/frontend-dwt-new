@@ -1,8 +1,8 @@
-import PropTypes from 'prop-types';
 import { useMemo } from 'react';
 
 // material-ui
 import { createTheme, ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
+import type { Theme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
 // project imports
@@ -11,6 +11,7 @@ import Palette from './palette';
 import Typography from './typography';
 import componentStyleOverrides from './compStyleOverride';
 import customShadows from './shadows';
+import type { ThemeOptions } from 'types/theme';
 
 interface ThemeCustomizationProps {
   children: React.ReactNode;
@@ -19,13 +20,13 @@ interface ThemeCustomizationProps {
 export default function ThemeCustomization({ children }: ThemeCustomizationProps) {
   const { borderRadius, fontFamily, mode, outlinedFilled, presetColor } = useConfig();
 
-  const theme = useMemo(() => Palette(mode, presetColor), [mode, presetColor]);
+  const theme: Theme = useMemo(() => Palette(mode, presetColor), [mode, presetColor]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const themeTypography = useMemo(() => Typography(theme, borderRadius, fontFamily), [theme, borderRadius, fontFamily]);
   const themeCustomShadows = useMemo(() => customShadows(mode, theme), [mode, theme]);
 
-  const themeOptions = useMemo(
+  const themeOptions: ThemeOptions = useMemo(
     () => ({
       breakpoints: {
         values: {
@@ -51,7 +52,7 @@ export default function ThemeCustomization({ children }: ThemeCustomizationProps
     [theme, themeTypography, themeCustomShadows]
   );
 
-  const themes = createTheme(themeOptions);
+  const themes: Theme = createTheme(themeOptions);
   themes.components = componentStyleOverrides(themes, borderRadius, outlinedFilled);
 
   return (

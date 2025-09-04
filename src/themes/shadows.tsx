@@ -1,8 +1,9 @@
 // material-ui
 import { alpha } from '@mui/material/styles';
 import type { Theme } from '@mui/material/styles';
+import type { CustomShadows, ColorScheme } from 'types/theme';
 
-function createCustomShadow(theme: Theme, color: string) {
+function createCustomShadow(theme: Theme, color: string): CustomShadows {
   const transparent = alpha(color, 0.24);
   return {
     z1: `0 1px 2px 0 ${transparent}`,
@@ -21,6 +22,6 @@ function createCustomShadow(theme: Theme, color: string) {
   };
 }
 
-export default function customShadows(mode: 'light' | 'dark', theme: Theme) {
+export default function customShadows(mode: ColorScheme, theme: Theme): CustomShadows {
   return createCustomShadow(theme, theme.palette.grey[900]);
 }

@@ -1,17 +1,19 @@
 // material-ui
 import { createTheme } from '@mui/material/styles';
+import type { Theme } from '@mui/material/styles';
+import type { ColorScheme, PresetColor, ThemeColorValues } from 'types/theme';
 
 // assets
 import defaultColor from 'assets/scss/_themes-vars.module.scss';
 
 // ==============================|| DEFAULT THEME - PALETTE ||============================== //
 
-export default function Palette(mode: 'light' | 'dark', presetColor: string) {
-  let colors;
+export default function Palette(mode: ColorScheme, presetColor: PresetColor): Theme {
+  let colors: ThemeColorValues;
   switch (presetColor) {
     case 'default':
     default:
-      colors = defaultColor;
+      colors = defaultColor as ThemeColorValues;
       break;
   }
 

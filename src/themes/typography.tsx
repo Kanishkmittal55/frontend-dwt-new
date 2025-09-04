@@ -1,6 +1,11 @@
 import type { Theme } from '@mui/material/styles';
+import type { CustomTypographyVariants } from 'types/theme';
 
-export default function Typography(theme: Theme, borderRadius: number, fontFamily: string) {
+export default function Typography(
+  theme: Theme, 
+  borderRadius: number, 
+  fontFamily: string
+): CustomTypographyVariants & any {
   return {
     fontFamily,
     h6: {
@@ -82,7 +87,7 @@ export default function Typography(theme: Theme, borderRadius: number, fontFamil
       '& fieldset': {
         top: 0
       }
-    },
+    } as React.CSSProperties,
     mainContent: {
       backgroundColor: theme.palette.background.default,
       width: '100%',
@@ -92,7 +97,7 @@ export default function Typography(theme: Theme, borderRadius: number, fontFamil
       marginTop: '88px',
       marginRight: '20px',
       borderRadius: `${borderRadius}px`
-    },
+    } as React.CSSProperties,
     menuCaption: {
       fontSize: '0.875rem',
       fontWeight: 500,
@@ -100,31 +105,31 @@ export default function Typography(theme: Theme, borderRadius: number, fontFamil
       padding: '6px',
       textTransform: 'capitalize',
       marginTop: '10px'
-    },
+    } as React.CSSProperties,
     subMenuCaption: {
       fontSize: '0.6875rem',
       fontWeight: 500,
       color: theme.palette.text.secondary,
       textTransform: 'capitalize'
-    },
+    } as React.CSSProperties,
     commonAvatar: {
       cursor: 'pointer',
       borderRadius: '8px'
-    },
+    } as React.CSSProperties,
     smallAvatar: {
       width: '22px',
       height: '22px',
       fontSize: '1rem'
-    },
+    } as React.CSSProperties,
     mediumAvatar: {
       width: '34px',
       height: '34px',
       fontSize: '1.2rem'
-    },
+    } as React.CSSProperties,
     largeAvatar: {
       width: '44px',
       height: '44px',
       fontSize: '1.5rem'
-    }
+    } as React.CSSProperties
   };
 }

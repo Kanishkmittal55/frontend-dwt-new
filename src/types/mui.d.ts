@@ -1,49 +1,24 @@
 // Material-UI theme augmentation
 import '@mui/material/styles';
+import type { CustomShadows, ExtendedPaletteColor, CustomTypographyVariants } from './theme';
 
 declare module '@mui/material/styles' {
   interface Theme {
-    customShadows: {
-      z1: string;
-      z8: string;
-      z12: string;
-      z16: string;
-      z20: string;
-      z24: string;
-      primary: string;
-      secondary: string;
-      orange: string;
-      success: string;
-      warning: string;
-      error: string;
-    };
+    customShadows: CustomShadows;
   }
 
   interface ThemeOptions {
-    customShadows?: {
-      z1?: string;
-      z8?: string;
-      z12?: string;
-      z16?: string;
-      z20?: string;
-      z24?: string;
-      primary?: string;
-      secondary?: string;
-      orange?: string;
-      success?: string;
-      warning?: string;
-      error?: string;
-    };
+    customShadows?: Partial<CustomShadows>;
   }
 
   interface Palette {
-    orange: Palette['primary'];
-    dark: Palette['primary'];
+    orange: ExtendedPaletteColor;
+    dark: ExtendedPaletteColor;
   }
 
   interface PaletteOptions {
-    orange?: PaletteOptions['primary'];
-    dark?: PaletteOptions['primary'];
+    orange?: Partial<ExtendedPaletteColor>;
+    dark?: Partial<ExtendedPaletteColor>;
   }
 
   interface PaletteColor {
@@ -56,27 +31,9 @@ declare module '@mui/material/styles' {
     800?: string;
   }
 
-  interface TypographyVariants {
-    customInput: React.CSSProperties;
-    mainContent: React.CSSProperties;
-    menuCaption: React.CSSProperties;
-    subMenuCaption: React.CSSProperties;
-    commonAvatar: React.CSSProperties;
-    smallAvatar: React.CSSProperties;
-    mediumAvatar: React.CSSProperties;
-    largeAvatar: React.CSSProperties;
-  }
+  interface TypographyVariants extends CustomTypographyVariants {}
 
-  interface TypographyVariantsOptions {
-    customInput?: React.CSSProperties;
-    mainContent?: React.CSSProperties;
-    menuCaption?: React.CSSProperties;
-    subMenuCaption?: React.CSSProperties;
-    commonAvatar?: React.CSSProperties;
-    smallAvatar?: React.CSSProperties;
-    mediumAvatar?: React.CSSProperties;
-    largeAvatar?: React.CSSProperties;
-  }
+  interface TypographyVariantsOptions extends Partial<CustomTypographyVariants> {}
 }
 
 declare module '@mui/material/Typography' {
