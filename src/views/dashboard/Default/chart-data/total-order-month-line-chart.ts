@@ -103,3 +103,5 @@ const chartData: LineChartData = {
     }
   ]
 };
+
+export default chartData;

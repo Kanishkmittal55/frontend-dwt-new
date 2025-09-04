@@ -79,3 +79,5 @@ const chartData: ChartData = {
     }
   ]
 };
+
+export default chartData;
