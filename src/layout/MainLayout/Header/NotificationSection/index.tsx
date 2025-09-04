@@ -7,24 +7,17 @@ import { useTheme } from '@mui/material/styles';
 import {
   Avatar,
   Box,
+  Button,
   ButtonBase,
-  Card,
-  CardContent,
+  CardActions,
   Chip,
   ClickAwayListener,
   Divider,
   Grid,
-  InputAdornment,
-  List,
-  ListItemButton,
-  ListItemAvatar,
-  ListItemText,
-  ListItemSecondaryAction,
-  OutlinedInput,
   Paper,
   Popper,
   Stack,
-  Switch,
+  TextField,
   Typography,
   useMediaQuery
 } from '@mui/material';
@@ -63,14 +56,17 @@ const NotificationSection: FC = () => {
 
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState('');
+  /**
+   * anchorRef is used on different componets and specifying one type leads to other components throwing an error
+   * */
   const anchorRef = useRef<any>(null);
 
   const handleToggle = () => {
     setOpen((prevOpen) => !prevOpen);
   };
 
-  const handleClose = (event: Event | React.SyntheticEvent) => {
-    if (anchorRef.current && anchorRef.current.contains(event.target as HTMLElement)) {
+  const handleClose = (event: MouseEvent | TouchEvent) => {
+    if (anchorRef.current && anchorRef.current.contains(event.target)) {
       return;
     }
     setOpen(false);
@@ -79,7 +75,7 @@ const NotificationSection: FC = () => {
   const prevOpen = useRef(open);
   useEffect(() => {
     if (prevOpen.current === true && open === false) {
-      anchorRef.current?.focus();
+      anchorRef.current.focus();
     }
     prevOpen.current = open;
   }, [open]);
@@ -117,7 +113,6 @@ const NotificationSection: FC = () => {
             aria-controls={open ? 'menu-list-grow' : undefined}
             aria-haspopup="true"
             onClick={handleToggle}
-            color="inherit"
           >
             <IconBell stroke={1.5} size="1.3rem" />
           </Avatar>
@@ -170,177 +165,42 @@ const NotificationSection: FC = () => {
                       </Grid>
                     </Grid>
                     <Grid item xs={12}>
-                      <PerfectScrollbar
-                        style={{ height: '100%', maxHeight: 'calc(100vh - 205px)', overflowX: 'hidden' }}
-                      >
+                      <PerfectScrollbar style={{ height: '100%', maxHeight: 'calc(100vh - 205px)', overflowX: 'hidden' }}>
                         <Grid container direction="column" spacing={2}>
                           <Grid item xs={12}>
                             <Box sx={{ px: 2, pt: 0.25 }}>
-                              <OutlinedInput
-                                id="input-search-notification"
-                                placeholder="Search notification"
+                              <TextField
+                                id="outlined-select-currency-native"
+                                select
+                                fullWidth
                                 value={value}
                                 onChange={handleChange}
-                                startAdornment={
-                                  <InputAdornment position="start">
-                                    <IconBell stroke={1.5} size="1rem" color={theme.palette.grey[500]} />
-                                  </InputAdornment>
-                                }
-                                size="small"
-                              />
+                                SelectProps={{
+                                  native: true
+                                }}
+                              >
+                                {status.map((option) => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </TextField>
                             </Box>
                           </Grid>
                           <Grid item xs={12} p={0}>
                             <Divider sx={{ my: 0 }} />
                           </Grid>
                         </Grid>
-                        <List
-                          component="nav"
-                          sx={{
-                            width: '100%',
-                            maxWidth: 350,
-                            minWidth: 300,
-                            backgroundColor: theme.palette.background.paper,
-                            borderRadius: '10px',
-                            [theme.breakpoints.down('md')]: {
-                              minWidth: '100%'
-                            },
-                            '& .MuiListItemButton-root': {
-                              mt: 0.5
-                            }
-                          }}
-                        >
-                          <ListItemButton
-                            sx={{ borderRadius: `${theme.shape.borderRadius}px` }}
-                            selected={value === 'all'}
-                            onClick={(event: React.MouseEvent<HTMLDivElement>) => handleChange(event as any)}
-                          >
-                            <ListItemAvatar>
-                              <Avatar
-                                sx={{
-                                  color: theme.palette.success.dark,
-                                  backgroundColor: theme.palette.success.light,
-                                  border: 'none',
-                                  borderColor: theme.palette.success.main
-                                }}
-                              >
-                                <IconBell stroke={1.5} size="1.3rem" />
-                              </Avatar>
-                            </ListItemAvatar>
-                            <ListItemText
-                              primary={
-                                <Typography variant="subtitle1">
-                                  Store Verification Done
-                                </Typography>
-                              }
-                              secondary={
-                                <Typography variant="subtitle2">
-                                  We have successfully received your request.
-                                </Typography>
-                              }
-                            />
-                            <ListItemSecondaryAction>
-                              <Grid container justifyContent="flex-end">
-                                <Grid item xs={12}>
-                                  <Typography variant="caption" display="block" gutterBottom>
-                                    2 min ago
-                                  </Typography>
-                                </Grid>
-                              </Grid>
-                            </ListItemSecondaryAction>
-                          </ListItemButton>
-                          <Divider />
-                          <ListItemButton
-                            sx={{ borderRadius: `${theme.shape.borderRadius}px` }}
-                            selected={value === 'new'}
-                            onClick={(event: React.MouseEvent<HTMLDivElement>) => handleChange(event as any)}
-                          >
-                            <ListItemAvatar>
-                              <Avatar
-                                sx={{
-                                  color: theme.palette.primary.dark,
-                                  backgroundColor: theme.palette.primary.light,
-                                  border: 'none',
-                                  borderColor: theme.palette.primary.main
-                                }}
-                              >
-                                <IconBell stroke={1.5} size="1.3rem" />
-                              </Avatar>
-                            </ListItemAvatar>
-                            <ListItemText
-                              primary={
-                                <Typography variant="subtitle1">
-                                  Check Your Mail
-                                </Typography>
-                              }
-                              secondary={
-                                <Typography variant="subtitle2">
-                                  All done! Now check your inbox as you're in for a sweet treat!
-                                </Typography>
-                              }
-                            />
-                            <ListItemSecondaryAction>
-                              <Grid container justifyContent="flex-end">
-                                <Grid item xs={12}>
-                                  <Typography variant="caption" display="block" gutterBottom>
-                                    2 min ago
-                                  </Typography>
-                                </Grid>
-                              </Grid>
-                            </ListItemSecondaryAction>
-                          </ListItemButton>
-                          <Divider />
-                          <ListItemButton
-                            sx={{ borderRadius: `${theme.shape.borderRadius}px` }}
-                            selected={value === 'unread'}
-                            onClick={(event: React.MouseEvent<HTMLDivElement>) => handleChange(event as any)}
-                          >
-                            <ListItemAvatar>
-                              <Avatar
-                                sx={{
-                                  color: theme.palette.secondary.dark,
-                                  backgroundColor: theme.palette.secondary.light,
-                                  border: 'none',
-                                  borderColor: theme.palette.secondary.main
-                                }}
-                              >
-                                <IconBell stroke={1.5} size="1.3rem" />
-                              </Avatar>
-                            </ListItemAvatar>
-                            <ListItemText
-                              primary={
-                                <Typography variant="subtitle1">
-                                  Launch Admin
-                                </Typography>
-                              }
-                              secondary={
-                                <Typography variant="subtitle2">
-                                  Just see the my new admin!
-                                </Typography>
-                              }
-                            />
-                            <ListItemSecondaryAction>
-                              <Grid container justifyContent="flex-end">
-                                <Grid item xs={12}>
-                                  <Typography variant="caption" display="block" gutterBottom>
-                                    9 min ago
-                                  </Typography>
-                                </Grid>
-                              </Grid>
-                            </ListItemSecondaryAction>
-                          </ListItemButton>
-                        </List>
+                        <NotificationList />
                       </PerfectScrollbar>
                     </Grid>
                   </Grid>
                   <Divider />
-                  <CardContent sx={{ p: 2 }}>
-                    <Stack direction="row" spacing={0.5} justifyContent="center">
-                      <Typography component={Link} to="#" variant="h6" color="primary">
-                        View All
-                      </Typography>
-                    </Stack>
-                  </CardContent>
+                  <CardActions sx={{ p: 1.25, justifyContent: 'center' }}>
+                    <Button size="small" disableElevation>
+                      View All
+                    </Button>
+                  </CardActions>
                 </MainCard>
               </ClickAwayListener>
             </Paper>

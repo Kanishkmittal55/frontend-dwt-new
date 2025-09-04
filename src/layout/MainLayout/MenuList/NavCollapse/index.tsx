@@ -68,7 +68,9 @@ const NavCollapse: FC<NavCollapseProps> = ({ menu, level, parentId }) => {
 
   useEffect(() => {
     const isFound = menu.children?.some((item) => {
-      if (item?.url) {
+      if (item?.children?.length) {
+        return false;
+      } else {
         return !!matchPath(
           {
             path: item.url,
@@ -77,7 +79,6 @@ const NavCollapse: FC<NavCollapseProps> = ({ menu, level, parentId }) => {
           pathname
         );
       }
-      return false;
     });
     if (isFound) {
       setOpen(true);
