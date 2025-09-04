@@ -1,7 +1,8 @@
 // project imports
 import componentsOverrides from './overrides';
+import type { Theme } from '@mui/material/styles';
 
-export default function componentStyleOverrides(theme, borderRadius, outlinedFilled) {
+export default function componentStyleOverrides(theme: Theme, borderRadius: number, outlinedFilled: boolean) {
   const bgColor = theme.palette.grey[50];
   const menuSelectedBack = theme.palette.secondary.light;
   const menuSelected = theme.palette.secondary.dark;
