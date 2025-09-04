@@ -12,14 +12,13 @@ import Header from './Header';
 import navigation from 'menu-items';
 import Breadcrumbs from 'ui-component/extended/Breadcrumbs';
 import { drawerWidth } from 'store/constant';
-import { SET_MENU } from 'store/actions';
-import { useDispatch, useSelector } from 'store';
+import { useGetMenuMaster, handlerDrawerOpen } from 'api/menu';
 
 // third-party
 import PerfectScrollbar from 'react-perfect-scrollbar';
 
 // assets
-import { IconChevronRight } from '@tabler/icons';
+import { IconChevronRight } from '@tabler/icons-react';
 import Customization from '../Customization';
 
 // ==============================|| MAIN LAYOUT ||============================== //
@@ -28,12 +27,12 @@ const MainLayout: FC = () => {
   const theme = useTheme();
   const downMD = useMediaQuery(theme.breakpoints.down('md'));
 
-  const { drawerOpen } = useSelector((state) => state.menu);
-  const dispatch = useDispatch();
+  const { menuMaster } = useGetMenuMaster();
+  const drawerOpen = menuMaster.isDashboardDrawerOpened;
 
   useEffect(() => {
-    dispatch({ type: SET_MENU, opened: !downMD });
-  }, [downMD, dispatch]);
+    handlerDrawerOpen(!downMD);
+  }, [downMD]);
 
   return (
     <Box sx={{ display: 'flex' }}>

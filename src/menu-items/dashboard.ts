@@ -1,16 +1,27 @@
-@@ .. @@
-+import type { MenuItem } from 'types';
-+
- // assets
- import { IconDashboard } from '@tabler/icons-react';
+import type { MenuItem } from 'types';
 
-@@ .. @@
- // ==============================|| DASHBOARD MENU ITEMS ||============================== //
+// assets
+import { IconDashboard } from '@tabler/icons-react';
 
--const dashboard = {
-}
-+const dashboard: MenuItem = {
-   id: 'dashboard',
-   title: 'Dashboard',
-   type: 'group',
-}
+// constant
+const icons = { IconDashboard };
+
+// ==============================|| DASHBOARD MENU ITEMS ||============================== //
+
+const dashboard: MenuItem = {
+  id: 'dashboard',
+  title: 'Dashboard',
+  type: 'group',
+  children: [
+    {
+      id: 'default',
+      title: 'Dashboard',
+      type: 'item',
+      url: '/dashboard/default',
+      icon: icons.IconDashboard,
+      breadcrumbs: false
+    }
+  ]
+};
+
+export default dashboard;
