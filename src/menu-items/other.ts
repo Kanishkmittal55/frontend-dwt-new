@@ -8,6 +8,8 @@
  // ==============================|| SAMPLE PAGE & DOCUMENTATION MENU ITEMS ||============================== //
 
 -const other = {
+}
 +const other: MenuItem = {
    id: 'sample-docs-roadmap',
    type: 'group',
+}

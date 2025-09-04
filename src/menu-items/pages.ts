@@ -8,6 +8,8 @@
  // ==============================|| EXTRA PAGES MENU ITEMS ||============================== //
 
 -const pages = {
+}
 +const pages: MenuItem = {
    id: 'pages',
    title: 'Pages',
+}

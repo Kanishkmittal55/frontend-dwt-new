@@ -8,6 +8,8 @@
  // ==============================|| UTILITIES MENU ITEMS ||============================== //
 
 -const utilities = {
+}
 +const utilities: MenuItem = {
    id: 'utilities',
    title: 'Utilities',
+}

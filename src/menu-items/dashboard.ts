@@ -8,7 +8,9 @@
  // ==============================|| DASHBOARD MENU ITEMS ||============================== //
 
 -const dashboard = {
+}
 +const dashboard: MenuItem = {
    id: 'dashboard',
    title: 'Dashboard',
    type: 'group',
+}
