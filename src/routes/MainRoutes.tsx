@@ -35,6 +35,10 @@ const MainRoutes = {
       ]
     },
     {
+      path: 'dashboard/default',
+      element: <DashboardDefault />
+    },
+    {
       path: 'typography',
       element: <UtilsTypography />
     },
@@ -47,7 +51,7 @@ const MainRoutes = {
       element: <UtilsShadow />
     },
     {
-      path: '/sample-page',
+      path: 'sample-page',
       element: <SamplePage />
     }
   ]
