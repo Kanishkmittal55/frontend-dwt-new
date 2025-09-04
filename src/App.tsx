@@ -1,5 +1,4 @@
 import { RouterProvider } from 'react-router-dom';
-import { StrictMode } from 'react';
 
 // routing
 import router from 'routes/index';
@@ -15,12 +14,10 @@ import ThemeCustomization from 'themes';
 
 export default function App() {
   return (
-    <StrictMode>
-      <ThemeCustomization>
-        <NavigationScroll>
-          <RouterProvider router={router} />
-        </NavigationScroll>
-      </ThemeCustomization>
-    </StrictMode>
+    <ThemeCustomization>
+      <NavigationScroll>
+        <RouterProvider router={router} />
+      </NavigationScroll>
+    </ThemeCustomization>
   );
 }

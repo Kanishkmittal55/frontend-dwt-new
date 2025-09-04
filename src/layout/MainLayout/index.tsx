@@ -9,16 +9,8 @@ import { useMediaQuery, Box } from '@mui/material';
 // project imports
 import Drawer from './Drawer';
 import Header from './Header';
-import navigation from 'menu-items';
-import Breadcrumbs from 'ui-component/extended/Breadcrumbs';
 import { drawerWidth } from 'store/constant';
 import { useGetMenuMaster, handlerDrawerOpen } from 'api/menu';
-
-// third-party
-import PerfectScrollbar from 'react-perfect-scrollbar';
-
-// assets
-import { IconChevronRight } from '@tabler/icons-react';
 import Customization from '../Customization';
 
 // ==============================|| MAIN LAYOUT ||============================== //
@@ -44,8 +36,8 @@ const MainLayout: FC = () => {
           width: '100%', 
           flexGrow: 1, 
           p: { xs: 2, sm: 3 },
-          marginTop: '64px',
-          marginLeft: { xs: 0, md: drawerOpen ? `${drawerWidth}px` : '72px' },
+          marginTop: '88px',
+          marginLeft: { xs: 0, md: drawerOpen ? `${drawerWidth}px` : '0px' },
           transition: theme.transitions.create('margin', {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,

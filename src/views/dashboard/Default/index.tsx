@@ -4,18 +4,11 @@ import type { FC } from 'react';
 // material-ui
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
 
 // project imports
-import EarningCard from './EarningCard';
-import PopularCard from './PopularCard';
-import TotalOrderLineChartCard from './TotalOrderLineChartCard';
-import TotalIncomeDarkCard from 'ui-component/cards/TotalIncomeDarkCard';
-import TotalIncomeLightCard from 'ui-component/cards/TotalIncomeLightCard';
-import TotalGrowthBarChart from './TotalGrowthBarChart';
+import MainCard from 'ui-component/cards/MainCard';
 import { gridSpacing } from 'store/constant';
-
-// assets
-import StorefrontTwoToneIcon from '@mui/icons-material/StorefrontTwoTone';
 
 // ==============================|| DEFAULT DASHBOARD ||============================== //
 
@@ -28,48 +21,23 @@ const Dashboard: FC = () => {
   }, []);
 
   return (
-    <>
+    <Box>
       <Typography variant="h2" sx={{ mb: 3 }}>
         Dashboard
       </Typography>
       <Grid container spacing={gridSpacing}>
         <Grid item xs={12}>
-          <Grid container spacing={gridSpacing}>
-            <Grid item lg={4} md={6} sm={6} xs={12}>
-              <EarningCard isLoading={isLoading} />
-            </Grid>
-            <Grid item lg={4} md={6} sm={6} xs={12}>
-              <TotalOrderLineChartCard isLoading={isLoading} />
-            </Grid>
-            <Grid item lg={4} md={12} sm={12} xs={12}>
-              <Grid container spacing={gridSpacing}>
-                <Grid item sm={6} xs={12} md={6} lg={12}>
-                  <TotalIncomeDarkCard isLoading={isLoading} />
-                </Grid>
-                <Grid item sm={6} xs={12} md={6} lg={12}>
-                  <TotalIncomeLightCard 
-                    isLoading={isLoading} 
-                    total="$203k" 
-                    label="Total Income" 
-                    icon={<StorefrontTwoToneIcon fontSize="inherit" />} 
-                  />
-                </Grid>
-              </Grid>
-            </Grid>
-          </Grid>
-        </Grid>
-        <Grid item xs={12}>
-          <Grid container spacing={gridSpacing}>
-            <Grid item xs={12} md={8}>
-              <TotalGrowthBarChart isLoading={isLoading} />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <PopularCard isLoading={isLoading} />
-            </Grid>
-          </Grid>
+          <MainCard title="Welcome to Berry Dashboard">
+            <Typography variant="body1">
+              This is a TypeScript version of the Berry Material-UI React Dashboard.
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 2 }}>
+              The dashboard is now loading successfully! You can start building your features from here.
+            </Typography>
+          </MainCard>
         </Grid>
       </Grid>
-    </>
+    </Box>
   );
 };
 
