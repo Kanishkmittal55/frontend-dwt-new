@@ -1,5 +1,4 @@
-import PropTypes from 'prop-types';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { matchPath, useLocation } from 'react-router-dom';
 import type { FC } from 'react';
 import type { MenuItem } from 'types';
@@ -12,7 +11,7 @@ import { Collapse, List, ListItemButton, ListItemIcon, ListItemText, Typography 
 import NavItem from '../NavItem';
 
 // assets
-import { IconChevronDown, IconChevronRight, IconChevronUp } from '@tabler/icons-react';
+import { IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 
 interface NavCollapseProps {
@@ -23,10 +22,9 @@ interface NavCollapseProps {
 
 const NavCollapse: FC<NavCollapseProps> = ({ menu, level, parentId }) => {
   const theme = useTheme();
-  const ref = useRef(null);
 
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState<string | null>(null);
 
   const { pathname } = useLocation();
 
@@ -73,8 +71,8 @@ const NavCollapse: FC<NavCollapseProps> = ({ menu, level, parentId }) => {
       } else {
         return !!matchPath(
           {
-            path: item.url,
-            exact: false
+            path: item.url || '',
+            end: false
           },
           pathname
         );
@@ -90,7 +88,6 @@ const NavCollapse: FC<NavCollapseProps> = ({ menu, level, parentId }) => {
   return (
     <>
       <ListItemButton
-        ref={ref}
         sx={{
           borderRadius: `${theme.shape.borderRadius}px`,
           mb: 0.5,

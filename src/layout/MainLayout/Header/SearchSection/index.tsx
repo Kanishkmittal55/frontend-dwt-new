@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import { useState } from 'react';
 import type { FC } from 'react';
 
@@ -9,19 +8,10 @@ import {
   Box,
   ButtonBase,
   Card,
-  ClickAwayListener,
-  Divider,
   Grid,
   InputAdornment,
-  List,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
   OutlinedInput,
-  Paper,
   Popper,
-  Stack,
-  Switch,
   Typography
 } from '@mui/material';
 
@@ -124,6 +114,7 @@ const MobileSearch: FC<MobileSearchProps> = ({ value, setValue, popupState }) =>
 // ==============================|| SEARCH INPUT ||============================== //
 
 const SearchSection: FC = () => {
+  const theme = useTheme();
   const [value, setValue] = useState('');
 
   return (

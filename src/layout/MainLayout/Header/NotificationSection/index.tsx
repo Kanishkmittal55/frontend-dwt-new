@@ -48,6 +48,70 @@ const status: Array<{ value: string; label: string }> = [
   }
 ];
 
+// ==============================|| NOTIFICATION LIST ||============================== //
+
+const NotificationList: FC = () => {
+  const theme = useTheme();
+
+  const chipSX = {
+    height: 24,
+    padding: '0 6px'
+  };
+  const chipErrorSX = {
+    ...chipSX,
+    color: theme.palette.orange.dark,
+    backgroundColor: theme.palette.orange.light,
+    marginRight: '5px'
+  };
+
+  const chipWarningSX = {
+    ...chipSX,
+    color: theme.palette.warning.dark,
+    backgroundColor: theme.palette.warning.light
+  };
+
+  const chipSuccessSX = {
+    ...chipSX,
+    color: theme.palette.success.dark,
+    backgroundColor: theme.palette.success.light,
+    height: 28
+  };
+
+  return (
+    <Grid container direction="column" spacing={2}>
+      <Grid item xs={12}>
+        <Grid container alignItems="center" justifyContent="space-between" sx={{ pt: 2, px: 2 }}>
+          <Grid item>
+            <Stack direction="row" spacing={2}>
+              <Typography variant="subtitle1">All Notification</Typography>
+              <Chip
+                size="small"
+                label="01"
+                sx={{
+                  color: theme.palette.background.default,
+                  bgcolor: theme.palette.warning.dark
+                }}
+              />
+            </Stack>
+          </Grid>
+          <Grid item>
+            <Typography component={Link} to="#" variant="subtitle2" color="primary">
+              Mark as all read
+            </Typography>
+          </Grid>
+        </Grid>
+      </Grid>
+      <Grid item xs={12}>
+        <Grid container direction="column" spacing={2}>
+          <Grid item xs={12} p={0}>
+            <Divider sx={{ my: 0 }} />
+          </Grid>
+        </Grid>
+      </Grid>
+    </Grid>
+  );
+};
+
 // ==============================|| NOTIFICATION ||============================== //
 
 const NotificationSection: FC = () => {

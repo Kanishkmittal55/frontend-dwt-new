@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import { memo } from 'react';
 import type { FC } from 'react';
 
@@ -10,7 +9,7 @@ import { Box, Card, CardContent, Grid, LinearProgress, Typography } from '@mui/m
 import { gridSpacing } from 'store/constant';
 
 // assets
-import { IconBrandFramer } from '@tabler/icons';
+import { IconBrandFramer } from '@tabler/icons-react';
 
 // ==============================|| PROGRESS BAR WITH LABEL ||============================== //
 
@@ -22,19 +21,19 @@ interface LinearProgressWithLabelProps {
 const LinearProgressWithLabel: FC<LinearProgressWithLabelProps> = ({ value, ...others }) => {
   return (
     <Grid container direction="column" spacing={1} sx={{ mt: 1.5 }}>
-      <Grid>
+      <Grid item>
         <Grid container justifyContent="space-between">
-          <Grid>
+          <Grid item>
             <Typography variant="h6" sx={{ fontWeight: 500 }}>
               Progress
             </Typography>
           </Grid>
-          <Grid>
+          <Grid item>
             <Typography variant="h6" color="inherit">{`${Math.round(value)}%`}</Typography>
           </Grid>
         </Grid>
       </Grid>
-      <Grid>
+      <Grid item>
         <LinearProgress variant="determinate" value={value} {...others} />
       </Grid>
     </Grid>
@@ -70,17 +69,17 @@ const MenuCard: FC = () => {
     >
       <CardContent sx={{ p: 2 }}>
         <Grid container direction="column" spacing={gridSpacing}>
-          <Grid>
+          <Grid item>
             <Grid container justifyContent="space-between">
-              <Grid>
+              <Grid item>
                 <IconBrandFramer stroke={1.5} size="3rem" color={theme.palette.secondary.dark} />
               </Grid>
             </Grid>
           </Grid>
-          <Grid>
+          <Grid item>
             <LinearProgressWithLabel value={80} />
           </Grid>
-          <Grid>
+          <Grid item>
             <Typography variant="subtitle2" sx={{ color: theme.palette.grey[800] }}>
               Get extra space for your next project
             </Typography>
@@ -89,14 +88,14 @@ const MenuCard: FC = () => {
       </CardContent>
       <Box sx={{ p: 2, pt: 0, mt: -1 }}>
         <Grid container direction="column" spacing={1}>
-          <Grid>
+          <Grid item>
             <Grid container justifyContent="space-between">
-              <Grid>
+              <Grid item>
                 <Typography variant="body2" sx={{ fontWeight: 500 }}>
                   68GB
                 </Typography>
               </Grid>
-              <Grid>
+              <Grid item>
                 <Typography variant="body2" sx={{ fontWeight: 500 }}>
                   / 100GB
                 </Typography>
