@@ -10,7 +10,7 @@ const icons = { IconDashboard };
 
 const dashboard: MenuItem = {
   id: 'dashboard',
-  title: 'Dashboard',
+  title: '', // Empty title to avoid showing group name
   type: 'group',
   children: [
     {

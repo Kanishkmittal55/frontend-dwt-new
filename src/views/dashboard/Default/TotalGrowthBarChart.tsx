@@ -6,8 +6,8 @@ import { useTheme } from '@mui/material/styles';
 import { Grid, MenuItem, TextField, Typography } from '@mui/material';
 
 // third-party
-import ApexCharts from 'apexcharts';
 import Chart from 'react-apexcharts';
+import type { ApexOptions } from 'apexcharts';
 
 // project imports
 import SkeletonTotalGrowthBarChart from 'ui-component/cards/Skeleton/TotalGrowthBarChart';
@@ -28,18 +28,6 @@ const status: StatusOption[] = [
   { value: 'year', label: 'This Year' }
 ];
 
-interface ChartSeries {
-  name: string;
-  data: number[];
-}
-
-const series: ChartSeries[] = [
-  { name: 'Investment', data: [35, 125, 35, 35, 35, 80, 35, 20, 35, 45, 15, 75] },
-  { name: 'Loss', data: [35, 15, 15, 35, 65, 40, 80, 25, 15, 85, 25, 75] },
-  { name: 'Profit', data: [35, 145, 35, 35, 20, 105, 100, 10, 65, 45, 30, 10] },
-  { name: 'Maintenance', data: [0, 0, 75, 0, 0, 115, 0, 0, 0, 0, 150, 0] }
-];
-
 interface TotalGrowthBarChartProps {
   isLoading: boolean;
 }
@@ -48,6 +36,15 @@ const TotalGrowthBarChart: FC<TotalGrowthBarChartProps> = ({ isLoading }) => {
   const theme = useTheme();
 
   const [value, setValue] = useState('today');
+  const [series, setSeries] = useState([
+    { name: 'Investment', data: [35, 125, 35, 35, 35, 80, 35, 20, 35, 45, 15, 75] },
+    { name: 'Loss', data: [35, 15, 15, 35, 65, 40, 80, 25, 15, 85, 25, 75] },
+    { name: 'Profit', data: [35, 145, 35, 35, 20, 105, 100, 10, 65, 45, 30, 10] },
+    { name: 'Maintenance', data: [0, 0, 75, 0, 0, 115, 0, 0, 0, 0, 150, 0] }
+  ]);
+
+  const [options, setOptions] = useState<ApexOptions>(barChartOptions.options);
+
   const { primary } = theme.palette.text;
   const divider = theme.palette.divider;
   const grey500 = theme.palette.grey[500];
@@ -58,10 +55,11 @@ const TotalGrowthBarChart: FC<TotalGrowthBarChartProps> = ({ isLoading }) => {
   const secondaryLight = theme.palette.secondary.light;
 
   useEffect(() => {
-    const newChartData = {
-      ...barChartOptions.options,
+    setOptions((prevState) => ({
+      ...prevState,
       colors: [primary200, primaryDark, secondaryMain, secondaryLight],
       xaxis: {
+        ...prevState.xaxis,
         labels: {
           style: {
             colors: [primary, primary, primary, primary, primary, primary, primary, primary, primary, primary, primary, primary]
@@ -79,20 +77,16 @@ const TotalGrowthBarChart: FC<TotalGrowthBarChartProps> = ({ isLoading }) => {
         borderColor: divider
       },
       tooltip: {
-        theme: 'light'
+        theme: theme.palette.mode === 'dark' ? 'dark' : 'light'
       },
       legend: {
+        ...prevState.legend,
         labels: {
           colors: grey500
         }
       }
-    };
-
-    // do not load chart when loading
-    if (!isLoading) {
-      ApexCharts.exec(`bar-chart`, 'updateOptions', newChartData);
-    }
-  }, [primary200, primaryDark, secondaryMain, secondaryLight, primary, divider, isLoading, grey500]);
+    }));
+  }, [primary200, primaryDark, secondaryMain, secondaryLight, primary, divider, grey500, theme]);
 
   return (
     <>
@@ -125,7 +119,12 @@ const TotalGrowthBarChart: FC<TotalGrowthBarChartProps> = ({ isLoading }) => {
               </Grid>
             </Grid>
             <Grid item xs={12}>
-              <Chart {...barChartOptions} series={series} />
+              <Chart 
+                options={options} 
+                series={series} 
+                type="bar" 
+                height={480}
+              />
             </Grid>
           </Grid>
         </MainCard>

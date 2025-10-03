@@ -36,6 +36,7 @@ import useConfig from 'hooks/useConfig';
 
 // assets
 import { IconLogout, IconSearch, IconSettings, IconUser } from '@tabler/icons-react';
+import userRoundSvg from 'assets/images/users/user-round.svg';
 
 // ==============================|| PROFILE MENU ||============================== //
 
@@ -104,7 +105,7 @@ const ProfileSection: FC = () => {
         }}
         icon={
           <Avatar
-            src="/src/assets/images/users/user-round.svg"
+            src={userRoundSvg}
             sx={{
               ...theme.typography.mediumAvatar,
               margin: '8px 0 8px 8px !important',

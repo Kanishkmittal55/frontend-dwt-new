@@ -1,17 +1,16 @@
 // assets
-import { IconSettings, IconKey, IconUser } from '@tabler/icons-react';
+import { IconSettings } from '@tabler/icons-react';
 
 // constant
 const icons = { 
-  IconSettings,
-  IconKey,
-  IconUser
+  IconSettings
 };
 
 // ==============================|| SETTINGS MENU ITEMS ||============================== //
 
 const settings = {
   id: 'settings-group',
+  title: '', // Empty title to avoid showing group name
   type: 'group',
   children: [
     {

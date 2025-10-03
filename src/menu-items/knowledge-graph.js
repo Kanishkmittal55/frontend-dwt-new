@@ -19,8 +19,7 @@ const icons = {
 
 const knowledgeGraph = {
   id: 'knowledge-graph',
-  title: 'Knowledge Graph',
-  caption: 'WhyHow Knowledge Graph Management',
+  title: '', // Empty title to avoid showing group name
   type: 'group',
   children: [
     {
