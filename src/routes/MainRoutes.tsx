@@ -51,10 +51,6 @@ const MainRoutes = {
       ]
     },
     {
-<<<<<<< Updated upstream:src/routes/MainRoutes.tsx
-      path: 'dashboard/default',
-      element: <DashboardDefault />
-=======
       path: 'settings',
       element: <Settings />
     },
@@ -106,7 +102,6 @@ const MainRoutes = {
           element: <RulesList />
         }
       ]
->>>>>>> Stashed changes:src/routes/MainRoutes.jsx
     },
     {
       path: 'typography',
