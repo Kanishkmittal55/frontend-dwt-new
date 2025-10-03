@@ -13,6 +13,7 @@
     "@tabler/icons-react": "3.31.0",
     "@vitejs/plugin-react": "4.4.1",
     "apexcharts": "4.7.0",
+    "d3": "^7.9.0",
     "framer-motion": "12.10.1",
     "lodash-es": "4.17.21",
     "material-ui-popup-state": "5.3.5",

@@ -15,6 +15,22 @@ const UtilsShadow = Loadable(lazy(() => import('../views/utilities/Shadow')));
 // sample page routing
 const SamplePage = Loadable(lazy(() => import('../views/sample-page')));
 
+// knowledge graph routing
+const WorkspaceList = Loadable(lazy(() => import('views/knowledge-graph/WorkspaceList')));
+const SchemaList = Loadable(lazy(() => import('views/knowledge-graph/SchemaList')));
+const SchemaVisualization = Loadable(lazy(() => import('views/knowledge-graph/SchemaVisualization')));
+const GraphList = Loadable(lazy(() => import('views/knowledge-graph/GraphList')));
+const GraphVisualization = Loadable(lazy(() => import('views/knowledge-graph/GraphVisualization')));
+const NodeList = Loadable(lazy(() => import('views/knowledge-graph/NodeList')));
+const ChunkList = Loadable(lazy(() => import('views/knowledge-graph/ChunkList')));
+const TripleList = Loadable(lazy(() => import('views/knowledge-graph/TripleList')));
+const DocumentList = Loadable(lazy(() => import('views/knowledge-graph/DocumentList')));
+const QueryHistory = Loadable(lazy(() => import('views/knowledge-graph/QueryHistory')));
+const RulesList = Loadable(lazy(() => import('views/knowledge-graph/RulesList')));
+
+// settings
+const Settings = Loadable(lazy(() => import('views/settings/Settings')));
+
 // ==============================|| MAIN ROUTING ||============================== //
 
 const MainRoutes = {
@@ -35,8 +51,62 @@ const MainRoutes = {
       ]
     },
     {
+<<<<<<< Updated upstream:src/routes/MainRoutes.tsx
       path: 'dashboard/default',
       element: <DashboardDefault />
+=======
+      path: 'settings',
+      element: <Settings />
+    },
+    {
+      path: 'knowledge-graph',
+      children: [
+        {
+          path: 'workspaces',
+          element: <WorkspaceList />
+        },
+        {
+          path: 'schemas',
+          element: <SchemaList />
+        },
+        {
+          path: 'schemas/:schemaId',
+          element: <SchemaVisualization />
+        },
+        {
+          path: 'graphs',
+          element: <GraphList />
+        },
+        {
+          path: 'graphs/:graphId',
+          element: <GraphVisualization />
+        },
+        {
+          path: 'nodes',
+          element: <NodeList />
+        },
+        {
+          path: 'triples',
+          element: <TripleList />
+        },
+        {
+          path: 'chunks',
+          element: <ChunkList />
+        },
+        {
+          path: 'documents',
+          element: <DocumentList />
+        },
+        {
+          path: 'queries',
+          element: <QueryHistory />
+        },
+        {
+          path: 'rules',
+          element: <RulesList />
+        }
+      ]
+>>>>>>> Stashed changes:src/routes/MainRoutes.jsx
     },
     {
       path: 'typography',
