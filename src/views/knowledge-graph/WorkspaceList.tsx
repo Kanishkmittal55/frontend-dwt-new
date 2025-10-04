@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
-
-// material-ui
+import { useNavigate } from 'react-router-dom';
 import {
   Button,
   Grid,
   Typography,
   Card,
   CardContent,
-  CardActions,
   IconButton,
   Dialog,
   DialogTitle,
@@ -17,33 +15,26 @@ import {
   Box,
   Alert,
   CircularProgress,
-  Chip,
   Stack
 } from '@mui/material';
-
-// icons
 import { IconPlus, IconEdit, IconTrash, IconRefresh, IconDatabase } from '@tabler/icons-react';
-
-// project imports
 import MainCard from 'ui-component/cards/MainCard';
-import SubCard from 'ui-component/cards/SubCard';
 import { workspaceAPI } from 'api/workspaceAPI';
-
-// ==============================|| WORKSPACE LIST ||============================== //
+import type { Workspace } from 'types/workspace';
 
 export default function WorkspaceList() {
-  const [workspaces, setWorkspaces] = useState([]);
+  const navigate = useNavigate();
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [selectedWorkspace, setSelectedWorkspace] = useState(null);
+  const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: ''
   });
 
-  // Fetch workspaces on component mount
   useEffect(() => {
     fetchWorkspaces();
   }, []);
@@ -55,13 +46,13 @@ export default function WorkspaceList() {
       const response = await workspaceAPI.getWorkspaces();
       setWorkspaces(response.workspaces || []);
     } catch (err) {
-      setError(err.message || 'Failed to fetch workspaces');
+      setError(err instanceof Error ? err.message : 'Failed to fetch workspaces');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOpenDialog = (workspace = null) => {
+  const handleOpenDialog = (workspace: Workspace | null = null) => {
     if (workspace) {
       setEditMode(true);
       setSelectedWorkspace(workspace);
@@ -84,7 +75,7 @@ export default function WorkspaceList() {
     setEditMode(false);
   };
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -103,11 +94,11 @@ export default function WorkspaceList() {
       handleCloseDialog();
       fetchWorkspaces();
     } catch (err) {
-      setError(err.message || 'Operation failed');
+      setError(err instanceof Error ? err.message : 'Operation failed');
     }
   };
 
-  const handleDelete = async (workspaceId) => {
+  const handleDelete = async (workspaceId: string) => {
     if (!window.confirm('Are you sure you want to delete this workspace?')) {
       return;
     }
@@ -117,18 +108,8 @@ export default function WorkspaceList() {
       await workspaceAPI.deleteWorkspace(workspaceId);
       fetchWorkspaces();
     } catch (err) {
-      setError(err.message || 'Failed to delete workspace');
+      setError(err instanceof Error ? err.message : 'Failed to delete workspace');
     }
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
   };
 
   return (
@@ -177,61 +158,54 @@ export default function WorkspaceList() {
           ) : (
             workspaces.map((workspace) => (
               <Grid item xs={12} sm={6} md={4} key={workspace._id}>
-                <SubCard>
+                <Card 
+                  sx={{ 
+                    cursor: 'pointer',
+                    '&:hover': { boxShadow: 3 }
+                  }}
+                  onClick={() => navigate(`/knowledge-graph/workspaces/${workspace._id}`)}
+                >
                   <CardContent>
-                    <Typography variant="h4" gutterBottom>
-                      {workspace.name}
-                    </Typography>
-                    
-                    <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-                      {workspace.description || 'No description provided'}
-                    </Typography>
-
-                    <Box sx={{ mb: 1 }}>
-                      <Chip 
-                        label={`ID: ${workspace._id}`} 
-                        size="small" 
-                        variant="outlined"
-                        sx={{ mb: 1 }}
-                      />
-                    </Box>
-
-                    <Typography variant="caption" display="block" sx={{ mt: 2 }}>
-                      Created: {formatDate(workspace.created_at)}
-                    </Typography>
-                    
-                    {workspace.updated_at && (
-                      <Typography variant="caption" display="block">
-                        Updated: {formatDate(workspace.updated_at)}
+                    <Stack spacing={2}>
+                      <Typography variant="h4">{workspace.name}</Typography>
+                      
+                      <Typography variant="body2" color="textSecondary">
+                        {workspace.description || 'No description'}
                       </Typography>
-                    )}
+
+                      <Stack direction="row" spacing={2}>
+                        <Typography variant="caption">
+                          {workspace.documents?.length || 0} docs
+                        </Typography>
+                        <Typography variant="caption">
+                          {workspace.graphs?.length || 0} graphs
+                        </Typography>
+                      </Stack>
+
+                      <Stack direction="row" spacing={1} onClick={(e) => e.stopPropagation()}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleOpenDialog(workspace)}
+                        >
+                          <IconEdit size={18} />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleDelete(workspace._id)}
+                        >
+                          <IconTrash size={18} />
+                        </IconButton>
+                      </Stack>
+                    </Stack>
                   </CardContent>
-                  
-                  <CardActions>
-                    <Button
-                      size="small"
-                      startIcon={<IconEdit />}
-                      onClick={() => handleOpenDialog(workspace)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      size="small"
-                      color="error"
-                      startIcon={<IconTrash />}
-                      onClick={() => handleDelete(workspace._id)}
-                    >
-                      Delete
-                    </Button>
-                  </CardActions>
-                </SubCard>
+                </Card>
               </Grid>
             ))
           )}
         </Grid>
       )}
 
-      {/* Create/Edit Dialog */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>
           {editMode ? 'Edit Workspace' : 'Create New Workspace'}
@@ -247,7 +221,7 @@ export default function WorkspaceList() {
             value={formData.name}
             onChange={handleInputChange}
             required
-            sx={{ mb: 2 }}
+            sx={{ mt: 1, mb: 2 }}
           />
           <TextField
             margin="dense"

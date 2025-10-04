@@ -1,8 +1,10 @@
 import { lazy } from 'react';
+import { Outlet } from 'react-router-dom';
 
 // project imports
 import MainLayout from 'layout/MainLayout';
 import Loadable from 'ui-component/Loadable';
+import { WorkspaceProvider } from 'contexts/WorkspaceContext';
 
 // dashboard routing
 const DashboardDefault = Loadable(lazy(() => import('views/dashboard/Default')));
@@ -17,6 +19,7 @@ const SamplePage = Loadable(lazy(() => import('views/sample-page')));
 
 // knowledge graph routing
 const WorkspaceList = Loadable(lazy(() => import('views/knowledge-graph/WorkspaceList')));
+const WorkspaceDetail = Loadable(lazy(() => import('views/knowledge-graph/WorkspaceDetail')));
 const SchemaList = Loadable(lazy(() => import('views/knowledge-graph/SchemaList')));
 const SchemaVisualization = Loadable(lazy(() => import('views/knowledge-graph/SchemaVisualization')));
 const GraphList = Loadable(lazy(() => import('views/knowledge-graph/GraphList')));
@@ -62,44 +65,58 @@ const MainRoutes = {
           element: <WorkspaceList />
         },
         {
-          path: 'schemas',
-          element: <SchemaList />
-        },
-        {
-          path: 'schemas/:schemaId',
-          element: <SchemaVisualization />
-        },
-        {
-          path: 'graphs',
-          element: <GraphList />
-        },
-        {
-          path: 'graphs/:graphId',
-          element: <GraphVisualization />
-        },
-        {
-          path: 'nodes',
-          element: <NodeList />
-        },
-        {
-          path: 'triples',
-          element: <TripleList />
-        },
-        {
-          path: 'chunks',
-          element: <ChunkList />
-        },
-        {
-          path: 'documents',
-          element: <DocumentList />
-        },
-        {
-          path: 'queries',
-          element: <QueryHistory />
-        },
-        {
-          path: 'rules',
-          element: <RulesList />
+          path: 'workspaces/:workspaceId',
+          element: (
+            <WorkspaceProvider>
+              <Outlet />
+            </WorkspaceProvider>
+          ),
+          children: [
+            {
+              index: true,
+              element: <WorkspaceDetail />
+            },
+            {
+              path: 'documents',
+              element: <DocumentList />
+            },
+            {
+              path: 'chunks',
+              element: <ChunkList />
+            },
+            {
+              path: 'schemas',
+              element: <SchemaList />
+            },
+            {
+              path: 'schemas/:schemaId',
+              element: <SchemaVisualization />
+            },
+            {
+              path: 'graphs',
+              element: <GraphList />
+            },
+            {
+              path: 'graphs/:graphId',
+              element: <GraphVisualization />
+            },
+            {
+              path: 'nodes',
+              element: <NodeList />
+            },
+            {
+              path: 'triples',
+              element: <TripleList />
+            },
+            {
+              path: 'queries',
+              element: <QueryHistory />
+            },
+            {
+              path: 'rules',
+              element: <RulesList />
+            }
+          ]
         }
       ]
     },
@@ -116,7 +133,7 @@ const MainRoutes = {
       element: <UtilsShadow />
     },
     {
-      path: '/sample-page',
+      path: 'sample-page',
       element: <SamplePage />
     }
   ]

@@ -76,6 +76,7 @@
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
     "@vitest/ui": "^3.2.4",
+    "axios": "^1.12.2",
     "eslint": "9.25.1",
     "eslint-config-prettier": "10.1.2",
     "eslint-plugin-jsx-a11y": "6.10.2",
