@@ -60,7 +60,6 @@ const NavItem: FC<NavItemProps> = ({ item, level, isParents = false, setSelected
           },
           '&.Mui-selected': {
             bgcolor: 'primary.lighter',
-            borderRight: `2px solid ${theme.palette.primary.main}`,
             color: iconSelectedColor,
             '&:hover': {
               color: iconSelectedColor,

@@ -10,18 +10,21 @@ import PopularCard from './PopularCard';
 import TotalOrderLineChartCard from './TotalOrderLineChartCard';
 import TotalGrowthBarChart from './TotalGrowthBarChart';
 import { gridSpacing } from 'store/constant';
+import { useGetMenuMaster } from 'api/menu';
 
 // ==============================|| DEFAULT DASHBOARD ||============================== //
 
 const Dashboard: FC = () => {
   const [isLoading, setLoading] = useState(true);
+  const { menuMaster } = useGetMenuMaster();
+  const drawerOpen = menuMaster.isDashboardDrawerOpened;
 
   useEffect(() => {
     setLoading(false);
   }, []);
 
   return (
-    <Grid container spacing={gridSpacing}>
+    <Grid container spacing={gridSpacing} key={`dashboard-${drawerOpen}`}>
       <Grid size={12}>
         <Grid container spacing={gridSpacing}>
           <Grid size={{ xs: 12, lg: 4 }}>

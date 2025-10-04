@@ -6,14 +6,10 @@ import Typography from '@mui/material/Typography';
 // project imports
 import NavGroup from './NavGroup';
 import menuItems from 'menu-items';
-import { useGetMenuMaster } from 'api/menu';
 
 // ==============================|| SIDEBAR MENU LIST ||============================== //
 
 const MenuList: FC = () => {
-  const { menuMaster } = useGetMenuMaster();
-  const drawerOpen = menuMaster.isDashboardDrawerOpened;
-
   const navItems = menuItems.items.map((item) => {
     switch (item.type) {
       case 'group':
@@ -27,7 +23,7 @@ const MenuList: FC = () => {
     }
   });
 
-  return <Box {...(drawerOpen && { sx: { mt: 1.5 } })}>{navItems}</Box>;
+  return <Box>{navItems}</Box>;
 };
 
 export default memo(MenuList);
