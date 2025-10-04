@@ -1,31 +1,32 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import type { FC } from 'react';
 
 // material-ui
 import { useTheme } from '@mui/material/styles';
-import { Avatar, Box, Grid, Menu, MenuItem, Typography } from '@mui/material';
+import Avatar from '@mui/material/Avatar';
+import Button from '@mui/material/Button';
+import Grid from '@mui/material/Grid';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
 
-// third-party
-import PerfectScrollbar from 'react-perfect-scrollbar';
+// third party
+import Chart from 'react-apexcharts';
 
 // project imports
+import ChartDataMonth from './chart-data/total-order-month-line-chart';
+import ChartDataYear from './chart-data/total-order-year-line-chart';
 import MainCard from 'ui-component/cards/MainCard';
 import SkeletonTotalOrderCard from 'ui-component/cards/Skeleton/EarningCard';
-import { gridSpacing } from 'store/constant';
 
 // assets
 import LocalMallOutlinedIcon from '@mui/icons-material/LocalMallOutlined';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 
-interface TotalOrderLineChartCardProps {
-  isLoading: boolean;
-}
-
-const TotalOrderLineChartCard: FC<TotalOrderLineChartCardProps> = ({ isLoading }) => {
+export default function TotalOrderLineChartCard({ isLoading }) {
   const theme = useTheme();
 
   const [timeValue, setTimeValue] = React.useState(false);
-  const handleChangeTime = (event: React.MouseEvent<HTMLElement>, newValue: boolean) => {
+  const handleChangeTime = (event, newValue) => {
     setTimeValue(newValue);
   };
 
@@ -38,7 +39,7 @@ const TotalOrderLineChartCard: FC<TotalOrderLineChartCardProps> = ({ isLoading }
           border={false}
           content={false}
           sx={{
-            bgcolor: 'secondary.dark',
+            bgcolor: 'primary.dark',
             color: '#fff',
             overflow: 'hidden',
             position: 'relative',
@@ -51,35 +52,35 @@ const TotalOrderLineChartCard: FC<TotalOrderLineChartCardProps> = ({ isLoading }
               position: 'absolute',
               width: 210,
               height: 210,
-              background: theme.palette.secondary[800],
+              background: theme.palette.primary[800],
               borderRadius: '50%',
-              top: { xs: -105, sm: -85 },
-              right: { xs: -140, sm: -95 }
+              top: { xs: -85 },
+              right: { xs: -95 }
             },
             '&:before': {
               content: '""',
               position: 'absolute',
               width: 210,
               height: 210,
-              background: theme.palette.secondary[800],
+              background: theme.palette.primary[800],
               borderRadius: '50%',
-              top: { xs: -155, sm: -125 },
-              right: { xs: -70, sm: -15 },
+              top: { xs: -125 },
+              right: { xs: -15 },
               opacity: 0.5
             }
           }}
         >
           <Box sx={{ p: 2.25 }}>
             <Grid container direction="column">
-              <Grid item>
-                <Grid container justifyContent="space-between">
-                  <Grid item>
+              <Grid>
+                <Grid container sx={{ justifyContent: 'space-between' }}>
+                  <Grid>
                     <Avatar
                       variant="rounded"
                       sx={{
                         ...theme.typography.commonAvatar,
                         ...theme.typography.largeAvatar,
-                        bgcolor: 'secondary.800',
+                        bgcolor: 'primary.800',
                         color: '#fff',
                         mt: 1
                       }}
@@ -87,72 +88,57 @@ const TotalOrderLineChartCard: FC<TotalOrderLineChartCardProps> = ({ isLoading }
                       <LocalMallOutlinedIcon fontSize="inherit" />
                     </Avatar>
                   </Grid>
-                  <Grid item>
-                    <Avatar
-                      variant="rounded"
-                      sx={{
-                        ...theme.typography.commonAvatar,
-                        ...theme.typography.mediumAvatar,
-                        bgcolor: 'secondary.dark',
-                        color: 'secondary.200',
-                        zIndex: 1
-                      }}
-                      aria-controls="menu-total-order"
-                      aria-haspopup="true"
-                      onClick={handleChangeTime}
+                  <Grid>
+                    <Button
+                      disableElevation
+                      variant={timeValue ? 'contained' : 'text'}
+                      size="small"
+                      sx={{ color: 'inherit' }}
+                      onClick={(e) => handleChangeTime(e, true)}
                     >
-                      <ArrowDownwardIcon fontSize="inherit" sx={{ transform: 'rotate3d(1, 1, 1, 45deg)' }} />
-                    </Avatar>
-                    <Menu
-                      id="menu-total-order"
-                      anchorEl={null}
-                      keepMounted
-                      open={Boolean(timeValue)}
-                      onClose={handleChangeTime}
-                      variant="selectedMenu"
-                      anchorOrigin={{
-                        vertical: 'bottom',
-                        horizontal: 'right'
-                      }}
-                      transformOrigin={{
-                        vertical: 'top',
-                        horizontal: 'right'
-                      }}
+                      Month
+                    </Button>
+                    <Button
+                      disableElevation
+                      variant={!timeValue ? 'contained' : 'text'}
+                      size="small"
+                      sx={{ color: 'inherit' }}
+                      onClick={(e) => handleChangeTime(e, false)}
                     >
-                      <MenuItem onClick={handleChangeTime}>Today</MenuItem>
-                      <MenuItem onClick={handleChangeTime}>This Month</MenuItem>
-                      <MenuItem onClick={handleChangeTime}>This Year</MenuItem>
-                    </Menu>
+                      Year
+                    </Button>
                   </Grid>
                 </Grid>
               </Grid>
-              <Grid item sx={{ mb: 0.75 }}>
-                <Grid container alignItems="center">
-                  <Grid item xs={6}>
-                    <Grid container alignItems="center">
-                      <Grid item>
-                        <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>
-                          108
-                        </Typography>
+              <Grid sx={{ mb: 0.75 }}>
+                <Grid container sx={{ alignItems: 'center' }}>
+                  <Grid size={6}>
+                    <Grid container sx={{ alignItems: 'center' }}>
+                      <Grid>
+                        {timeValue ? (
+                          <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>$108</Typography>
+                        ) : (
+                          <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>$961</Typography>
+                        )}
                       </Grid>
-                      <Grid item>
+                      <Grid>
                         <Avatar
                           sx={{
                             ...theme.typography.smallAvatar,
                             cursor: 'pointer',
-                            bgcolor: 'secondary.200',
-                            color: 'secondary.dark'
+                            bgcolor: 'primary.200',
+                            color: 'primary.dark'
                           }}
                         >
                           <ArrowDownwardIcon fontSize="inherit" sx={{ transform: 'rotate3d(1, 1, 1, 45deg)' }} />
                         </Avatar>
                       </Grid>
-                      <Grid item xs={12}>
+                      <Grid size={12}>
                         <Typography
                           sx={{
                             fontSize: '1rem',
                             fontWeight: 500,
-                            color: 'secondary.200'
+                            color: 'primary.200'
                           }}
                         >
                           Total Order
@@ -160,12 +146,16 @@ const TotalOrderLineChartCard: FC<TotalOrderLineChartCardProps> = ({ isLoading }
                       </Grid>
                     </Grid>
                   </Grid>
-                  <Grid item xs={6}>
-                    <PerfectScrollbar>
-                      <Box sx={{ height: 100 }}>
-                        {/* Chart component would go here */}
-                      </Box>
-                    </PerfectScrollbar>
+                  <Grid
+                    size={6}
+                    sx={{
+                      '.apexcharts-tooltip.apexcharts-theme-light': {
+                        color: theme.palette.text.primary,
+                        background: theme.palette.background.default
+                      }
+                    }}
+                  >
+                    {timeValue ? <Chart {...ChartDataMonth} /> : <Chart {...ChartDataYear} />}
                   </Grid>
                 </Grid>
               </Grid>
@@ -175,6 +165,6 @@ const TotalOrderLineChartCard: FC<TotalOrderLineChartCardProps> = ({ isLoading }
       )}
     </>
   );
-};
+}
 
-export default TotalOrderLineChartCard;
+TotalOrderLineChartCard.propTypes = { isLoading: PropTypes.bool };

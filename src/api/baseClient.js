@@ -1,6 +1,8 @@
 // WhyHow API Base Client Configuration
 // Using Vite environment variables
-const API_BASE_URL = import.meta.env.VITE_WHYHOW_API_URL || 'http://localhost:8000';
+// Use proxy in development to avoid CORS issues
+const API_BASE_URL = import.meta.env.VITE_WHYHOW_API_URL || 
+  (import.meta.env.DEV ? '/api' : 'http://localhost:8000');
 const API_KEY = import.meta.env.VITE_WHYHOW_API_KEY || 'bmCRyIf9cSdHUdo7iV46wdllmrVRzcUhgSRCrmzi';
 
 // Base API client with authentication

@@ -1,13 +1,15 @@
+import PropTypes from 'prop-types';
 import { useEffect, useState } from 'react';
-import type { FC } from 'react';
 
 // material-ui
 import { useTheme } from '@mui/material/styles';
-import { Grid, MenuItem, TextField, Typography } from '@mui/material';
+import Grid from '@mui/material/Grid';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
 
-// third-party
+// third party
 import Chart from 'react-apexcharts';
-import type { ApexOptions } from 'apexcharts';
 
 // project imports
 import SkeletonTotalGrowthBarChart from 'ui-component/cards/Skeleton/TotalGrowthBarChart';
@@ -17,33 +19,24 @@ import { gridSpacing } from 'store/constant';
 // chart data
 import barChartOptions from './chart-data/total-growth-bar-chart';
 
-interface StatusOption {
-  value: string;
-  label: string;
-}
-
-const status: StatusOption[] = [
+const status = [
   { value: 'today', label: 'Today' },
   { value: 'month', label: 'This Month' },
   { value: 'year', label: 'This Year' }
 ];
 
-interface TotalGrowthBarChartProps {
-  isLoading: boolean;
-}
+const series = [
+  { name: 'Investment', data: [35, 125, 35, 35, 35, 80, 35, 20, 35, 45, 15, 75] },
+  { name: 'Loss', data: [35, 15, 15, 35, 65, 40, 80, 25, 15, 85, 25, 75] },
+  { name: 'Profit', data: [35, 145, 35, 35, 20, 105, 100, 10, 65, 45, 30, 10] },
+  { name: 'Maintenance', data: [0, 0, 75, 0, 0, 115, 0, 0, 0, 0, 150, 0] }
+];
 
-const TotalGrowthBarChart: FC<TotalGrowthBarChartProps> = ({ isLoading }) => {
+export default function TotalGrowthBarChart({ isLoading }) {
   const theme = useTheme();
 
   const [value, setValue] = useState('today');
-  const [series, setSeries] = useState([
-    { name: 'Investment', data: [35, 125, 35, 35, 35, 80, 35, 20, 35, 45, 15, 75] },
-    { name: 'Loss', data: [35, 15, 15, 35, 65, 40, 80, 25, 15, 85, 25, 75] },
-    { name: 'Profit', data: [35, 145, 35, 35, 20, 105, 100, 10, 65, 45, 30, 10] },
-    { name: 'Maintenance', data: [0, 0, 75, 0, 0, 115, 0, 0, 0, 0, 150, 0] }
-  ]);
-
-  const [options, setOptions] = useState<ApexOptions>(barChartOptions.options);
+  const [chartOptions, setChartOptions] = useState(barChartOptions);
 
   const { primary } = theme.palette.text;
   const divider = theme.palette.divider;
@@ -55,38 +48,25 @@ const TotalGrowthBarChart: FC<TotalGrowthBarChartProps> = ({ isLoading }) => {
   const secondaryLight = theme.palette.secondary.light;
 
   useEffect(() => {
-    setOptions((prevState) => ({
-      ...prevState,
+    setChartOptions((prev) => ({
+      ...prev,
       colors: [primary200, primaryDark, secondaryMain, secondaryLight],
       xaxis: {
-        ...prevState.xaxis,
-        labels: {
-          style: {
-            colors: [primary, primary, primary, primary, primary, primary, primary, primary, primary, primary, primary, primary]
-          }
-        }
+        ...prev.xaxis,
+        labels: { style: { colors: primary } }
       },
       yaxis: {
-        labels: {
-          style: {
-            colors: [primary]
-          }
-        }
+        labels: { style: { colors: primary } }
       },
-      grid: {
-        borderColor: divider
-      },
-      tooltip: {
-        theme: theme.palette.mode === 'dark' ? 'dark' : 'light'
-      },
+      grid: { ...prev.grid, borderColor: divider },
+      tooltip: { theme: 'light' },
       legend: {
-        ...prevState.legend,
-        labels: {
-          colors: grey500
-        }
+        ...prev.legend,
+        labels: { ...prev.legend?.labels, colors: grey500 }
       }
     }));
-  }, [primary200, primaryDark, secondaryMain, secondaryLight, primary, divider, grey500, theme]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme.palette]);
 
   return (
     <>
@@ -95,19 +75,19 @@ const TotalGrowthBarChart: FC<TotalGrowthBarChartProps> = ({ isLoading }) => {
       ) : (
         <MainCard>
           <Grid container spacing={gridSpacing}>
-            <Grid item xs={12}>
-              <Grid container alignItems="center" justifyContent="space-between">
-                <Grid item>
+            <Grid size={12}>
+              <Grid container sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                <Grid>
                   <Grid container direction="column" spacing={1}>
-                    <Grid item>
+                    <Grid>
                       <Typography variant="subtitle2">Total Growth</Typography>
                     </Grid>
-                    <Grid item>
+                    <Grid>
                       <Typography variant="h3">$2,324.00</Typography>
                     </Grid>
                   </Grid>
                 </Grid>
-                <Grid item>
+                <Grid>
                   <TextField id="standard-select-currency" select value={value} onChange={(e) => setValue(e.target.value)}>
                     {status.map((option) => (
                       <MenuItem key={option.value} value={option.value}>
@@ -118,19 +98,34 @@ const TotalGrowthBarChart: FC<TotalGrowthBarChartProps> = ({ isLoading }) => {
                 </Grid>
               </Grid>
             </Grid>
-            <Grid item xs={12}>
-              <Chart 
-                options={options} 
-                series={series} 
-                type="bar" 
-                height={480}
-              />
+            <Grid
+              size={12}
+              sx={{
+                ...theme.applyStyles('light', {
+                  '& .apexcharts-series:nth-of-type(4) path:hover': {
+                    filter: `brightness(0.95)`,
+                    transition: 'all 0.3s ease'
+                  }
+                }),
+                '& .apexcharts-menu': {
+                  bgcolor: 'background.paper'
+                },
+                '.apexcharts-theme-light .apexcharts-menu-item:hover': {
+                  bgcolor: 'grey.200'
+                },
+                '& .apexcharts-theme-light .apexcharts-menu-icon:hover svg, .apexcharts-theme-light .apexcharts-reset-icon:hover svg, .apexcharts-theme-light .apexcharts-selection-icon:not(.apexcharts-selected):hover svg, .apexcharts-theme-light .apexcharts-zoom-icon:not(.apexcharts-selected):hover svg, .apexcharts-theme-light .apexcharts-zoomin-icon:hover svg, .apexcharts-theme-light .apexcharts-zoomout-icon:hover svg':
+                  {
+                    fill: theme.palette.grey[400]
+                  }
+              }}
+            >
+              <Chart options={chartOptions} series={series} type="bar" height={480} />
             </Grid>
           </Grid>
         </MainCard>
       )}
     </>
   );
-};
+}
 
-export default TotalGrowthBarChart;
+TotalGrowthBarChart.propTypes = { isLoading: PropTypes.bool };
