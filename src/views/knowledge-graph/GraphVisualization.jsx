@@ -50,7 +50,7 @@ import {
   IconDownload,
   IconSearch,
   IconPlus,
-  IconMerge,
+  IconGitMerge,
   IconTrash
 } from '@tabler/icons-react';
 
@@ -520,7 +520,7 @@ export default function GraphVisualization() {
               {selectedNodes.length >= 2 && (
                 <Button
                   size="small"
-                  startIcon={<IconMerge />}
+                  startIcon={<IconGitMerge />}
                   onClick={() => setMergeDialogOpen(true)}
                   sx={{ ml: 2 }}
                 >
@@ -558,14 +558,17 @@ export default function GraphVisualization() {
                 <ListItemText
                   primary={node.name || node.value}
                   secondary={
-                    <Box>
-                      <Typography variant="caption">Type: {node.type || 'Unknown'}</Typography>
+                    // Remove Box wrapper - return a plain string or React.Fragment
+                    <>
+                      <Typography variant="caption" component="span" display="block">
+                        Type: {node.type || 'Unknown'}
+                      </Typography>
                       {node.properties && Object.keys(node.properties).length > 0 && (
-                        <Typography variant="caption" display="block">
+                        <Typography variant="caption" component="span" display="block">
                           Properties: {JSON.stringify(node.properties)}
                         </Typography>
                       )}
-                    </Box>
+                    </>
                   }
                 />
               </ListItem>

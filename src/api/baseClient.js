@@ -85,6 +85,18 @@ class WhyHowClient {
   async delete(endpoint) {
     return this.request(endpoint, { method: 'DELETE' });
   }
+
+  async loadDemoData() {
+    try {
+      console.log('Loading demo workspace...');
+      const response = await this.post('/workspaces/demo', {});
+      console.log('Demo workspace created successfully:', response);
+      return response;
+    } catch (error) {
+      console.error('Failed to load demo data:', error);
+      throw error;
+    }
+  }
 }
 
 // Export the base client for use in other API modules
