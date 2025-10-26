@@ -20,20 +20,20 @@
     "exactOptionalPropertyTypes": true,
     "noImplicitReturns": true,
     
-    // Path mapping for clean imports
-    "baseUrl": "src",
+    // Path aliases mapping for cleaner imports (shadcn/ui compatible)
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["*"],
-      "@/components/*": ["ui-component/*"],
-      "@/views/*": ["views/*"],
-      "@/layout/*": ["layout/*"],
-      "@/themes/*": ["themes/*"],
-      "@/assets/*": ["assets/*"],
-      "@/utils/*": ["utils/*"],
-      "@/hooks/*": ["hooks/*"],
-      "@/contexts/*": ["contexts/*"],
-      "@/api/*": ["api/*"],
-      "@/types/*": ["types/*"]
+      "@/*": ["./src/*"], // @/anything -> src/anything
+      "@/components/*": ["./src/ui-component/*"],
+      "@/views/*": ["./src/views/*"],
+      "@/layout/*": ["./src/layout/*"],
+      "@/themes/*": ["./src/themes/*"],
+      "@/assets/*": ["./src/assets/*"],
+      "@/utils/*": ["./src/utils/*"],
+      "@/hooks/*": ["./src/hooks/*"],
+      "@/contexts/*": ["./src/contexts/*"],
+      "@/api/*": ["./src/api/*"],
+      "@/types/*": ["./src/types/*"]
     }
   },
   "include": [
@@ -49,6 +49,6 @@
     "build"
   ],
   "references": [
-    { "path": "./tsconfig.node.json" }
+    { "path": "./tsconfig.node.json" } // Links to the Node config for build tools
   ]
 }

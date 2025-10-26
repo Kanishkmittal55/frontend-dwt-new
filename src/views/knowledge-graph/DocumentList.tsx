@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
+import Grid from '@mui/material/Grid';
 import {
   Button,
-  Grid,
   Typography,
   Box,
   Alert,
@@ -20,9 +20,9 @@ import MainCard from 'ui-component/cards/MainCard';
 import { documentAPI } from 'api/documentAPI';
 import { useWorkspace } from 'contexts/WorkspaceContext';
 import type { Document } from 'types/document';
-import DocumentCard from './components/DocumentCard';
-import DocumentUploadDialog from './components/DocumentUploadDialog';
-import DocumentViewDialog from './components/DcoumentViewDialog';
+import DocumentCard from './components/documents/DocumentCard';
+import DocumentUploadDialog from './components/documents/DocumentUploadDialog';
+import DocumentViewDialog from './components/documents/DocumentViewDialog';
 
 export default function DocumentList() {
   const { workspaceId, workspace, loading: workspaceLoading } = useWorkspace();
@@ -68,14 +68,47 @@ export default function DocumentList() {
     }
   };
 
-  const handleProcess = async (documentId: string) => {
-    try {
-      await documentAPI.processDocument(documentId);
-      fetchDocuments();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to process document');
-    }
-  };
+  const handleProcess = async (
+       documentId: string,
+       config?: { chunk_size?: number; chunk_overlap?: number }
+     ) => {
+       try {
+         await documentAPI.processDocument(documentId, config);
+         console.log('🔵 Processing API call succeeded for document:', documentId);
+    
+         // poll until processed/failed (mirrors your test logic)
+         const maxMs = 60_000; // Increased to 60s
+         const intervalMs = 1000; // Check every 1s
+         const started = Date.now();
+         let pollCount = 0;
+    
+         while (true) {
+          pollCount++;
+          const single = await documentAPI.getDocument(documentId);
+          const doc = single.documents?.[0];
+          const elapsed = Math.round((Date.now() - started) / 1000);
+          
+          console.log(`📊 Poll #${pollCount} (${elapsed}s): Document status = "${doc?.status}"`);
+          
+           if (doc?.status === 'processed' || doc?.status === 'failed') {
+             console.log(`✅ Processing ${doc.status === 'processed' ? 'completed' : 'failed'} after ${elapsed}s`);
+             await fetchDocuments();
+             break;
+           }
+           if (Date.now() - started > maxMs) {
+             console.warn(`⚠️ Processing timeout after ${elapsed}s - status still "${doc?.status}"`);
+             setError(`Processing timeout: Document status is still "${doc?.status}". Check backend logs.`);
+             await fetchDocuments();
+             break;
+           }
+           await new Promise(r => setTimeout(r, intervalMs));
+         }
+       } catch (err) {
+         console.error('❌ Processing failed:', err);
+         setError(err instanceof Error ? err.message : 'Failed to process document');
+         await fetchDocuments();
+       }
+     };
 
   const filteredDocuments = documents.filter(doc =>
     doc.metadata.filename.toLowerCase().includes(searchTerm.toLowerCase())
@@ -110,13 +143,6 @@ export default function DocumentList() {
           >
             Upload
           </Button>
-          <Button
-            startIcon={<IconRefresh />}
-            onClick={fetchDocuments}
-            size="small"
-          >
-            Refresh
-          </Button>
         </Stack>
       }
     >
@@ -148,7 +174,7 @@ export default function DocumentList() {
       ) : (
         <Grid container spacing={3}>
           {filteredDocuments.length === 0 ? (
-            <Grid item xs={12}>
+            <Grid size={12}>
               <Box textAlign="center" py={4}>
                 <IconFileText size={48} stroke={1} />
                 <Typography variant="h5" sx={{ mt: 2, mb: 1 }}>
@@ -161,7 +187,7 @@ export default function DocumentList() {
             </Grid>
           ) : (
             filteredDocuments.map((document) => (
-              <Grid item xs={12} md={6} lg={4} key={document._id}>
+              <Grid size={{ xs: 12, md: 6, lg: 4 }} key={document._id}>
                 <DocumentCard
                   document={document}
                   onView={() => {

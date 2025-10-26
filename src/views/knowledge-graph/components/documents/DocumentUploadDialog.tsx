@@ -44,11 +44,11 @@ export default function DocumentUploadDialog({
 
   const handleUpload = async () => {
     if (!file) return;
-
+  
     setUploading(true);
     setError(null);
     setUploadProgress(0);
-
+  
     try {
       // Step 1: Generate presigned URL
       setUploadProgress(10);
@@ -56,10 +56,9 @@ export default function DocumentUploadDialog({
         file.name,
         workspaceId
       );
-
-      // Extract document ID from presigned response
+      
       const documentId = presignedResponse.fields['x-amz-meta-document-id'];
-
+  
       // Step 2: Upload file to MinIO
       setUploadProgress(30);
       const formData = new FormData();
@@ -67,31 +66,24 @@ export default function DocumentUploadDialog({
         formData.append(key, value as string);
       });
       formData.append('file', file);
-
+  
       const uploadResponse = await fetch(presignedResponse.url, {
         method: 'POST',
         body: formData
       });
-
+  
       if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        throw new Error(`Upload failed: ${uploadResponse.status} - ${errorText}`);
+        throw new Error(`Upload failed: ${uploadResponse.status}`);
       }
-
-      setUploadProgress(70);
-
-      // Step 3: Trigger document processing
-      // This creates the MongoDB record
-      try {
-        await documentAPI.processDocument(documentId);
-        setUploadProgress(100);
-      } catch (processErr) {
-        console.warn('Document uploaded but processing failed:', processErr);
-        // Don't fail the upload if processing fails - it can be retried
-      }
-
+  
+      setUploadProgress(100);
+  
+      // DO NOT CALL processDocument here anymore!
+      // Remove these lines if they exist:
+      // await documentAPI.processDocument(documentId);
+  
       handleClose();
-      onSuccess();
+      onSuccess(); // This will refresh the document list
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
@@ -128,7 +120,7 @@ export default function DocumentUploadDialog({
             type="file"
             hidden
             onChange={(e) => setFile(e.target.files?.[0] || null)}
-            accept=".pdf,.csv,.json,.txt,.doc,.docx"
+            accept=".pdf,.csv,.json,.txt"
           />
         </Button>
 
@@ -138,7 +130,7 @@ export default function DocumentUploadDialog({
             <Typography variant="caption" color="textSecondary" sx={{ mt: 1 }}>
               {uploadProgress < 30 && 'Preparing upload...'}
               {uploadProgress >= 30 && uploadProgress < 70 && 'Uploading file...'}
-              {uploadProgress >= 70 && 'Processing document...'}
+              {uploadProgress >= 70 && 'Finalizing...'}
             </Typography>
           </Box>
         )}

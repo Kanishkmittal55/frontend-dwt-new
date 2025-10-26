@@ -3,7 +3,7 @@
 // Use proxy in development to avoid CORS issues
 const API_BASE_URL = import.meta.env.VITE_WHYHOW_API_URL || 
   (import.meta.env.DEV ? '/api' : 'http://localhost:8000');
-const API_KEY = import.meta.env.VITE_WHYHOW_API_KEY || 'bmCRyIf9cSdHUdo7iV46wdllmrVRzcUhgSRCrmzi';
+const API_KEY = import.meta.env.VITE_WHYHOW_API_KEY || 'U19yOV71339oqVIi5NZv3Ptj1uCBWf4rE0odlImE';
 
 // Base API client with authentication
 class WhyHowClient {
