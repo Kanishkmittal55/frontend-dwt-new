@@ -5,9 +5,17 @@ import { Outlet } from 'react-router-dom';
 import MainLayout from 'layout/MainLayout';
 import Loadable from 'ui-component/Loadable';
 import { WorkspaceProvider } from 'contexts/WorkspaceContext';
+import { AuthProvider } from 'contexts/AuthContext';
+import { FounderProvider } from 'contexts/FounderContext';
+import ProtectedRoute from './ProtectedRoute';
 
 // dashboard routing
 const DashboardDefault = Loadable(lazy(() => import('views/dashboard/Default')));
+
+// founder routing
+const FounderDashboard = Loadable(lazy(() => import('views/founder/dashboard/FounderDashboard')));
+const OnboardingWizard = Loadable(lazy(() => import('views/founder/onboarding/OnboardingWizard')));
+const IdeasDashboard = Loadable(lazy(() => import('views/founder/ideas/IdeasDashboard')));
 
 // utilities routing
 const UtilsTypography = Loadable(lazy(() => import('views/utilities/Typography')));
@@ -38,7 +46,15 @@ const Settings = Loadable(lazy(() => import('views/settings/Settings')));
 
 const MainRoutes = {
   path: '/',
-  element: <MainLayout />,
+  element: (
+    <AuthProvider>
+      <ProtectedRoute>
+        <FounderProvider>
+          <MainLayout />
+        </FounderProvider>
+      </ProtectedRoute>
+    </AuthProvider>
+  ),
   children: [
     {
       path: 'dashboard',
@@ -46,6 +62,24 @@ const MainRoutes = {
         {
           path: 'default',
           element: <DashboardDefault />
+        }
+      ]
+    },
+    // Founder OS routes
+    {
+      path: 'founder',
+      children: [
+        {
+          path: 'dashboard',
+          element: <FounderDashboard />
+        },
+        {
+          path: 'ideas',
+          element: <IdeasDashboard />
+        },
+        {
+          path: 'onboarding',
+          element: <OnboardingWizard />
         }
       ]
     },

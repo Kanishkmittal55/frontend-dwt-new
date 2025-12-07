@@ -8,6 +8,7 @@
     "@fontsource/inter": "5.2.5",
     "@fontsource/poppins": "5.2.6",
     "@fontsource/roboto": "5.2.5",
+    "@hookform/resolvers": "^5.2.2",
     "@mui/icons-material": "7.1.0",
     "@mui/material": "7.1.0",
     "@tabler/icons-react": "3.31.0",
@@ -22,6 +23,7 @@
     "react": "19.1.0",
     "react-apexcharts": "1.7.0",
     "react-dom": "19.1.0",
+    "react-hook-form": "^7.68.0",
     "react-perfect-scrollbar": "1.5.8",
     "react-router": "7.5.3",
     "react-router-dom": "7.5.3",
@@ -31,7 +33,8 @@
     "vite": "6.3.5",
     "vite-jsconfig-paths": "2.0.1",
     "web-vitals": "5.0.0",
-    "yup": "1.6.1"
+    "yup": "1.6.1",
+    "zod": "^4.1.13"
   },
   "scripts": {
     "dev": "vite",
@@ -46,7 +49,8 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "generate:types": "openapi-typescript ../../users/docs/api/index.yml -o src/types/api.gen.ts"
   },
   "eslintConfig": {
     "extends": [
@@ -86,6 +90,7 @@
     "eslint-plugin-react": "7.37.5",
     "eslint-plugin-react-hooks": "5.2.0",
     "jsdom": "24.1.3",
+    "openapi-typescript": "^7.10.1",
     "prettier": "3.5.3",
     "sass": "1.87.0",
     "typescript": "^5.9.2",

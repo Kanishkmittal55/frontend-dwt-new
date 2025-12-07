@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FC } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // material-ui
 import { useTheme } from '@mui/material/styles';
@@ -33,6 +34,7 @@ import MainCard from 'ui-component/cards/MainCard';
 import Transitions from 'ui-component/extended/Transitions';
 import UpgradePlanCard from './UpgradePlanCard';
 import useConfig from 'hooks/useConfig';
+import { useAuth } from 'contexts/AuthContext';
 
 // assets
 import { IconLogout, IconSearch, IconSettings, IconUser } from '@tabler/icons-react';
@@ -42,7 +44,10 @@ import userRoundSvg from 'assets/images/users/user-round.svg';
 
 const ProfileSection: FC = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const { borderRadius } = useConfig();
+  const { user, logout } = useAuth();
+  
   const [sdm, setSdm] = useState(true);
   const [value, setValue] = useState('');
   const [notification, setNotification] = useState(false);
@@ -65,8 +70,16 @@ const ProfileSection: FC = () => {
     handleClose(event as any);
 
     if (route && route !== '') {
-      // navigate(route);
+      navigate(route);
     }
+  };
+
+  /**
+   * Handle logout
+   */
+  const handleLogout = () => {
+    setOpen(false);
+    logout();
   };
   const handleToggle = () => {
     setOpen((prevOpen) => !prevOpen);
@@ -151,12 +164,12 @@ const ProfileSection: FC = () => {
                   <Box sx={{ p: 2, pb: 0 }}>
                     <Stack>
                       <Stack direction="row" spacing={0.5} alignItems="center">
-                        <Typography variant="h4">Good Morning,</Typography>
+                        <Typography variant="h4">Welcome,</Typography>
                         <Typography component="span" variant="h4" sx={{ fontWeight: 400 }}>
-                          Johne Doe
+                          {user?.first_name || 'User'}
                         </Typography>
                       </Stack>
-                      <Typography variant="subtitle2">Project Admin</Typography>
+                      <Typography variant="subtitle2">{user?.email || ''}</Typography>
                     </Stack>
                     <OutlinedInput
                       sx={{ width: '100%', pr: 1, pl: 2, my: 2 }}
@@ -280,7 +293,7 @@ const ProfileSection: FC = () => {
                         <ListItemButton
                           sx={{ borderRadius: `${borderRadius}px` }}
                           selected={selectedIndex === 4}
-                          onClick={(event: React.MouseEvent<HTMLDivElement>) => handleListItemClick(event, 4)}
+                          onClick={handleLogout}
                         >
                           <ListItemIcon>
                             <IconLogout stroke={1.5} size="1.3rem" />

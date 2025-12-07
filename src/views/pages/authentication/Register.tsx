@@ -9,8 +9,8 @@ import Typography from '@mui/material/Typography';
 import useTheme from '@mui/material/styles/useTheme';
 
 // project imports
-import AuthWrapper1 from '../AuthWrapper1';
-import AuthCardWrapper from '../AuthCardWrapper';
+import AuthWrapper1 from './AuthWrapper1';
+import AuthCardWrapper from './AuthCardWrapper';
 import AuthRegister from '../auth-forms/AuthRegister';
 import Logo from 'ui-component/Logo';
 import AuthFooter from 'ui-component/cards/AuthFooter';

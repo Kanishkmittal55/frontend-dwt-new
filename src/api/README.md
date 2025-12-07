@@ -114,7 +114,72 @@ import whyhowAPI from 'api';
 ## Configuration
 
 API URL and key are configured via environment variables in `.env`:
+
 ```env
+# WhyHow Knowledge Graph API
 VITE_WHYHOW_API_URL=http://localhost:8000
 VITE_WHYHOW_API_KEY=your-api-key-here
+
+# Founder OS API
+VITE_FOUNDER_API_URL=http://localhost:8000
+VITE_FOUNDER_API_KEY=your-founder-api-key-here
 ```
+
+---
+
+# Founder OS API Client
+
+## Overview
+The Founder OS API client provides integration with the Go-based backend for founder profile management, idea review, daily tasks, and progress tracking.
+
+## File Structure
+
+```
+src/api/founder/
+├── founderClient.ts    # Base HTTP client with auth & error handling
+├── schemas.ts          # Zod validation schemas for all types
+└── index.ts            # Main export file
+```
+
+## Usage
+
+```typescript
+import { founderClient, schemas } from 'api/founder';
+import type { FounderProfile, IdeaResponse } from 'api/founder';
+
+// Make API calls
+const profile = await founderClient.get<FounderProfile>('/v1/founder/profile/123');
+
+// Validate responses
+const validated = schemas.FounderProfileSchema.parse(profile);
+```
+
+## Token Management
+
+```typescript
+import { 
+  setStoredToken, 
+  getStoredUserId, 
+  clearStoredAuth,
+  isAuthenticated 
+} from 'api/founder';
+
+// After login
+setStoredToken(response.refresh_token);
+setStoredUserId(response.id);
+
+// Check auth state
+if (isAuthenticated()) {
+  // User is logged in
+}
+
+// Logout
+clearStoredAuth();
+```
+
+## Error Handling
+
+The client automatically:
+- Parses `{ "error": "string" }` responses from Go backend
+- Redirects to `/login` on 401 Unauthorized
+- Clears stored tokens on auth errors

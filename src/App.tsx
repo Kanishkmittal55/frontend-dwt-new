@@ -8,7 +8,8 @@ import NavigationScroll from 'layout/NavigationScroll';
 
 import ThemeCustomization from 'themes';
 
-// auth provider
+// Note: AuthProvider is used inside route components since RouterProvider 
+// creates its own context. Components that need auth should use useAuth hook.
 
 // ==============================|| APP ||============================== //
 
