@@ -1025,7 +1025,7 @@ export interface components {
              */
             expires_at?: string;
         };
-        /** @description Request body for creating a new founder profile */
+        /** @description Request body for creating a new founder profile (research-backed fields) */
         CreateFounderProfileRequest: {
             /**
              * Format: int32
@@ -1039,7 +1039,7 @@ export interface components {
              */
             display_name?: string;
             /**
-             * @description Skill ratings as key-value pairs where key is skill name and value is proficiency level (1-10)
+             * @description Skill ratings as key-value pairs (1-10)
              * @example {
              *       "python": 8,
              *       "go": 7,
@@ -1052,7 +1052,7 @@ export interface components {
             /**
              * Format: int32
              * @description Total years of professional experience
-             * @example 2
+             * @example 5
              */
             years_experience?: number;
             /**
@@ -1070,8 +1070,8 @@ export interface components {
             industry_background?: string[];
             /**
              * Format: int32
-             * @description Available hours per week for side projects (default 10)
-             * @example 10
+             * @description Available hours per week for side projects
+             * @example 20
              */
             hours_per_week?: number;
             /**
@@ -1081,18 +1081,18 @@ export interface components {
             has_day_job?: boolean;
             /**
              * Format: int32
-             * @description Available budget in USD for side projects
-             * @example 500
+             * @description Available budget in USD
+             * @example 5000
              */
             budget_available?: number;
             /**
-             * @description Founder's risk tolerance level (default medium)
+             * @description Founder's risk tolerance level
              * @example medium
              * @enum {string}
              */
             risk_tolerance?: "low" | "medium" | "high";
             /**
-             * @description Primary goal for pursuing business ideas (default side_income)
+             * @description Primary goal for business
              * @example side_income
              * @enum {string}
              */
@@ -1100,17 +1100,17 @@ export interface components {
             /**
              * Format: int32
              * @description Target monthly income in USD
-             * @example 3000
+             * @example 5000
              */
             target_monthly_income?: number;
             /**
-             * @description Preferred work style (default solo)
+             * @description Preferred work style
              * @example solo
              * @enum {string}
              */
             work_style?: "solo" | "small_team" | "large_team";
             /**
-             * @description Constraints as key-value pairs where key is constraint type and value is whether it applies
+             * @description Constraints (key-value boolean pairs)
              * @example {
              *       "no_frontend": true,
              *       "limited_design_budget": true
@@ -1119,6 +1119,255 @@ export interface components {
             constraints?: {
                 [key: string]: boolean;
             };
+            /**
+             * @description Industries the founder wants to focus on
+             * @example [
+             *       "saas",
+             *       "ai",
+             *       "fintech"
+             *     ]
+             */
+            preferred_industries?: string[];
+            /**
+             * @description Industries the founder wants to avoid
+             * @example [
+             *       "gambling",
+             *       "adult"
+             *     ]
+             */
+            avoided_industries?: string[];
+            /**
+             * Format: int32
+             * @description Number of previous ventures founded
+             * @example 2
+             */
+            prior_startup_count?: number;
+            /**
+             * @description Type of startup experience (founding > early employee > late)
+             * @example cofounder
+             * @enum {string}
+             */
+            startup_experience_type?: "none" | "employee_late" | "employee_early" | "cofounder" | "solo_founder";
+            /**
+             * Format: int32
+             * @description Number of successful exits
+             * @example 1
+             */
+            successful_exits?: number;
+            /**
+             * Format: int32
+             * @description Years in management roles
+             * @example 3
+             */
+            management_experience_years?: number;
+            /**
+             * Format: int32
+             * @description Largest team size managed
+             * @example 10
+             */
+            largest_team_managed?: number;
+            /**
+             * @description Domain expertise areas with depth
+             * @example [
+             *       {
+             *         "domain": "fintech",
+             *         "depth_score": 8,
+             *         "years": 5,
+             *         "customer_exposure": true
+             *       }
+             *     ]
+             */
+            domain_expertise?: {
+                domain?: string;
+                depth_score?: number;
+                years?: number;
+                customer_exposure?: boolean;
+            }[];
+            /**
+             * @description Customer problems deeply understood (MOST PREDICTIVE - Shepherd 2005)
+             * @example [
+             *       {
+             *         "problem_area": "payment processing for SMBs",
+             *         "depth": 9,
+             *         "source": "professional"
+             *       }
+             *     ]
+             */
+            customer_problem_knowledge?: {
+                problem_area?: string;
+                depth?: number;
+                /** @enum {string} */
+                source?: "personal" | "professional" | "research";
+            }[];
+            /**
+             * @description Technologies known
+             * @example [
+             *       {
+             *         "technology": "kubernetes",
+             *         "proficiency": 7,
+             *         "years_used": 3
+             *       }
+             *     ]
+             */
+            technology_familiarity?: {
+                technology?: string;
+                proficiency?: number;
+                years_used?: number;
+            }[];
+            /**
+             * @description Entrepreneurial Self-Efficacy scores (5 dimensions)
+             * @example {
+             *       "marketing": 6,
+             *       "innovation": 8,
+             *       "management": 7,
+             *       "risk_taking": 7,
+             *       "financial_control": 5
+             *     }
+             */
+            ese_scores?: {
+                marketing?: number;
+                innovation?: number;
+                management?: number;
+                risk_taking?: number;
+                financial_control?: number;
+            };
+            /**
+             * Format: int32
+             * @description Bias toward action vs analysis (Gielnik 2020)
+             * @example 7
+             */
+            action_orientation?: number;
+            /**
+             * Format: int32
+             * @description Persistence through adversity (Murnieks 2020)
+             * @example 8
+             */
+            grit_score?: number;
+            /**
+             * @description Learning velocity (Dimov 2017)
+             * @example high
+             * @enum {string}
+             */
+            learning_agility?: "low" | "medium" | "high";
+            /**
+             * Format: int32
+             * @description Big Five trait (Zhao 2010)
+             * @example 8
+             */
+            openness_to_experience?: number;
+            /**
+             * Format: int32
+             * @description Achievement motivation (Rauch & Frese 2007)
+             * @example 9
+             */
+            need_for_achievement?: number;
+            /**
+             * @description Overall network strength
+             * @example moderate
+             * @enum {string}
+             */
+            network_strength?: "weak" | "moderate" | "strong";
+            /**
+             * @description Industry-specific network depth
+             * @example connected
+             * @enum {string}
+             */
+            industry_network_depth?: "none" | "peripheral" | "connected" | "well_connected";
+            /**
+             * @description Has access to experienced mentors
+             * @example true
+             */
+            mentor_access?: boolean;
+            /**
+             * @description Has connections to potential investors
+             * @example false
+             */
+            investor_network?: boolean;
+            /**
+             * @description Causal (goal-first) vs Effectual (means-first)
+             * @example effectual
+             * @enum {string}
+             */
+            decision_style?: "causal" | "effectual" | "mixed";
+            /**
+             * @description Quality tier of prior employer
+             * @example enterprise
+             * @enum {string}
+             */
+            prior_employer_tier?: "startup" | "smb" | "enterprise" | "faang" | "unknown";
+            /**
+             * @description Functions worked in (jack of all trades indicator)
+             * @example [
+             *       "engineering",
+             *       "product",
+             *       "sales"
+             *     ]
+             */
+            functional_areas_experienced?: string[];
+            /**
+             * Format: int32
+             * @description Number of failed ventures
+             * @example 1
+             */
+            failure_count?: number;
+            /**
+             * @description How founder attributes past failures
+             * @example mixed
+             * @enum {string}
+             */
+            failure_attribution?: "internal" | "external" | "mixed" | "unknown";
+            /**
+             * @description Highest education level
+             * @example masters
+             * @enum {string}
+             */
+            education_level?: "high_school" | "bachelors" | "masters" | "phd" | "unknown";
+            /**
+             * @description Has formal entrepreneurship training
+             * @example true
+             */
+            entrepreneurship_education?: boolean;
+            /**
+             * @description Has technical/STEM education
+             * @example true
+             */
+            technical_education?: boolean;
+            /**
+             * @description AI tool proficiency scores (1-10)
+             * @example {
+             *       "chatgpt": 9,
+             *       "copilot": 8,
+             *       "cursor": 9,
+             *       "midjourney": 5
+             *     }
+             */
+            ai_tool_proficiency?: {
+                [key: string]: number;
+            };
+            /**
+             * @description Tasks founder cannot do without AI
+             * @example [
+             *       "coding",
+             *       "writing",
+             *       "research"
+             *     ]
+             */
+            ai_task_dependence?: string[];
+            /**
+             * @description Philosophy on AI use
+             * @example balanced
+             * @enum {string}
+             */
+            ai_augmentation_style?: "minimal" | "balanced" | "heavy";
+            /**
+             * @description Skills founder has independent of AI (resilience)
+             * @example [
+             *       "system_design",
+             *       "architecture",
+             *       "sales"
+             *     ]
+             */
+            core_skills_without_ai?: string[];
         };
         /** @description Represents a founder's profile with skills, constraints, and preferences. */
         FounderProfile: {
@@ -1227,7 +1476,7 @@ export interface components {
              *       {
              *         "name": "Chrome Extension",
              *         "outcome": "success",
-             *         "learnings": "Good for MVP testing"
+             *         "learnings": "Good for MVP mocks"
              *       }
              *     ]
              */
@@ -1518,9 +1767,9 @@ export interface components {
             target_audience?: string;
             /** @description Industry category */
             industry?: string;
-            /** @description Estimated market size (populated after enrichment_worker) */
+            /** @description Estimated market size (populated after idea_enrichment_worker) */
             market_size?: string;
-            /** @description List of competitors (populated after enrichment_worker) */
+            /** @description List of competitors (populated after idea_enrichment_worker) */
             competitors?: Record<string, never>[];
             /** @description What makes this idea unique */
             unique_value_proposition?: string;
@@ -1576,7 +1825,7 @@ export interface components {
             updated_at: string;
             /**
              * Format: date-time
-             * @description When enrichment_worker was completed
+             * @description When idea_enrichment_worker was completed
              */
             enriched_at?: string;
             /**
