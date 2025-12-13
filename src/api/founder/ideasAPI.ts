@@ -50,8 +50,48 @@ export interface ChunksResponse {
 }
 
 // ============================================================================
+// Types
+// ============================================================================
+
+export type IdeaFilter = 'all' | 'pending' | 'approved' | 'rejected' | 'deferred';
+
+// ============================================================================
 // API Functions
 // ============================================================================
+
+/**
+ * Get ideas with optional filter
+ * GET /v1/founder/{userID}/ideas?filter=...
+ * 
+ * @param userID - The founder's user ID
+ * @param filter - Filter: 'all', 'pending', 'approved', 'rejected', 'deferred'
+ * @param limit - Number of ideas to return (default 20)
+ * @param offset - Offset for pagination (default 0)
+ * @returns PendingIdeasResponse with list of ideas and pagination info
+ */
+export async function getIdeas(
+  userID: number,
+  filter: IdeaFilter = 'all',
+  limit: number = 20,
+  offset: number = 0
+): Promise<PendingIdeasResponse> {
+  const queryParams = new URLSearchParams({
+    filter,
+    limit: limit.toString(),
+    offset: offset.toString()
+  });
+
+  const endpoint = `/v1/founder/${userID}/ideas?${queryParams.toString()}`;
+  console.log('[ideasAPI] getIdeas calling:', endpoint);
+
+  const response = await founderClient.get<PendingIdeasResponse>(endpoint);
+  
+  // Validate response with Zod schema
+  const validated = parseApiResponse(PendingIdeasResponseSchema, response);
+  console.log('[ideasAPI] getIdeas validated:', validated.total, 'ideas');
+  
+  return validated;
+}
 
 /**
  * Get ideas pending founder review
@@ -227,7 +267,8 @@ export async function getPendingIdeasCount(userID: number): Promise<number> {
  * Check if an idea is in a reviewable state
  */
 export function isReviewable(idea: IdeaResponse): boolean {
-  return idea.workflow_stage === 'ready_for_review' || 
+  return idea.workflow_stage === 'pending_review' ||
+         idea.workflow_stage === 'ready_for_review' || 
          idea.workflow_stage === 'enriched';
 }
 
@@ -244,6 +285,8 @@ export function isEnriching(idea: IdeaResponse): boolean {
  */
 export function getIdeaStatusLabel(idea: IdeaResponse): string {
   switch (idea.workflow_stage) {
+    case 'pending_review':
+      return 'Awaiting Approval';
     case 'pending_enrichment':
       return 'Queued for Research';
     case 'enriching':
@@ -310,6 +353,7 @@ export function getFitScoreColor(score: number | null | undefined): string {
 // ============================================================================
 
 export const ideasAPI = {
+  getIdeas,
   getPendingIdeas,
   submitReview,
   approveIdea,

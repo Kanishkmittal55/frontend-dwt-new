@@ -40,11 +40,14 @@ import IdeaDetailDialog from './IdeaDetailDialog';
 
 // API & Context
 import { 
+  getIdeas,
   getPendingIdeas, 
   approveIdea, 
   rejectIdea, 
   deferIdea,
-  type IdeaResponse 
+  isEnriching,
+  type IdeaResponse,
+  type IdeaFilter
 } from 'api/founder/ideasAPI';
 import { getStoredUserId } from 'api/founder/founderClient';
 import { useFounder } from 'contexts/FounderContext';
@@ -53,8 +56,15 @@ import { useFounder } from 'contexts/FounderContext';
 // Types
 // ============================================================================
 
-type FilterTab = 'all' | 'pending' | 'approved' | 'rejected' | 'deferred';
 type ViewMode = 'grid' | 'list';
+
+interface TabCounts {
+  all: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  deferred: number;
+}
 
 // ============================================================================
 // Constants
@@ -62,7 +72,7 @@ type ViewMode = 'grid' | 'list';
 
 const ITEMS_PER_PAGE = 12;
 
-const TAB_FILTERS: { value: FilterTab; label: string }[] = [
+const TAB_FILTERS: { value: IdeaFilter; label: string }[] = [
   { value: 'all', label: 'All Ideas' },
   { value: 'pending', label: 'Pending Review' },
   { value: 'approved', label: 'Approved' },
@@ -82,10 +92,11 @@ export default function IdeasDashboard() {
   const [ideas, setIdeas] = useState<IdeaResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filterTab, setFilterTab] = useState<FilterTab>('all');
+  const [filterTab, setFilterTab] = useState<IdeaFilter>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [page, setPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+  const [tabCounts, setTabCounts] = useState<TabCounts>({ all: 0, pending: 0, approved: 0, rejected: 0, deferred: 0 });
 
   // Dialog state
   const [showOcrDialog, setShowOcrDialog] = useState(false);
@@ -104,7 +115,7 @@ export default function IdeasDashboard() {
   // Get user ID
   const userId = getStoredUserId();
 
-  // Fetch ideas
+  // Fetch ideas using server-side filtering
   const fetchIdeas = useCallback(async () => {
     console.log('[IdeasDashboard] fetchIdeas called', { userId, page, filterTab });
     
@@ -120,43 +131,16 @@ export default function IdeasDashboard() {
 
     try {
       const offset = (page - 1) * ITEMS_PER_PAGE;
-      console.log('[IdeasDashboard] Calling API', { userId, limit: ITEMS_PER_PAGE, offset });
       
-      const response = await getPendingIdeas(userId, ITEMS_PER_PAGE, offset);
+      // Use server-side filtering
+      const response = await getIdeas(userId, filterTab, ITEMS_PER_PAGE, offset);
       
       console.log('[IdeasDashboard] API Response:', {
         total: response.total,
-        ideasCount: response.ideas.length,
-        ideas: response.ideas.map(i => ({ 
-          id: i.id, 
-          title: i.title, 
-          workflow_stage: i.workflow_stage,
-          review_decision: i.review_decision
-        }))
+        ideasCount: response.ideas.length
       });
       
-      // Apply client-side filter based on tab
-      let filteredIdeas = response.ideas;
-      if (filterTab !== 'all') {
-        filteredIdeas = response.ideas.filter(idea => {
-          switch (filterTab) {
-            case 'pending':
-              return idea.workflow_stage === 'ready_for_review' || idea.workflow_stage === 'enriched';
-            case 'approved':
-              return idea.workflow_stage === 'approved' || idea.review_decision === 'approved';
-            case 'rejected':
-              return idea.workflow_stage === 'rejected' || idea.review_decision === 'rejected';
-            case 'deferred':
-              return idea.workflow_stage === 'deferred' || idea.review_decision === 'deferred';
-            default:
-              return true;
-          }
-        });
-      }
-
-      console.log('[IdeasDashboard] After filter:', { filteredCount: filteredIdeas.length });
-      
-      setIdeas(filteredIdeas);
+      setIdeas(response.ideas);
       setTotalItems(response.total);
     } catch (err) {
       console.error('[IdeasDashboard] Error fetching ideas:', err);
@@ -167,10 +151,41 @@ export default function IdeasDashboard() {
     }
   }, [userId, page, filterTab]);
 
+  // Fetch tab counts for badges
+  const fetchTabCounts = useCallback(async () => {
+    if (!userId) return;
+    
+    try {
+      // Fetch counts for all tabs in parallel
+      const [allRes, pendingRes, approvedRes, rejectedRes, deferredRes] = await Promise.all([
+        getIdeas(userId, 'all', 1, 0),
+        getIdeas(userId, 'pending', 1, 0),
+        getIdeas(userId, 'approved', 1, 0),
+        getIdeas(userId, 'rejected', 1, 0),
+        getIdeas(userId, 'deferred', 1, 0)
+      ]);
+      
+      setTabCounts({
+        all: allRes.total,
+        pending: pendingRes.total,
+        approved: approvedRes.total,
+        rejected: rejectedRes.total,
+        deferred: deferredRes.total
+      });
+    } catch (err) {
+      console.error('[IdeasDashboard] Error fetching tab counts:', err);
+    }
+  }, [userId]);
+
   // Fetch on mount and when filters change
   useEffect(() => {
     fetchIdeas();
   }, [fetchIdeas]);
+
+  // Fetch tab counts on mount and after any review action
+  useEffect(() => {
+    fetchTabCounts();
+  }, [fetchTabCounts]);
 
   // Redirect if no profile
   useEffect(() => {
@@ -202,12 +217,13 @@ export default function IdeasDashboard() {
     if (!userId) return;
     try {
       await approveIdea(userId, idea.uuid);
-      setSnackbar({ open: true, message: 'Idea approved!', severity: 'success' });
+      setSnackbar({ open: true, message: 'Idea approved! Enrichment starting...', severity: 'success' });
       fetchIdeas();
+      fetchTabCounts();
     } catch (err) {
       setSnackbar({ open: true, message: 'Failed to approve idea', severity: 'error' });
     }
-  }, [userId, fetchIdeas]);
+  }, [userId, fetchIdeas, fetchTabCounts]);
 
   // Handle quick reject
   const handleReject = useCallback(async (idea: IdeaResponse) => {
@@ -216,10 +232,11 @@ export default function IdeasDashboard() {
       await rejectIdea(userId, idea.uuid);
       setSnackbar({ open: true, message: 'Idea rejected', severity: 'success' });
       fetchIdeas();
+      fetchTabCounts();
     } catch (err) {
       setSnackbar({ open: true, message: 'Failed to reject idea', severity: 'error' });
     }
-  }, [userId, fetchIdeas]);
+  }, [userId, fetchIdeas, fetchTabCounts]);
 
   // Handle quick defer
   const handleDefer = useCallback(async (idea: IdeaResponse) => {
@@ -228,10 +245,19 @@ export default function IdeasDashboard() {
       await deferIdea(userId, idea.uuid);
       setSnackbar({ open: true, message: 'Idea deferred', severity: 'success' });
       fetchIdeas();
+      fetchTabCounts();
     } catch (err) {
       setSnackbar({ open: true, message: 'Failed to defer idea', severity: 'error' });
     }
-  }, [userId, fetchIdeas]);
+  }, [userId, fetchIdeas, fetchTabCounts]);
+
+  // Handle enrichment complete - refresh the list
+  const handleEnrichmentComplete = useCallback((idea: IdeaResponse) => {
+    console.log('[IdeasDashboard] Enrichment completed for idea:', idea.uuid);
+    setSnackbar({ open: true, message: `Research complete for "${idea.title}"!`, severity: 'success' });
+    fetchIdeas();
+    fetchTabCounts();
+  }, [fetchIdeas, fetchTabCounts]);
 
   // Handle OCR text extraction
   const handleOcrTextExtracted = useCallback((text: string) => {
@@ -305,7 +331,11 @@ export default function IdeasDashboard() {
             scrollButtons="auto"
           >
             {TAB_FILTERS.map((tab) => (
-              <Tab key={tab.value} value={tab.value} label={tab.label} />
+              <Tab 
+                key={tab.value} 
+                value={tab.value} 
+                label={`${tab.label} (${tabCounts[tab.value]})`} 
+              />
             ))}
           </Tabs>
 
@@ -393,6 +423,8 @@ export default function IdeasDashboard() {
                   onApprove={handleApprove}
                   onReject={handleReject}
                   onDefer={handleDefer}
+                  enableLiveUpdates={isEnriching(idea) || idea.review_decision === 'approved'}
+                  onEnrichmentComplete={handleEnrichmentComplete}
                 />
               </Grid>
             ))}

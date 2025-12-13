@@ -625,6 +625,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/founder/ideas/{ideaUUID}/enrichment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get enrichment result for an idea
+         * @description Returns the complete enrichment result including scores, facts, and recommendations.
+         *     Only available after enrichment is complete.
+         */
+        get: operations["V1GetIdeaEnrichment"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/ideas/{ideaUUID}/enrichment/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get current enrichment status for an idea
+         * @description Returns the current enrichment status without streaming.
+         *     Use this for initial state or when SSE is not available.
+         */
+        get: operations["V1GetIdeaEnrichmentStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/ideas/{ideaUUID}/enrichment/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stream enrichment status via Server-Sent Events (SSE)
+         * @description Real-time streaming endpoint for enrichment status updates.
+         *     Uses Server-Sent Events (SSE) to push updates to the client.
+         *
+         *     **Event Types:**
+         *     - `status` - Progress updates during enrichment
+         *     - `complete` - Terminal state reached (completed/failed/blocked)
+         *
+         *     **Authentication:**
+         *     SSE doesn't support custom headers, so pass JWT token as query param.
+         */
+        get: operations["V1GetIdeaEnrichmentStream"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1797,7 +1867,7 @@ export interface components {
              * @description Current stage in the processing workflow
              * @enum {string}
              */
-            workflow_stage: "pending_enrichment" | "enriching" | "enriched" | "ready_for_review" | "approved" | "rejected" | "deferred" | "analyzing" | "completed" | "failed";
+            workflow_stage: "pending_review" | "pending_enrichment" | "enriching" | "enriched" | "ready_for_review" | "approved" | "rejected" | "deferred" | "analyzing" | "completed" | "failed";
             /**
              * Format: int32
              * @description Processing priority
@@ -2119,6 +2189,158 @@ export interface components {
              * @description Last date with completed tasks
              */
             last_active_date?: string;
+        };
+        /** @description Fit score for a specific dimension */
+        EnrichmentFitScore: {
+            /** @description The fit dimension (founder, market, legal, technical, financial) */
+            dimension: string;
+            /** @description Score from 0-100 */
+            score: number;
+            /**
+             * Format: float
+             * @description Confidence in this score
+             */
+            confidence?: number | null;
+            /** @description Human-readable explanation */
+            explanation?: string | null;
+            /** @description Positive factors */
+            pros?: string[] | null;
+            /** @description Negative factors */
+            cons?: string[] | null;
+        };
+        /** @description A fact discovered during enrichment research */
+        EnrichmentFact: {
+            /** @description Fact category (legal, market, competitor, trend, etc.) */
+            category: string;
+            /** @description The fact content */
+            content: string;
+            /** @description Source of the information */
+            source?: string | null;
+            /**
+             * Format: uri
+             * @description URL of the source
+             */
+            source_url?: string | null;
+            /**
+             * Format: float
+             * @description Confidence in this fact
+             */
+            confidence?: number | null;
+        };
+        /** @description Complete enrichment result for an idea */
+        EnrichmentResult: {
+            /**
+             * Format: uuid
+             * @description The enriched idea
+             */
+            idea_uuid: string;
+            /** @description Enrichment session identifier */
+            session_id: string;
+            /**
+             * @description Final enrichment status
+             * @enum {string}
+             */
+            status: "completed" | "partial" | "blocked" | "failed";
+            /** @description Fit scores by dimension */
+            scores?: components["schemas"]["EnrichmentFitScore"][] | null;
+            /**
+             * Format: float
+             * @description Overall composite fit score
+             */
+            composite_score?: number | null;
+            /**
+             * Format: float
+             * @description Confidence in composite score
+             */
+            composite_confidence?: number | null;
+            /** @description Research facts discovered during enrichment */
+            facts?: components["schemas"]["EnrichmentFact"][] | null;
+            /** @description Critical blockers that prevent idea execution */
+            blockers?: string[] | null;
+            /** @description Non-critical warnings */
+            warnings?: string[] | null;
+            /** @description Actionable recommendations */
+            recommendations?: string[] | null;
+            /** @description Days until trend/opportunity expires */
+            trend_ttl_days?: number | null;
+            /** @description Description of the opportunity window */
+            opportunity_window?: string | null;
+            /** @description Total LLM tokens used */
+            tokens_used?: number | null;
+            /** @description Total enrichment duration in milliseconds */
+            duration_ms?: number | null;
+            /** @description Number of threads executed */
+            thread_count?: number | null;
+            /** @description Whether result is incomplete */
+            partial?: boolean | null;
+            /** Format: date-time */
+            started_at?: string | null;
+            /** Format: date-time */
+            completed_at?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        /** @description Current enrichment status for an idea */
+        EnrichmentStatusResponse: {
+            /**
+             * Format: uuid
+             * @description The idea being enriched
+             */
+            idea_uuid: string;
+            /** @description Unique enrichment session identifier */
+            session_id?: string;
+            /**
+             * @description Current enrichment state
+             * @enum {string}
+             */
+            state: "pending" | "queued" | "processing" | "legal" | "market" | "founder" | "technical" | "financial" | "aggregating" | "completed" | "failed" | "blocked";
+            /** @description Progress percentage (0-100) */
+            progress_pct: number;
+            /** @description Currently active thread type */
+            current_thread?: string | null;
+            threads_completed?: number;
+            threads_total?: number;
+            /** Format: date-time */
+            started_at?: string | null;
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        /** @description SSE event payload for enrichment status updates */
+        EnrichmentStatusEvent: {
+            /**
+             * Format: uuid
+             * @description The idea being enriched
+             */
+            idea_uuid: string;
+            /** @description Unique enrichment session identifier */
+            session_id: string;
+            /**
+             * @description Current enrichment state
+             * @enum {string}
+             */
+            state: "pending" | "queued" | "processing" | "legal" | "market" | "founder" | "technical" | "financial" | "aggregating" | "completed" | "failed" | "blocked";
+            /** @description Progress percentage (0-100) */
+            progress_pct: number;
+            /** @description Currently active thread type (legal, market, etc.) */
+            current_thread?: string | null;
+            /** @description Number of threads completed */
+            threads_completed: number;
+            /** @description Total number of threads */
+            threads_total: number;
+            /**
+             * Format: date-time
+             * @description When enrichment started
+             */
+            started_at?: string | null;
+            /**
+             * Format: date-time
+             * @description Estimated completion time
+             */
+            estimated_completion?: string | null;
+            /** @description Error message if state is failed */
+            error?: string | null;
         };
         SubmitIdeaRequest: {
             /**
@@ -4060,6 +4282,127 @@ export interface operations {
             };
             /** @description Internal server error */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1GetIdeaEnrichment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The idea's UUID */
+                ideaUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Enrichment result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrichmentResult"];
+                };
+            };
+            /** @description Enrichment not found for this idea */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1GetIdeaEnrichmentStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The idea's UUID */
+                ideaUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current enrichment status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrichmentStatusResponse"];
+                };
+            };
+            /** @description No enrichment found for this idea */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1GetIdeaEnrichmentStream: {
+        parameters: {
+            query?: {
+                /** @description JWT auth token (SSE cannot use Authorization header) */
+                token?: string;
+            };
+            header?: never;
+            path: {
+                /** @description The idea's UUID */
+                ideaUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description SSE stream of enrichment status updates */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": components["schemas"]["EnrichmentStatusEvent"];
+                };
+            };
+            /** @description Invalid idea UUID */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Idea not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Streaming not available (Redis not configured) */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

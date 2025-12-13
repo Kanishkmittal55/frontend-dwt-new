@@ -15,6 +15,7 @@ export const ProjectOutcomeSchema = z.enum(['success', 'failed', 'abandoned', 'o
 
 export const IdeaStatusSchema = z.enum(['submitted', 'researching', 'reviewed', 'approved', 'rejected', 'pending_review']);
 export const WorkflowStageSchema = z.enum([
+  'pending_review',
   'pending_enrichment',
   'enriching',
   'enriched',
@@ -335,6 +336,88 @@ export const ScraperJobResponseSchema = z.object({
 });
 
 // ============================================================================
+// Enrichment Schemas
+// ============================================================================
+
+// Matches EnrichmentStatusEvent.state from OpenAPI spec
+export const EnrichmentStateSchema = z.enum([
+  'pending',
+  'queued',
+  'processing',
+  'legal',
+  'market',
+  'founder',
+  'technical',
+  'financial',
+  'aggregating',
+  'completed',
+  'failed',
+  'blocked'
+]);
+
+export const FitScoreSchema = z.object({
+  dimension: z.string(),
+  score: z.number().min(0).max(100),
+  confidence: z.number().min(0).max(1).optional().nullable(),
+  explanation: z.string().optional().nullable(),
+  pros: z.array(z.string()).optional().nullable(),
+  cons: z.array(z.string()).optional().nullable()
+});
+
+export const EnrichmentFactSchema = z.object({
+  category: z.string(), // e.g., "legal", "market", "competitor"
+  content: z.string(),
+  source: z.string().optional().nullable(),
+  source_url: z.string().url().optional().nullable(),
+  confidence: z.number().min(0).max(1).optional().nullable()
+});
+
+export const EnrichmentStatusSchema = z.object({
+  idea_uuid: z.string().uuid(),
+  session_id: z.string(),
+  state: EnrichmentStateSchema,
+  progress_pct: z.number().min(0).max(100),
+  current_thread: z.string().optional().nullable(),
+  threads_completed: z.number().int(),
+  threads_total: z.number().int(),
+  started_at: z.string().optional().nullable(),
+  estimated_completion: z.string().optional().nullable(),
+  error: z.string().optional().nullable()
+});
+
+export const EnrichmentResultSchema = z.object({
+  idea_uuid: z.string().uuid(),
+  session_id: z.string(),
+  status: EnrichmentStateSchema,
+  
+  // Scores
+  scores: z.array(FitScoreSchema).optional().nullable(),
+  composite_score: z.number().min(0).max(100).optional().nullable(),
+  composite_confidence: z.number().min(0).max(1).optional().nullable(),
+  
+  // Findings
+  facts: z.array(EnrichmentFactSchema).optional().nullable(),
+  blockers: z.array(z.string()).optional().nullable(),
+  warnings: z.array(z.string()).optional().nullable(),
+  recommendations: z.array(z.string()).optional().nullable(),
+  
+  // Temporal
+  trend_ttl_days: z.number().int().optional().nullable(),
+  opportunity_window: z.string().optional().nullable(),
+  
+  // Audit
+  tokens_used: z.number().int().optional().nullable(),
+  duration_ms: z.number().int().optional().nullable(),
+  thread_count: z.number().int().optional().nullable(),
+  partial: z.boolean().optional().nullable(),
+  
+  // Timestamps
+  started_at: z.string().optional().nullable(),
+  completed_at: z.string().optional().nullable(),
+  created_at: z.string().optional().nullable()
+});
+
+// ============================================================================
 // Error Schema
 // ============================================================================
 
@@ -389,6 +472,12 @@ export type PresignedUploadRequest = z.infer<typeof PresignedUploadRequestSchema
 export type PresignedUploadResponse = z.infer<typeof PresignedUploadResponseSchema>;
 export type ScraperJobRequest = z.infer<typeof ScraperJobRequestSchema>;
 export type ScraperJobResponse = z.infer<typeof ScraperJobResponseSchema>;
+
+export type EnrichmentState = z.infer<typeof EnrichmentStateSchema>;
+export type FitScore = z.infer<typeof FitScoreSchema>;
+export type EnrichmentFact = z.infer<typeof EnrichmentFactSchema>;
+export type EnrichmentStatus = z.infer<typeof EnrichmentStatusSchema>;
+export type EnrichmentResult = z.infer<typeof EnrichmentResultSchema>;
 
 // ============================================================================
 // Validation Helpers

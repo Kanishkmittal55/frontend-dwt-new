@@ -103,6 +103,27 @@ export type {
   ScraperJobResponse
 } from './uploadAPI';
 
+// Enrichment API
+export {
+  enrichmentAPI,
+  getEnrichmentStatus,
+  getEnrichmentResult,
+  triggerEnrichment,
+  // Helpers
+  isEnrichmentComplete,
+  isEnrichmentProcessing,
+  getEnrichmentStateLabel,
+  getEnrichmentStateColor,
+  interpretFitScore
+} from './enrichmentAPI';
+
+export type {
+  EnrichmentStatus,
+  EnrichmentResult,
+  EnrichmentState,
+  EnrichmentProgress
+} from './enrichmentAPI';
+
 // Schemas & Types
 export * from './schemas';
 

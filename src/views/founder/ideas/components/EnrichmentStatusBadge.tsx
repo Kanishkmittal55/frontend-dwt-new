@@ -6,8 +6,8 @@ import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 
-import { getWorkflowStageColor, getIdeaStatusLabel } from 'api/founder/ideasAPI';
-import type { WorkflowStage } from 'api/founder/schemas';
+import { getWorkflowStageColor, getIdeaStatusLabel } from '@/api/founder/ideasAPI';
+import type { WorkflowStage } from '@/api/founder/schemas';
 
 interface EnrichmentStatusBadgeProps {
   stage: WorkflowStage;
@@ -33,6 +33,7 @@ export default function EnrichmentStatusBadge({ stage, size = 'small' }: Enrichm
     />
   );
 }
+
 
 
 

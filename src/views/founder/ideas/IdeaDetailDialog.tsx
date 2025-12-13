@@ -9,7 +9,7 @@
  * 
  * Includes review form with decision dropdown and notes
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -59,9 +59,10 @@ import {
 
 import EnrichmentStatusBadge from './components/EnrichmentStatusBadge';
 import FitScoreRadar, { FitScoreBreakdown } from './components/FitScoreRadar';
-import { submitReview, isReviewable, getFitScoreColor } from 'api/founder/ideasAPI';
-import { getStoredUserId } from 'api/founder/founderClient';
-import type { IdeaResponse, ReviewDecision } from 'api/founder/schemas';
+import { submitReview, isReviewable, getFitScoreColor } from '@/api/founder/ideasAPI';
+import { getEnrichmentResult } from '@/api/founder/enrichmentAPI';
+import { getStoredUserId } from '@/api/founder/founderClient';
+import type { IdeaResponse, ReviewDecision, EnrichmentResult } from '@/api/founder/schemas';
 
 // ============================================================================
 // Types
@@ -142,8 +143,34 @@ export default function IdeaDetailDialog({
   const [reviewNotes, setReviewNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [enrichmentData, setEnrichmentData] = useState<EnrichmentResult | null>(null);
+  const [enrichmentLoading, setEnrichmentLoading] = useState(false);
 
   const canReview = idea ? isReviewable(idea) : false;
+  const isApproved = idea?.review_decision === 'approved' || idea?.workflow_stage === 'approved';
+
+  // Fetch enrichment data when dialog opens for approved idea
+  useEffect(() => {
+    if (!open || !idea || !isApproved) {
+      setEnrichmentData(null);
+      return;
+    }
+
+    const fetchEnrichment = async () => {
+      setEnrichmentLoading(true);
+      try {
+        const result = await getEnrichmentResult(idea.uuid);
+        setEnrichmentData(result);
+      } catch (err) {
+        console.log('[IdeaDetailDialog] No enrichment data yet:', err);
+        setEnrichmentData(null);
+      } finally {
+        setEnrichmentLoading(false);
+      }
+    };
+
+    fetchEnrichment();
+  }, [open, idea, isApproved]);
 
   // Reset form when dialog opens with new idea
   const handleClose = useCallback(() => {
@@ -180,12 +207,6 @@ export default function IdeaDetailDialog({
   }, [idea, reviewDecision, reviewNotes, handleClose, onReviewSubmitted]);
 
   if (!idea) return null;
-
-  // Extract enrichment data safely
-  const enrichment = idea.enrichment_data || {};
-  const swot = enrichment.swot as { strengths?: string[]; weaknesses?: string[]; opportunities?: string[]; threats?: string[] } | undefined;
-  const marketAnalysis = enrichment.market_analysis as Record<string, unknown> | undefined;
-  const competitors = idea.competitors || [];
 
   return (
     <Dialog
@@ -332,104 +353,120 @@ export default function IdeaDetailDialog({
 
         {/* Tab: Fit Analysis */}
         <TabPanel value={activeTab} index={1}>
-          <Grid container spacing={3}>
-            {/* Radar Chart */}
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>Fit Score Breakdown</Typography>
-                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-                    <FitScoreRadar
-                      fitData={idea.founder_fit_explanation as {
-                        skill_match?: number;
-                        time_match?: number;
-                        budget_match?: number;
-                        risk_match?: number;
-                        overall?: number;
-                      } | null}
-                      overallScore={idea.founder_fit_score}
-                      size="medium"
-                    />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Score Breakdown Bars */}
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Card variant="outlined" sx={{ height: '100%' }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>Detailed Breakdown</Typography>
-                  <Box sx={{ mt: 2 }}>
-                    <FitScoreBreakdown
-                      fitData={idea.founder_fit_explanation as {
-                        skill_match?: number;
-                        time_match?: number;
-                        budget_match?: number;
-                        risk_match?: number;
-                      } | null}
-                    />
-                  </Box>
-                  {idea.founder_fit_score !== null && idea.founder_fit_score !== undefined && (
-                    <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="subtitle1" fontWeight="bold">
-                          Overall Fit Score
-                        </Typography>
-                        <Typography
-                          variant="h4"
-                          sx={{
-                            color: getFitScoreColor(idea.founder_fit_score) + '.main',
-                            fontWeight: 'bold'
-                          }}
-                        >
-                          {idea.founder_fit_score}%
-                        </Typography>
-                      </Box>
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>Feasibility Scores</Typography>
-                  <Box sx={{ mt: 2 }}>
-                    <ScoreBar
-                      label="Technical Feasibility"
-                      value={idea.technical_feasibility}
-                      icon={<IconCode size={18} />}
-                    />
-                    <ScoreBar
-                      label="Market Feasibility"
-                      value={idea.market_feasibility}
-                      icon={<IconTrendingUp size={18} />}
-                    />
-                    <ScoreBar
-                      label="Financial Feasibility"
-                      value={idea.financial_feasibility}
-                      icon={<IconCoin size={18} />}
-                    />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {idea.historical_validation && Object.keys(idea.historical_validation).length > 0 && (
+          {enrichmentLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : enrichmentData?.scores ? (
+            <Grid container spacing={3}>
+              {/* Overall Composite Score */}
               <Grid size={{ xs: 12 }}>
-                <Card variant="outlined">
+                <Card variant="outlined" sx={{ bgcolor: 'primary.lighter' }}>
                   <CardContent>
-                    <Typography variant="h6" gutterBottom>Historical Validation</Typography>
-                    <Typography variant="body2" component="pre" sx={{ whiteSpace: 'pre-wrap' }}>
-                      {JSON.stringify(idea.historical_validation, null, 2)}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="h6">Composite Fit Score</Typography>
+                      <Typography variant="h3" color="primary.main" fontWeight="bold">
+                        {Math.round((enrichmentData.composite_score || 0) * 100)}%
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      Based on {enrichmentData.thread_count || 0} analysis threads
                     </Typography>
                   </CardContent>
                 </Card>
               </Grid>
-            )}
-          </Grid>
+
+              {/* Individual Fit Scores */}
+              {enrichmentData.scores.map((score, idx) => (
+                <Grid size={{ xs: 12, md: 4 }} key={idx}>
+                  <Card variant="outlined" sx={{ height: '100%' }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                        {score.dimension === 'legal' && <IconShieldCheck size={20} />}
+                        {score.dimension === 'market' && <IconTrendingUp size={20} />}
+                        {score.dimension === 'founder' && <IconUsers size={20} />}
+                        <Typography variant="h6" sx={{ textTransform: 'capitalize' }}>
+                          {score.dimension} Fit
+                        </Typography>
+                      </Box>
+                      
+                      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
+                        <Typography variant="h4" fontWeight="bold" color={
+                          (score.score || 0) >= 70 ? 'success.main' :
+                          (score.score || 0) >= 40 ? 'warning.main' : 'error.main'
+                        }>
+                          {score.score || 0}%
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          confidence: {Math.round((score.confidence || 0) * 100)}%
+                        </Typography>
+                      </Box>
+
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        {score.explanation || 'No explanation available'}
+                      </Typography>
+
+                      {/* Pros/Cons */}
+                      {(score.pros?.length || score.cons?.length) && (
+                        <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+                          {score.pros && score.pros.length > 0 && (
+                            <>
+                              <Typography variant="subtitle2" color="success.main" gutterBottom>Pros:</Typography>
+                              {score.pros.map((pro, pIdx) => (
+                                <Typography key={pIdx} variant="caption" display="block" sx={{ pl: 1, mb: 0.5 }}>
+                                  ✓ {pro}
+                                </Typography>
+                              ))}
+                            </>
+                          )}
+                          {score.cons && score.cons.length > 0 && (
+                            <>
+                              <Typography variant="subtitle2" color="error.main" gutterBottom sx={{ mt: 1 }}>Cons:</Typography>
+                              {score.cons.map((con, cIdx) => (
+                                <Typography key={cIdx} variant="caption" display="block" sx={{ pl: 1, mb: 0.5 }}>
+                                  ✗ {con}
+                                </Typography>
+                              ))}
+                            </>
+                          )}
+                        </Box>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+
+              {/* Facts/Insights */}
+              {enrichmentData.facts && enrichmentData.facts.length > 0 && (
+                <Grid size={{ xs: 12 }}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>Key Insights</Typography>
+                      <List dense>
+                        {enrichmentData.facts.map((fact, idx) => (
+                          <ListItem key={idx}>
+                            <ListItemIcon sx={{ minWidth: 32 }}>
+                              <Tooltip title={`${fact.category} - ${Math.round((fact.confidence || 0) * 100)}% confidence`}>
+                                <IconCheck size={16} color="green" />
+                              </Tooltip>
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={fact.content}
+                              secondary={`${fact.category}${fact.source ? ` • Source: ${fact.source}` : ''}`}
+                            />
+                          </ListItem>
+                        ))}
+                      </List>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              )}
+            </Grid>
+          ) : (
+            <Alert severity="info">
+              Fit analysis will be available after enrichment completes.
+            </Alert>
+          )}
         </TabPanel>
 
         {/* Tab: Market Data */}
@@ -443,13 +480,6 @@ export default function IdeaDetailDialog({
                   <Typography variant="h4" color="primary.main" gutterBottom>
                     {idea.market_size || 'Not analyzed'}
                   </Typography>
-                  {marketAnalysis && (
-                    <Typography variant="body2" color="text.secondary">
-                      {typeof marketAnalysis === 'string'
-                        ? marketAnalysis
-                        : JSON.stringify(marketAnalysis, null, 2)}
-                    </Typography>
-                  )}
                 </CardContent>
               </Card>
             </Grid>
@@ -459,9 +489,9 @@ export default function IdeaDetailDialog({
               <Card variant="outlined" sx={{ height: '100%' }}>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>Competitors</Typography>
-                  {competitors.length > 0 ? (
+                  {idea.competitors && idea.competitors.length > 0 ? (
                     <List dense>
-                      {competitors.map((comp, idx) => (
+                      {idea.competitors.map((comp, idx) => (
                         <ListItem key={idx}>
                           <ListItemIcon sx={{ minWidth: 32 }}>
                             <IconExternalLink size={16} />
@@ -502,25 +532,25 @@ export default function IdeaDetailDialog({
               </Grid>
             )}
 
-            {/* Raw Enrichment Data */}
-            {Object.keys(enrichment).length > 0 && (
+            {/* Enrichment Data from API */}
+            {enrichmentData && (
               <Grid size={{ xs: 12 }}>
                 <Card variant="outlined">
                   <CardContent>
-                    <Typography variant="h6" gutterBottom>Additional Enrichment Data</Typography>
-                    <Box
-                      component="pre"
-                      sx={{
-                        p: 2,
-                        bgcolor: 'grey.50',
-                        borderRadius: 1,
-                        overflow: 'auto',
-                        fontSize: '0.75rem',
-                        maxHeight: 300
-                      }}
-                    >
-                      {JSON.stringify(enrichment, null, 2)}
+                    <Typography variant="h6" gutterBottom>Enrichment Analysis</Typography>
+                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+                      <Chip label={`Status: ${enrichmentData.status}`} size="small" color="info" />
+                      <Chip label={`Score: ${Math.round((enrichmentData.composite_score || 0) * 100)}%`} size="small" />
                     </Box>
+                    {enrichmentData.facts && enrichmentData.facts.length > 0 && (
+                      <List dense>
+                        {enrichmentData.facts.map((fact, idx) => (
+                          <ListItem key={idx}>
+                            <ListItemText primary={`${fact.key}: ${fact.value}`} secondary={fact.category} />
+                          </ListItem>
+                        ))}
+                      </List>
+                    )}
                   </CardContent>
                 </Card>
               </Grid>
@@ -530,7 +560,48 @@ export default function IdeaDetailDialog({
 
         {/* Tab: SWOT */}
         <TabPanel value={activeTab} index={3}>
-          {swot ? (
+          {enrichmentData?.scores ? (
+            /* Generate SWOT from enrichment data */
+            (() => {
+              const strengths: string[] = [];
+              const weaknesses: string[] = [];
+              const opportunities: string[] = [];
+              const threats: string[] = [];
+
+              // Parse fit scores into SWOT (score is 0-100)
+              enrichmentData.scores?.forEach(score => {
+                const val = score.score || 0;
+                if (val >= 70) {
+                  strengths.push(`Strong ${score.dimension} fit: ${score.explanation || 'Good alignment'}`);
+                  // Add pros
+                  score.pros?.forEach(pro => strengths.push(pro));
+                } else if (val < 40) {
+                  weaknesses.push(`Weak ${score.dimension} fit: ${score.explanation || 'Needs attention'}`);
+                  // Add cons
+                  score.cons?.forEach(con => weaknesses.push(con));
+                }
+              });
+
+              // Parse facts into SWOT
+              enrichmentData.facts?.forEach(fact => {
+                const content = fact.content || '';
+                if (fact.category === 'skills' && content.toLowerCase().includes('gap')) {
+                  weaknesses.push(content);
+                } else if (fact.category === 'timing' || fact.category === 'market') {
+                  opportunities.push(content);
+                } else if (fact.category === 'competition') {
+                  threats.push(content);
+                } else if (fact.category === 'legal' || fact.category === 'regulatory') {
+                  if (content.toLowerCase().includes('risk') || content.toLowerCase().includes('warning')) {
+                    threats.push(content);
+                  }
+                }
+              });
+
+              // Add blockers as threats
+              enrichmentData.blockers?.forEach(blocker => threats.push(blocker));
+
+              return (
             <Grid container spacing={2}>
               {/* Strengths */}
               <Grid size={{ xs: 12, md: 6 }}>
@@ -540,9 +611,9 @@ export default function IdeaDetailDialog({
                       <IconShieldCheck size={20} color="green" />
                       <Typography variant="h6" color="success.dark">Strengths</Typography>
                     </Box>
-                    {swot.strengths && swot.strengths.length > 0 ? (
+                    {strengths.length > 0 ? (
                       <List dense>
-                        {swot.strengths.map((item, idx) => (
+                        {strengths.map((item, idx) => (
                           <ListItem key={idx} sx={{ py: 0.5 }}>
                             <ListItemIcon sx={{ minWidth: 24 }}>
                               <IconCheck size={16} color="green" />
@@ -552,7 +623,7 @@ export default function IdeaDetailDialog({
                         ))}
                       </List>
                     ) : (
-                      <Typography variant="body2" color="text.secondary">Not analyzed</Typography>
+                      <Typography variant="body2" color="text.secondary">No strengths identified</Typography>
                     )}
                   </CardContent>
                 </Card>
@@ -566,9 +637,9 @@ export default function IdeaDetailDialog({
                       <IconAlertTriangle size={20} color="red" />
                       <Typography variant="h6" color="error.dark">Weaknesses</Typography>
                     </Box>
-                    {swot.weaknesses && swot.weaknesses.length > 0 ? (
+                    {weaknesses.length > 0 ? (
                       <List dense>
-                        {swot.weaknesses.map((item, idx) => (
+                        {weaknesses.map((item, idx) => (
                           <ListItem key={idx} sx={{ py: 0.5 }}>
                             <ListItemIcon sx={{ minWidth: 24 }}>
                               <IconX size={16} color="red" />
@@ -578,7 +649,7 @@ export default function IdeaDetailDialog({
                         ))}
                       </List>
                     ) : (
-                      <Typography variant="body2" color="text.secondary">Not analyzed</Typography>
+                      <Typography variant="body2" color="text.secondary">No weaknesses identified</Typography>
                     )}
                   </CardContent>
                 </Card>
@@ -592,9 +663,9 @@ export default function IdeaDetailDialog({
                       <IconTrendingUp size={20} color="blue" />
                       <Typography variant="h6" color="info.dark">Opportunities</Typography>
                     </Box>
-                    {swot.opportunities && swot.opportunities.length > 0 ? (
+                    {opportunities.length > 0 ? (
                       <List dense>
-                        {swot.opportunities.map((item, idx) => (
+                        {opportunities.map((item, idx) => (
                           <ListItem key={idx} sx={{ py: 0.5 }}>
                             <ListItemIcon sx={{ minWidth: 24 }}>
                               <IconTrendingUp size={16} color="blue" />
@@ -604,7 +675,7 @@ export default function IdeaDetailDialog({
                         ))}
                       </List>
                     ) : (
-                      <Typography variant="body2" color="text.secondary">Not analyzed</Typography>
+                      <Typography variant="body2" color="text.secondary">No opportunities identified</Typography>
                     )}
                   </CardContent>
                 </Card>
@@ -618,9 +689,9 @@ export default function IdeaDetailDialog({
                       <IconAlertTriangle size={20} color="orange" />
                       <Typography variant="h6" color="warning.dark">Threats</Typography>
                     </Box>
-                    {swot.threats && swot.threats.length > 0 ? (
+                    {threats.length > 0 ? (
                       <List dense>
-                        {swot.threats.map((item, idx) => (
+                        {threats.map((item, idx) => (
                           <ListItem key={idx} sx={{ py: 0.5 }}>
                             <ListItemIcon sx={{ minWidth: 24 }}>
                               <IconAlertTriangle size={16} color="orange" />
@@ -636,6 +707,8 @@ export default function IdeaDetailDialog({
                 </Card>
               </Grid>
             </Grid>
+              );
+            })()
           ) : (
             <Alert severity="info">
               SWOT analysis will be available after enrichment completes.

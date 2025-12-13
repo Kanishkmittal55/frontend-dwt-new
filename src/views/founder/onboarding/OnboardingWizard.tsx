@@ -34,6 +34,9 @@ import { useFounder } from 'contexts/FounderContext';
 import { useAuth } from 'contexts/AuthContext';
 import type { CreateFounderProfileRequest } from 'api/founder';
 
+// Config
+import { SHOW_DEV_TOOLS } from '@/config';
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -188,8 +191,6 @@ const SAMPLE_DATA: OnboardingData = {
   ai_task_dependence: ['Writing', 'Research'],
   core_skills_without_ai: ['Coding', 'System Design', 'Architecture']
 };
-
-const SHOW_DEV_TOOLS = true;
 
 const STEPS = [
   { label: 'Basic Info', description: 'Tell us about yourself' },
