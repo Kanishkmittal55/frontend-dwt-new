@@ -16,6 +16,7 @@ const DashboardDefault = Loadable(lazy(() => import('views/dashboard/Default')))
 const FounderDashboard = Loadable(lazy(() => import('views/founder/dashboard/FounderDashboard')));
 const OnboardingWizard = Loadable(lazy(() => import('views/founder/onboarding/OnboardingWizard')));
 const IdeasDashboard = Loadable(lazy(() => import('views/founder/ideas/IdeasDashboard')));
+const LibraryDashboard = Loadable(lazy(() => import('views/founder/library/LibraryDashboard')));
 
 // utilities routing
 const UtilsTypography = Loadable(lazy(() => import('views/utilities/Typography')));
@@ -76,6 +77,10 @@ const MainRoutes = {
         {
           path: 'ideas',
           element: <IdeasDashboard />
+        },
+        {
+          path: 'library',
+          element: <LibraryDashboard />
         },
         {
           path: 'onboarding',

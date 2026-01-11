@@ -106,3 +106,11 @@ export default function SkillsStep({ data, updateData }: SkillsStepProps) {
 
 
 
+
+
+
+
+
+
+
+

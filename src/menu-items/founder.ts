@@ -6,7 +6,8 @@ import {
   IconChecklist, 
   IconChartBar, 
   IconUser,
-  IconRocket
+  IconRocket,
+  IconBooks
 } from '@tabler/icons-react';
 
 // constant
@@ -15,7 +16,8 @@ const icons = {
   IconChecklist, 
   IconChartBar, 
   IconUser,
-  IconRocket
+  IconRocket,
+  IconBooks
 };
 
 // ==============================|| FOUNDER OS MENU ITEMS ||============================== //
@@ -42,6 +44,14 @@ const founder: MenuItem = {
       breadcrumbs: false
     },
     {
+      id: 'founder-library',
+      title: 'Library',
+      type: 'item',
+      url: '/founder/library',
+      icon: icons.IconBooks,
+      breadcrumbs: false
+    },
+    {
       id: 'founder-tasks',
       title: 'Daily Tasks',
       type: 'item',
@@ -61,6 +71,14 @@ const founder: MenuItem = {
 };
 
 export default founder;
+
+
+
+
+
+
+
+
 
 
 

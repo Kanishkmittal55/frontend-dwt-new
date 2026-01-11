@@ -124,6 +124,38 @@ export type {
   EnrichmentProgress
 } from './enrichmentAPI';
 
+// Library API
+export {
+  libraryAPI,
+  submitUrlsForScraping,
+  getUrlSources,
+  addUrlSources,
+  updateSourceStatus,
+  deleteUrlSource
+} from './libraryAPI';
+
+export type {
+  UrlSource,
+  UrlSourcesResponse,
+  ScrapeJobResponse
+} from './libraryAPI';
+
+// Trends API
+export {
+  trendsAPI,
+  getTrendingEntities,
+  getEntityTrendHistory
+} from './trendsAPI';
+
+export type {
+  EntityType,
+  PeriodType,
+  EntityTrend,
+  TrendingEntitiesResponse,
+  TrendHistoryPoint,
+  EntityTrendHistoryResponse
+} from './trendsAPI';
+
 // Schemas & Types
 export * from './schemas';
 

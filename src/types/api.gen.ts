@@ -465,6 +465,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/founder/{userID}/ideas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get ideas with optional filter
+         * @description Returns a paginated list of ideas for a user with optional filter by review decision
+         */
+        get: operations["V1GetIdeas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/founder/{userID}/ideas/pending": {
         parameters: {
             query?: never;
@@ -687,6 +707,46 @@ export interface paths {
          *     SSE doesn't support custom headers, so pass JWT token as query param.
          */
         get: operations["V1GetIdeaEnrichmentStream"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trends/entities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get currently trending entities
+         * @description Returns entities that are currently trending based on EWMA analysis of mentions
+         */
+        get: operations["V1GetTrendingEntities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/trends/entities/{entityNormalized}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get trend history for an entity
+         * @description Returns historical trend data for a specific entity for time-series visualization
+         */
+        get: operations["V1GetEntityTrendHistory"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2342,6 +2402,114 @@ export interface components {
             /** @description Error message if state is failed */
             error?: string | null;
         };
+        /** @description Entity trend data with EWMA metrics */
+        EntityTrend: {
+            /** Format: uuid */
+            id?: string;
+            /**
+             * @description Display name of the entity
+             * @example SpaceX
+             */
+            entity_name: string;
+            /**
+             * @description Type of entity
+             * @enum {string}
+             */
+            entity_type: "company" | "topic" | "person" | "ticker";
+            /**
+             * @description Normalized/lowercase version for matching
+             * @example spacex
+             */
+            entity_normalized: string;
+            /**
+             * @description Aggregation period type
+             * @enum {string}
+             */
+            period_type: "hourly" | "daily" | "weekly";
+            /**
+             * Format: date-time
+             * @description Start of the aggregation period
+             */
+            period_start: string;
+            /**
+             * Format: date-time
+             * @description End of the aggregation period
+             */
+            period_end: string;
+            /** @description Number of mentions in this period */
+            mention_count: number;
+            /** @description Number of unique sources mentioning this entity */
+            unique_sources?: number;
+            /**
+             * Format: float
+             * @description Exponentially weighted moving average score
+             */
+            ewma_score?: number;
+            /**
+             * Format: float
+             * @description EWMA variance for volatility tracking
+             */
+            ewma_variance?: number;
+            /**
+             * Format: float
+             * @description Z-score indicating trend strength
+             */
+            trend_score?: number;
+            /**
+             * Format: float
+             * @description Rate of change in mentions
+             */
+            velocity?: number;
+            /**
+             * Format: float
+             * @description Change in velocity
+             */
+            acceleration?: number;
+            /** @description Whether entity is currently trending */
+            is_trending?: boolean;
+            /**
+             * Format: date-time
+             * @description When entity first became trending
+             */
+            first_seen_trending_at?: string | null;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        /** @description Response containing trending entities */
+        TrendingEntitiesResponse: {
+            /** @description List of trending entities sorted by trend_score desc */
+            entities: components["schemas"]["EntityTrend"][];
+            /** @enum {string} */
+            period_type: "hourly" | "daily" | "weekly";
+            /** Format: date-time */
+            period_start: string;
+            /** Format: date-time */
+            period_end: string;
+            /** @description Total count of trending entities */
+            total?: number;
+        };
+        /** @description Historical trend data for a specific entity */
+        EntityTrendHistoryResponse: {
+            /** @description The normalized entity name */
+            entity_normalized: string;
+            /** @description Display name */
+            entity_name?: string;
+            /** @enum {string} */
+            entity_type?: "company" | "topic" | "person" | "ticker";
+            /** @description Time-series data points for charting */
+            history: {
+                /** Format: date-time */
+                period_start?: string;
+                mention_count?: number;
+                /** Format: float */
+                ewma_score?: number;
+                /** Format: float */
+                trend_score?: number;
+                is_trending?: boolean;
+            }[];
+        };
         SubmitIdeaRequest: {
             /**
              * Format: int32
@@ -3919,6 +4087,50 @@ export interface operations {
             };
         };
     };
+    V1GetIdeas: {
+        parameters: {
+            query?: {
+                /** @description Filter ideas by status (all, pending, approved, rejected, deferred) */
+                filter?: string;
+                /** @description Number of ideas to return (default 20, max 50) */
+                limit?: number;
+                /** @description Offset for pagination */
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of ideas */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PendingIdeasResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     V1GetFounderPendingIdeas: {
         parameters: {
             query?: {
@@ -4407,6 +4619,88 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    V1GetTrendingEntities: {
+        parameters: {
+            query?: {
+                /** @description Period type for aggregation (defaults to daily) */
+                period_type?: "hourly" | "daily" | "weekly";
+                /** @description Filter by entity type */
+                entity_type?: "company" | "topic" | "person" | "ticker";
+                /** @description Maximum number of entities to return */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of trending entities */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrendingEntitiesResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1GetEntityTrendHistory: {
+        parameters: {
+            query?: {
+                /** @description Period type for aggregation */
+                period_type?: "hourly" | "daily" | "weekly";
+                /** @description Number of historical periods to return */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Normalized entity name (lowercase) */
+                entityNormalized: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Historical trend data for charting */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntityTrendHistoryResponse"];
+                };
+            };
+            /** @description Entity not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
             };
         };
     };

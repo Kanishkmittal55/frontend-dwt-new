@@ -166,3 +166,4 @@ export default function MindsetStep({ data, updateData }: MindsetStepProps) {
   );
 }
 
+
