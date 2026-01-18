@@ -144,3 +144,4 @@ export const trendsAPI = {
 export default trendsAPI;
 
 
+

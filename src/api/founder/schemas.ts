@@ -480,6 +480,165 @@ export type EnrichmentStatus = z.infer<typeof EnrichmentStatusSchema>;
 export type EnrichmentResult = z.infer<typeof EnrichmentResultSchema>;
 
 // ============================================================================
+// Founder Agent WebSocket Schemas
+// ============================================================================
+
+// Agent domains
+export const AgentDomainSchema = z.enum(['learning', 'habit_breaking']);
+
+// FSM States (Learning)
+export const LearningStateSchema = z.enum(['idle', 'reading', 'quiz', 'review', 'practice']);
+
+// FSM States (Habit/TTM)
+export const TTMStateSchema = z.enum(['precontemplation', 'contemplation', 'preparation', 'action', 'maintenance']);
+
+// Combined state type
+export const AgentStateSchema = z.union([LearningStateSchema, TTMStateSchema]);
+
+// WebSocket Message Types (Client → Server)
+export const ClientMessageTypeSchema = z.enum([
+  'session.start',
+  'session.end',
+  'signal',
+  'chat',
+  'ping'
+]);
+
+// WebSocket Message Types (Server → Client)
+export const ServerMessageTypeSchema = z.enum([
+  'connected',
+  'state.change',
+  'agent.response',
+  'agent.typing',
+  'persona.update',
+  'milestone',
+  'ack',
+  'error',
+  'pong'
+]);
+
+// Base message schema
+export const AgentMessageSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  payload: z.unknown().optional(),
+  timestamp: z.string().optional()
+});
+
+// Session start payload
+export const SessionStartPayloadSchema = z.object({
+  domain: AgentDomainSchema,
+  goal_id: z.string().optional()
+});
+
+// Chat payload
+export const ChatPayloadSchema = z.object({
+  message: z.string().min(1)
+});
+
+// Signal payload
+export const SignalPayloadSchema = z.object({
+  type: z.string(),
+  interaction_type: z.string().optional(),
+  goal_id: z.string().optional(),
+  item_type: z.string().optional(),
+  item_id: z.string().optional(),
+  intensity: z.number().optional(),
+  score: z.number().optional(),
+  duration_seconds: z.number().optional(),
+  outcome: z.string().optional(),
+  trigger: z.string().optional(),
+  coping_response: z.string().optional(),
+  data: z.record(z.string(), z.unknown()).optional()
+});
+
+// Connected payload (server)
+export const ConnectedPayloadSchema = z.object({
+  user_id: z.number(),
+  connection_id: z.string(),
+  server_version: z.string(),
+  connected_at: z.string()
+});
+
+// State change payload (server)
+export const StateChangePayloadSchema = z.object({
+  domain: AgentDomainSchema,
+  previous_state: AgentStateSchema,
+  current_state: AgentStateSchema,
+  reason: z.string().optional(),
+  transition_at: z.string()
+});
+
+// Agent response payload (server)
+export const AgentResponsePayloadSchema = z.object({
+  text: z.string(),
+  domain: AgentDomainSchema,
+  agent_name: z.string(),
+  response_id: z.string(),
+  actions: z.array(z.object({
+    type: z.string(),
+    data: z.record(z.string(), z.unknown()).optional()
+  })).optional(),
+  next_prompt: z.string().optional()
+});
+
+// Agent typing payload (server)
+export const AgentTypingPayloadSchema = z.object({
+  typing: z.boolean(),
+  agent_name: z.string(),
+  domain: AgentDomainSchema
+});
+
+// Persona update payload (server)
+export const PersonaUpdatePayloadSchema = z.object({
+  metrics: z.record(z.string(), z.unknown()),
+  domain: AgentDomainSchema.optional()
+});
+
+// Milestone payload (server)
+export const MilestonePayloadSchema = z.object({
+  type: z.string(),
+  title: z.string(),
+  description: z.string().optional(),
+  achieved_at: z.string()
+});
+
+// Ack payload (server)
+export const AckPayloadSchema = z.object({
+  ref: z.string(),
+  status: z.enum(['ok', 'error']),
+  session_id: z.string().optional(),
+  error: z.string().optional()
+});
+
+// Error payload (server)
+export const ErrorPayloadSchema = z.object({
+  ref: z.string().optional(),
+  code: z.number(),
+  message: z.string()
+});
+
+// Type exports
+export type AgentDomain = z.infer<typeof AgentDomainSchema>;
+export type LearningState = z.infer<typeof LearningStateSchema>;
+export type TTMState = z.infer<typeof TTMStateSchema>;
+export type AgentState = z.infer<typeof AgentStateSchema>;
+export type ClientMessageType = z.infer<typeof ClientMessageTypeSchema>;
+export type ServerMessageType = z.infer<typeof ServerMessageTypeSchema>;
+export type AgentMessage = z.infer<typeof AgentMessageSchema>;
+export type SessionStartPayload = z.infer<typeof SessionStartPayloadSchema>;
+export type ChatPayload = z.infer<typeof ChatPayloadSchema>;
+export type SignalPayload = z.infer<typeof SignalPayloadSchema>;
+export type ConnectedPayload = z.infer<typeof ConnectedPayloadSchema>;
+export type StateChangePayload = z.infer<typeof StateChangePayloadSchema>;
+export type AgentResponsePayload = z.infer<typeof AgentResponsePayloadSchema>;
+export type AgentTypingPayload = z.infer<typeof AgentTypingPayloadSchema>;
+export type PersonaUpdatePayload = z.infer<typeof PersonaUpdatePayloadSchema>;
+export type MilestonePayload = z.infer<typeof MilestonePayloadSchema>;
+export type AckPayload = z.infer<typeof AckPayloadSchema>;
+export type ErrorPayload = z.infer<typeof ErrorPayloadSchema>;
+
+// ============================================================================
 // Validation Helpers
 // ============================================================================
 

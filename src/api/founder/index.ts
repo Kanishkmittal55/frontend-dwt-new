@@ -156,6 +156,18 @@ export type {
   EntityTrendHistoryResponse
 } from './trendsAPI';
 
+// Agent API (WebSocket)
+export {
+  founderAgentClient,
+  default as FounderAgentClient
+} from './agentAPI';
+
+export type {
+  ConnectionState,
+  AgentSession,
+  AgentEventHandlers
+} from './agentAPI';
+
 // Schemas & Types
 export * from './schemas';
 

@@ -30,9 +30,9 @@ import AIStep from './steps/AIStep';
 import ReviewStep from './steps/ReviewStep';
 
 // Context
-import { useFounder } from 'contexts/FounderContext';
-import { useAuth } from 'contexts/AuthContext';
-import type { CreateFounderProfileRequest } from 'api/founder';
+import { useFounder } from '@/contexts/FounderContext';
+import { useAuth } from '@/contexts/AuthContext';
+import type { CreateFounderProfileRequest } from '@/api/founder';
 
 // Config
 import { SHOW_DEV_TOOLS } from '@/config';

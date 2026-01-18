@@ -232,3 +232,4 @@ export default function TrendsChart({ height = 300 }: TrendsChartProps) {
 }
 
 
+

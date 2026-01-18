@@ -7,7 +7,9 @@ import {
   IconChartBar, 
   IconUser,
   IconRocket,
-  IconBooks
+  IconBooks,
+  IconRobot,
+  IconBook2
 } from '@tabler/icons-react';
 
 // constant
@@ -17,7 +19,9 @@ const icons = {
   IconChartBar, 
   IconUser,
   IconRocket,
-  IconBooks
+  IconBooks,
+  IconRobot,
+  IconBook2
 };
 
 // ==============================|| FOUNDER OS MENU ITEMS ||============================== //
@@ -33,6 +37,22 @@ const founder: MenuItem = {
       type: 'item',
       url: '/founder/dashboard',
       icon: icons.IconRocket,
+      breadcrumbs: false
+    },
+    {
+      id: 'founder-agent',
+      title: 'AI Agent',
+      type: 'item',
+      url: '/founder/agent',
+      icon: icons.IconRobot,
+      breadcrumbs: false
+    },
+    {
+      id: 'founder-reader',
+      title: 'CLRS Reader',
+      type: 'item',
+      url: '/founder/reader',
+      icon: icons.IconBook2,
       breadcrumbs: false
     },
     {
@@ -71,6 +91,7 @@ const founder: MenuItem = {
 };
 
 export default founder;
+
 
 
 

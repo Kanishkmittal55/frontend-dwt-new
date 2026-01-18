@@ -645,6 +645,68 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/founder/agent/ws": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * WebSocket endpoint for founder agent real-time communication
+         * @description WebSocket endpoint for bi-directional real-time communication with the founder agent.
+         *
+         *     **Connection:**
+         *     1. Connect via WebSocket upgrade (GET request with `Upgrade: websocket`)
+         *     2. Authentication via `x-api-key` query parameter
+         *     3. Provide `user_id` query parameter to identify the user
+         *     4. On success, receive `connected` message with session details
+         *
+         *     **Protocol (JSON over WebSocket):**
+         *     All messages follow the format:
+         *     ```json
+         *     {
+         *       "id": "uuid",
+         *       "type": "message_type",
+         *       "payload": {},
+         *       "timestamp": "2024-01-01T00:00:00Z"
+         *     }
+         *     ```
+         *
+         *     **Client → Server Message Types:**
+         *     - `session.start` - Start a new session
+         *     - `session.end` - End current session
+         *     - `signal` - Send a signal (page viewed, quiz completed, etc.)
+         *     - `chat` - Send a chat message
+         *     - `ping` - Keep-alive ping
+         *
+         *     **Server → Client Message Types:**
+         *     - `connected` - Connection established
+         *     - `state.change` - FSM state transition
+         *     - `agent.response` - Agent's response to chat/signal
+         *     - `agent.typing` - Agent typing indicator
+         *     - `persona.update` - Persona metric changed
+         *     - `milestone` - Achievement/milestone reached
+         *     - `ack` - Message acknowledgment
+         *     - `error` - Error response
+         *     - `pong` - Ping response
+         *
+         *     **Session Flow:**
+         *     1. Connect → `connected`
+         *     2. Send `session.start` with domain → `ack` + `state.change`
+         *     3. Send signals/chat → `ack` + `agent.response`
+         *     4. Send `session.end` → `ack`
+         *     5. Disconnect
+         */
+        get: operations["V1GetFounderAgentWS"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/founder/ideas/{ideaUUID}/enrichment": {
         parameters: {
             query?: never;
@@ -4498,6 +4560,56 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    V1GetFounderAgentWS: {
+        parameters: {
+            query: {
+                /** @description API key for authentication (can also be passed in header) */
+                "x-api-key"?: string;
+                /** @description User ID for the WebSocket session */
+                user_id: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description WebSocket connection established */
+            101: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request - Missing or invalid user_id */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized - Invalid or missing x-api-key */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service unavailable - WebSocket hub not ready */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
             };
         };
     };
