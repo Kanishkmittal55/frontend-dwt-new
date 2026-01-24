@@ -48,10 +48,10 @@ const founder: MenuItem = {
       breadcrumbs: false
     },
     {
-      id: 'founder-reader',
-      title: 'CLRS Reader',
+      id: 'founder-courses',
+      title: 'Courses',
       type: 'item',
-      url: '/founder/reader',
+      url: '/founder/courses',
       icon: icons.IconBook2,
       breadcrumbs: false
     },

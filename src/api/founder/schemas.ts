@@ -536,8 +536,8 @@ export const ChatPayloadSchema = z.object({
   message: z.string().min(1)
 });
 
-// Signal payload
-export const SignalPayloadSchema = z.object({
+// Event payload (raw frontend events - signals are derived from aggregating these)
+export const EventPayloadSchema = z.object({
   type: z.string(),
   interaction_type: z.string().optional(),
   goal_id: z.string().optional(),
@@ -628,7 +628,7 @@ export type ServerMessageType = z.infer<typeof ServerMessageTypeSchema>;
 export type AgentMessage = z.infer<typeof AgentMessageSchema>;
 export type SessionStartPayload = z.infer<typeof SessionStartPayloadSchema>;
 export type ChatPayload = z.infer<typeof ChatPayloadSchema>;
-export type SignalPayload = z.infer<typeof SignalPayloadSchema>;
+export type EventPayload = z.infer<typeof EventPayloadSchema>;
 export type ConnectedPayload = z.infer<typeof ConnectedPayloadSchema>;
 export type StateChangePayload = z.infer<typeof StateChangePayloadSchema>;
 export type AgentResponsePayload = z.infer<typeof AgentResponsePayloadSchema>;
@@ -637,6 +637,124 @@ export type PersonaUpdatePayload = z.infer<typeof PersonaUpdatePayloadSchema>;
 export type MilestonePayload = z.infer<typeof MilestonePayloadSchema>;
 export type AckPayload = z.infer<typeof AckPayloadSchema>;
 export type ErrorPayload = z.infer<typeof ErrorPayloadSchema>;
+
+// ============================================================================
+// Course Schemas
+// ============================================================================
+
+// Course status enum
+export const CourseStatusSchema = z.enum([
+  'pending',
+  'processing_chunks',
+  'creating_modules',
+  'enriching',
+  'generating_quizzes',
+  'ready',
+  'failed'
+]);
+
+// Quiz difficulty enum
+export const CourseQuizDifficultySchema = z.enum(['easy', 'medium', 'hard', 'mixed']);
+export const QuizQuestionDifficultySchema = z.enum(['easy', 'medium', 'hard']);
+
+// Quiz Question schema
+export const QuizQuestionSchema = z.object({
+  question: z.string(),
+  options: z.array(z.string()),
+  correct_idx: z.number().int().min(0),
+  explanation: z.string().optional().nullable(),
+  concept: z.string().optional().nullable(),
+  difficulty: QuizQuestionDifficultySchema.optional().nullable()
+});
+
+// Course Quiz schema
+export const CourseQuizSchema = z.object({
+  uuid: z.string().uuid(),
+  module_uuid: z.string().uuid().optional().nullable(),
+  lesson_uuid: z.string().uuid().optional().nullable(),
+  questions: z.array(QuizQuestionSchema),
+  question_count: z.number().int().optional().nullable(),
+  passing_score: z.number().min(0).max(1).optional().nullable(),
+  difficulty: CourseQuizDifficultySchema.optional().nullable(),
+  time_limit_seconds: z.number().int().optional().nullable(),
+  created_at: z.string().optional().nullable()
+});
+
+// Course Lesson schema
+export const CourseLessonSchema = z.object({
+  uuid: z.string().uuid(),
+  module_uuid: z.string().uuid(),
+  chunk_uuid: z.string().uuid().optional().nullable(),
+  title: z.string(),
+  summary: z.string().optional().nullable(),
+  content: z.string(),
+  key_concepts: z.array(z.string()).optional().nullable(),
+  sequence_order: z.number().int(),
+  estimated_minutes: z.number().int().optional().nullable(),
+  word_count: z.number().int().optional().nullable(),
+  created_at: z.string().optional().nullable()
+});
+
+// Course Module schema
+export const CourseModuleSchema = z.object({
+  uuid: z.string().uuid(),
+  course_uuid: z.string().uuid(),
+  cluster_id: z.number().int().optional().nullable(),
+  cluster_label: z.string().optional().nullable(),
+  title: z.string(),
+  description: z.string().optional().nullable(),
+  sequence_order: z.number().int(),
+  total_lessons: z.number().int().optional().nullable(),
+  estimated_minutes: z.number().int().optional().nullable(),
+  created_at: z.string().optional().nullable()
+});
+
+// Course schema
+export const CourseSchema = z.object({
+  uuid: z.string().uuid(),
+  user_id: z.number().int(),
+  job_uuid: z.string().uuid().optional().nullable(),
+  title: z.string(),
+  description: z.string().optional().nullable(),
+  source_document_url: z.string().optional().nullable(),
+  status: CourseStatusSchema,
+  total_modules: z.number().int().optional().nullable(),
+  total_lessons: z.number().int().optional().nullable(),
+  estimated_hours: z.number().optional().nullable(),
+  created_at: z.string().optional().nullable(),
+  updated_at: z.string().optional().nullable()
+});
+
+// Course List Response
+export const CourseListResponseSchema = z.object({
+  courses: z.array(CourseSchema),
+  total: z.number().int()
+});
+
+// Course Detail Response
+export const CourseDetailResponseSchema = z.object({
+  course: CourseSchema,
+  modules: z.array(CourseModuleSchema)
+});
+
+// Lesson Detail Response
+export const CourseLessonDetailResponseSchema = z.object({
+  lesson: CourseLessonSchema,
+  quiz: CourseQuizSchema.optional().nullable()
+});
+
+// Type exports for courses
+export type CourseStatus = z.infer<typeof CourseStatusSchema>;
+export type CourseQuizDifficulty = z.infer<typeof CourseQuizDifficultySchema>;
+export type QuizQuestionDifficulty = z.infer<typeof QuizQuestionDifficultySchema>;
+export type QuizQuestion = z.infer<typeof QuizQuestionSchema>;
+export type CourseQuiz = z.infer<typeof CourseQuizSchema>;
+export type CourseLesson = z.infer<typeof CourseLessonSchema>;
+export type CourseModule = z.infer<typeof CourseModuleSchema>;
+export type Course = z.infer<typeof CourseSchema>;
+export type CourseListResponse = z.infer<typeof CourseListResponseSchema>;
+export type CourseDetailResponse = z.infer<typeof CourseDetailResponseSchema>;
+export type CourseLessonDetailResponse = z.infer<typeof CourseLessonDetailResponseSchema>;
 
 // ============================================================================
 // Validation Helpers

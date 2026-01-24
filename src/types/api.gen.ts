@@ -817,6 +817,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/courses/{userID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List courses for a user
+         * @description Returns a list of courses created for the specified user
+         */
+        get: operations["V1GetCourses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/courses/detail/{courseUUID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get course details by UUID
+         * @description Returns full course details including modules
+         */
+        get: operations["V1GetCourseByUUID"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/courses/modules/{moduleUUID}/lessons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get lessons for a module
+         * @description Returns all lessons for a specific module
+         */
+        get: operations["V1GetCourseLessons"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/courses/lessons/{lessonUUID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get lesson details with quiz
+         * @description Returns a specific lesson with its associated quiz
+         */
+        get: operations["V1GetCourseLesson"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/courses/lessons/{lessonUUID}/quiz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get quiz for a lesson
+         * @description Returns the quiz for a specific lesson
+         */
+        get: operations["V1GetCourseQuiz"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2571,6 +2671,218 @@ export interface components {
                 trend_score?: number;
                 is_trending?: boolean;
             }[];
+        };
+        Course: {
+            /**
+             * Format: uuid
+             * @description Unique identifier for the course
+             */
+            uuid: string;
+            /**
+             * Format: int32
+             * @description ID of the user who owns the course
+             */
+            user_id: number;
+            /**
+             * Format: uuid
+             * @description UUID of the scraper job that generated this course
+             */
+            job_uuid?: string;
+            /** @description Course title */
+            title: string;
+            /** @description Course description */
+            description?: string;
+            /** @description URL of the source document */
+            source_document_url?: string;
+            /**
+             * Format: int32
+             * @description Total number of modules in the course
+             */
+            total_modules?: number;
+            /**
+             * Format: int32
+             * @description Total number of lessons in the course
+             */
+            total_lessons?: number;
+            /**
+             * Format: float
+             * @description Estimated hours to complete the course
+             */
+            estimated_hours?: number;
+            /**
+             * @description Current status of the course
+             * @enum {string}
+             */
+            status: "pending" | "processing_chunks" | "creating_modules" | "enriching" | "generating_quizzes" | "ready" | "failed";
+            /**
+             * Format: date-time
+             * @description When the course was created
+             */
+            created_at?: string;
+            /**
+             * Format: date-time
+             * @description When the course was last updated
+             */
+            updated_at?: string;
+        };
+        CourseListResponse: {
+            /** @description List of courses */
+            courses: components["schemas"]["Course"][];
+            /**
+             * Format: int32
+             * @description Total number of courses
+             */
+            total: number;
+        };
+        CourseModule: {
+            /**
+             * Format: uuid
+             * @description Unique identifier for the module
+             */
+            uuid: string;
+            /**
+             * Format: uuid
+             * @description UUID of the parent course
+             */
+            course_uuid: string;
+            /**
+             * Format: int32
+             * @description Cluster ID from document processing
+             */
+            cluster_id?: number;
+            /** @description Label of the cluster */
+            cluster_label?: string;
+            /** @description Module title */
+            title: string;
+            /** @description Module description */
+            description?: string;
+            /**
+             * Format: int32
+             * @description Order of this module in the course
+             */
+            sequence_order: number;
+            /**
+             * Format: int32
+             * @description Number of lessons in this module
+             */
+            total_lessons?: number;
+            /**
+             * Format: int32
+             * @description Estimated time to complete in minutes
+             */
+            estimated_minutes?: number;
+            /** Format: date-time */
+            created_at?: string;
+        };
+        CourseDetailResponse: {
+            course: components["schemas"]["Course"];
+            /** @description List of modules in the course */
+            modules: components["schemas"]["CourseModule"][];
+        };
+        CourseLesson: {
+            /**
+             * Format: uuid
+             * @description Unique identifier for the lesson
+             */
+            uuid: string;
+            /**
+             * Format: uuid
+             * @description UUID of the parent module
+             */
+            module_uuid: string;
+            /**
+             * Format: uuid
+             * @description UUID of the source chunk
+             */
+            chunk_uuid?: string;
+            /** @description Lesson title */
+            title: string;
+            /** @description Lesson content (enriched text) */
+            content: string;
+            /** @description Brief summary of the lesson */
+            summary?: string;
+            /** @description Key concepts covered in this lesson */
+            key_concepts?: string[];
+            /**
+             * Format: int32
+             * @description Order of this lesson in the module
+             */
+            sequence_order: number;
+            /**
+             * Format: int32
+             * @description Estimated reading time in minutes
+             */
+            estimated_minutes?: number;
+            /**
+             * Format: int32
+             * @description Word count of the content
+             */
+            word_count?: number;
+            /** Format: date-time */
+            created_at?: string;
+        };
+        QuizQuestion: {
+            /** @description The question text */
+            question: string;
+            /** @description Answer options */
+            options: string[];
+            /**
+             * Format: int32
+             * @description Index of the correct answer (0-based)
+             */
+            correct_idx: number;
+            /** @description Explanation of the correct answer */
+            explanation?: string;
+            /** @enum {string} */
+            difficulty?: "easy" | "medium" | "hard";
+            /** @description Key concept being tested */
+            concept?: string;
+        };
+        CourseQuiz: {
+            /**
+             * Format: uuid
+             * @description Unique identifier for the quiz
+             */
+            uuid: string;
+            /**
+             * Format: uuid
+             * @description UUID of the parent module
+             */
+            module_uuid?: string;
+            /**
+             * Format: uuid
+             * @description UUID of the lesson this quiz belongs to
+             */
+            lesson_uuid?: string;
+            /** @description Quiz questions */
+            questions: components["schemas"]["QuizQuestion"][];
+            /**
+             * Format: int32
+             * @description Number of questions
+             */
+            question_count?: number;
+            /**
+             * Format: float
+             * @description Required score to pass (0-1)
+             */
+            passing_score?: number;
+            /**
+             * @description Overall quiz difficulty
+             * @enum {string}
+             */
+            difficulty?: "easy" | "medium" | "hard" | "mixed";
+            /**
+             * Format: int32
+             * @description Time limit in seconds (0 = unlimited)
+             */
+            time_limit_seconds?: number;
+            /** Format: date-time */
+            created_at?: string;
+        };
+        CourseLessonDetailResponse: {
+            lesson: components["schemas"]["CourseLesson"];
+            /** @description Quiz for this lesson (if available) */
+            quiz?: components["schemas"]["CourseQuiz"];
         };
         SubmitIdeaRequest: {
             /**
@@ -4813,6 +5125,228 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
+            };
+        };
+    };
+    V1GetCourses: {
+        parameters: {
+            query?: {
+                /** @description Filter by course status */
+                status?: "pending" | "ready" | "failed" | "all";
+                /** @description Number of courses to return (default 20, max 50) */
+                limit?: number;
+                /** @description Offset for pagination */
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                /** @description The user's ID */
+                userID: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of courses */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1GetCourseByUUID: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The course UUID */
+                courseUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Course details with modules */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseDetailResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Course not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1GetCourseLessons: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The module UUID */
+                moduleUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of lessons */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        lessons?: components["schemas"]["CourseLesson"][];
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Module not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1GetCourseLesson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The lesson UUID */
+                lessonUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lesson details with quiz */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseLessonDetailResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Lesson not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1GetCourseQuiz: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The lesson UUID */
+                lessonUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Quiz details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseQuiz"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Quiz not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

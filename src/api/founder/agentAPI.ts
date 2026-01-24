@@ -7,7 +7,7 @@ import {
   AgentDomain,
   SessionStartPayload,
   ChatPayload,
-  SignalPayload,
+  EventPayload,
   ConnectedPayload,
   StateChangePayload,
   AgentResponsePayload,
@@ -199,10 +199,10 @@ class FounderAgentClient {
   }
 
   /**
-   * Send a signal
+   * Send an event (raw frontend event - signals are derived from aggregating these)
    */
-  async sendSignal(signal: SignalPayload): Promise<AckPayload> {
-    return this.sendWithAck('signal', signal);
+  async sendEvent(event: EventPayload): Promise<AckPayload> {
+    return this.sendWithAck('event', event);
   }
 
   /**

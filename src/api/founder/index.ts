@@ -168,6 +168,35 @@ export type {
   AgentEventHandlers
 } from './agentAPI';
 
+// Courses API
+export {
+  coursesAPI,
+  getCourses,
+  getCourseByUUID,
+  getLessonsByModule,
+  getLessonByUUID,
+  getQuizByLesson,
+  // Helpers
+  getCourseStatusLabel,
+  getCourseStatusColor,
+  isCourseProcessing,
+  formatEstimatedTime,
+  formatEstimatedHours
+} from './coursesAPI';
+
+export type {
+  Course,
+  CourseModule,
+  CourseLesson,
+  CourseQuiz,
+  CourseStatus,
+  CourseListResponse,
+  CourseDetailResponse,
+  CourseLessonDetailResponse,
+  CourseFilter,
+  GetCoursesParams
+} from './coursesAPI';
+
 // Schemas & Types
 export * from './schemas';
 

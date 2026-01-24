@@ -18,7 +18,7 @@ const OnboardingWizard = Loadable(lazy(() => import('views/founder/onboarding/On
 const IdeasDashboard = Loadable(lazy(() => import('views/founder/ideas/IdeasDashboard')));
 const LibraryDashboard = Loadable(lazy(() => import('views/founder/library/LibraryDashboard')));
 const AgentChat = Loadable(lazy(() => import('views/founder/agent/AgentChat')));
-const CLRSReader = Loadable(lazy(() => import('views/founder/reader/CLRSReader')));
+const CLRSCourse = Loadable(lazy(() => import('views/founder/reader/CLRSCourse')));
 
 // utilities routing
 const UtilsTypography = Loadable(lazy(() => import('views/utilities/Typography')));
@@ -89,8 +89,8 @@ const MainRoutes = {
           element: <AgentChat />
         },
         {
-          path: 'reader',
-          element: <CLRSReader />
+          path: 'courses',
+          element: <CLRSCourse />
         },
         {
           path: 'onboarding',

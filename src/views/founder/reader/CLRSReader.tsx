@@ -76,6 +76,7 @@ export default function CLRSReader() {
     messages,
     isTyping,
     sendMessage,
+    sendEvent,
     startSession,
     connect
   } = useFounderAgent({
@@ -151,9 +152,17 @@ export default function CLRSReader() {
   const handleStartReading = useCallback(() => {
     if (selectedChapter) {
       setNotification({ type: 'info', message: `Started reading: ${selectedChapter.title}` });
-      // Could emit a signal here: sendSignal({ type: 'reading_started', ... })
+      
+      // Emit reading started signal
+      if (isConnected && session) {
+        sendEvent('reading_started', {
+          item_type: 'chapter',
+          item_id: selectedChapter.id,
+          title: selectedChapter.title
+        });
+      }
     }
-  }, [selectedChapter]);
+  }, [selectedChapter, isConnected, session, sendEvent]);
 
   // Handle marking complete (record a successful review)
   const handleMarkComplete = useCallback(async () => {
@@ -186,18 +195,35 @@ export default function CLRSReader() {
 
   // Handle PDF page change - emit signal for tracking
   const handlePageChange = useCallback((page: number, totalPages: number) => {
-    // Could emit a page_viewed signal here
     console.log(`[CLRS] Page ${page}/${totalPages}`);
-  }, []);
+    if (isConnected && session) {
+      sendEvent('page_viewed', {
+        item_type: 'chapter',
+        item_id: selectedChapter?.id,
+        page,
+        total_pages: totalPages
+      });
+    }
+  }, [isConnected, session, sendEvent, selectedChapter]);
 
   // Handle time spent on PDF page - emit signal
   const handleTimeOnPage = useCallback((page: number, seconds: number) => {
-    // Could emit a time_on_page signal here
     console.log(`[CLRS] Spent ${seconds}s on page ${page}`);
+    
+    // Send time_spent signal for meaningful durations (> 5 seconds)
+    if (isConnected && session && seconds > 5) {
+      sendEvent('time_spent', {
+        item_type: 'chapter',
+        item_id: selectedChapter?.id,
+        page,
+        duration_seconds: seconds
+      });
+    }
+    
     if (seconds > 30) {
       setNotification({ type: 'info', message: `Great focus! ${seconds}s on page ${page}` });
     }
-  }, []);
+  }, [isConnected, session, sendEvent, selectedChapter]);
 
   // Handle PDF document load
   const handleDocumentLoad = useCallback((totalPages: number) => {

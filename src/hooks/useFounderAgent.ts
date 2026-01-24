@@ -57,7 +57,7 @@ export interface UseFounderAgentReturn {
   startSession: (domain: AgentDomain, goalId?: string) => Promise<void>;
   endSession: () => Promise<void>;
   sendMessage: (message: string) => Promise<void>;
-  sendSignal: (type: string, data?: Record<string, unknown>) => Promise<void>;
+  sendEvent: (type: string, data?: Record<string, unknown>) => Promise<void>;
   clearMessages: () => void;
 }
 
@@ -226,10 +226,17 @@ export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounde
     await founderAgentClient.sendChat(message);
   }, []);
 
-  const sendSignal = useCallback(async (type: string, data?: Record<string, unknown>) => {
-    await founderAgentClient.sendSignal({
+  const sendEvent = useCallback(async (type: string, data?: Record<string, unknown>) => {
+    // Extract known EventPayload fields to top level, rest goes to data
+    const { item_type, item_id, duration_seconds, score, intensity, ...rest } = data || {};
+    await founderAgentClient.sendEvent({
       type,
-      data
+      item_type: item_type as string | undefined,
+      item_id: item_id as string | undefined,
+      duration_seconds: duration_seconds as number | undefined,
+      score: score as number | undefined,
+      intensity: intensity as number | undefined,
+      data: Object.keys(rest).length > 0 ? rest : undefined
     });
   }, []);
 
@@ -286,7 +293,7 @@ export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounde
     startSession,
     endSession,
     sendMessage,
-    sendSignal,
+    sendEvent,
     clearMessages
   };
 }
