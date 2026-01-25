@@ -917,6 +917,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/courses/tutor/ws": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * WebSocket endpoint for tutor agent real-time interactive learning
+         * @description WebSocket endpoint for bi-directional real-time communication with the tutor agent.
+         *     Enables interactive, personalized learning sessions with on-demand lesson generation.
+         *
+         *     **Connection:**
+         *     1. Connect via WebSocket upgrade (GET request with `Upgrade: websocket`)
+         *     2. Authentication via `x-api-key` query parameter
+         *     3. Provide `user_id` query parameter to identify the user
+         *     4. Optionally provide `course_id` to target a specific course/document
+         *     5. On success, receive `connected` message with session details
+         *
+         *     **Protocol (JSON over WebSocket):**
+         *     All messages follow the format:
+         *     ```json
+         *     {
+         *       "id": "uuid",
+         *       "type": "message_type",
+         *       "payload": {},
+         *       "timestamp": "2024-01-01T00:00:00Z"
+         *     }
+         *     ```
+         *
+         *     **Client → Server Message Types:**
+         *     - `session.start` - Start a new tutor session for a course
+         *     - `session.end` - End current session
+         *     - `intake.start` - Start the intake questionnaire
+         *     - `intake.answer` - Answer an intake question
+         *     - `intake.complete` - Mark intake as complete
+         *     - `lesson.request` - Request a new lesson
+         *     - `lesson.complete` - Mark lesson as complete
+         *     - `lesson.skip` - Skip current lesson
+         *     - `quiz.start` - Start a quiz
+         *     - `quiz.answer` - Answer a quiz question
+         *     - `chat` - Ask the tutor a question
+         *     - `feedback` - Submit feedback on content
+         *     - `progress.get` - Get current progress
+         *     - `ping` - Keep-alive ping
+         *
+         *     **Server → Client Message Types:**
+         *     - `connected` - Connection established
+         *     - `state.change` - FSM state transition
+         *     - `intake.question` - Intake question to answer
+         *     - `intake.progress` - Intake completion progress
+         *     - `intake.complete` - Intake finished, ready to learn
+         *     - `lesson.generated` - New lesson content
+         *     - `lesson.streaming` - Streaming lesson content (chunk by chunk)
+         *     - `quiz.question` - Quiz question to answer
+         *     - `quiz.result` - Quiz results
+         *     - `tutor.response` - Tutor's answer to chat
+         *     - `tutor.typing` - Tutor is generating response
+         *     - `progress.update` - Progress updated
+         *     - `engagement.update` - Engagement metrics changed
+         *     - `ack` - Message acknowledgment
+         *     - `error` - Error response
+         *     - `pong` - Ping response
+         *
+         *     **Session Flow:**
+         *     1. Connect → `connected`
+         *     2. Send `session.start` with course_id → `ack` + `state.change`
+         *     3. (Optional) Send `intake.start` → `intake.question` (repeat until complete)
+         *     4. Send `lesson.request` → `lesson.generated` or `lesson.streaming`
+         *     5. Send `lesson.complete` → `ack` + next lesson prompt
+         *     6. Send `quiz.start` → `quiz.question` (repeat until complete)
+         *     7. Send `chat` → `tutor.response` (ask questions anytime)
+         *     8. Send `session.end` → `ack`
+         *     9. Disconnect
+         */
+        get: operations["V1GetTutorWS"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -5347,6 +5431,58 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    V1GetTutorWS: {
+        parameters: {
+            query: {
+                /** @description API key for authentication (can also be passed in header) */
+                "x-api-key"?: string;
+                /** @description User ID for the WebSocket session */
+                user_id: number;
+                /** @description Course UUID to start learning session with (can also be set via session.start message) */
+                course_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description WebSocket connection established */
+            101: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request - Missing or invalid user_id */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized - Invalid or missing x-api-key */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service unavailable - WebSocket hub not ready */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
             };
         };
     };

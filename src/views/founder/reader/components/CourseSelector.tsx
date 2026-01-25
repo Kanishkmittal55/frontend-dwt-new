@@ -16,6 +16,12 @@ import Alert from '@mui/material/Alert';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import CircularProgress from '@mui/material/CircularProgress';
+import IconButton from '@mui/material/IconButton';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
 import { useTheme, alpha } from '@mui/material/styles';
 import {
   IconBook2,
@@ -24,7 +30,8 @@ import {
   IconRefresh,
   IconCheck,
   IconAlertCircle,
-  IconLoader
+  IconLoader,
+  IconTrash
 } from '@tabler/icons-react';
 
 import type { Course, CourseFilter } from '@/api/founder/coursesAPI';
@@ -33,7 +40,8 @@ import {
   getCourseStatusLabel,
   getCourseStatusColor,
   isCourseProcessing,
-  formatEstimatedHours
+  formatEstimatedHours,
+  deleteCourse
 } from '@/api/founder/coursesAPI';
 import { getStoredUserId } from '@/api/founder/founderClient';
 
@@ -58,6 +66,10 @@ export default function CourseSelector({ onSelectCourse }: CourseSelectorProps) 
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<CourseFilter>('all');
   const [total, setTotal] = useState(0);
+  
+  // Delete state
+  const [deleteTarget, setDeleteTarget] = useState<Course | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Get user ID
   const userId = getStoredUserId();
@@ -114,6 +126,23 @@ export default function CourseSelector({ onSelectCourse }: CourseSelectorProps) 
       return <IconLoader size={16} className="animate-spin" />;
     }
     return null;
+  };
+
+  // Handle delete
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    
+    setDeleting(true);
+    try {
+      await deleteCourse(deleteTarget.uuid);
+      setDeleteTarget(null);
+      fetchCourses();
+    } catch (err) {
+      const apiError = err as { message?: string };
+      setError(apiError.message || 'Failed to delete course');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -249,6 +278,26 @@ export default function CourseSelector({ onSelectCourse }: CourseSelectorProps) 
                     />
                   )}
 
+                  {/* Delete Button - Outside CardActionArea to avoid nested buttons */}
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteTarget(course);
+                    }}
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      zIndex: 2,
+                      opacity: 0.6,
+                      bgcolor: alpha(theme.palette.background.paper, 0.9),
+                      '&:hover': { opacity: 1, color: 'error.main', bgcolor: theme.palette.background.paper }
+                    }}
+                  >
+                    <IconTrash size={18} />
+                  </IconButton>
+
                   <CardActionArea
                     onClick={() => !isProcessing && onSelectCourse(course)}
                     disabled={isProcessing || course.status === 'failed'}
@@ -358,7 +407,26 @@ export default function CourseSelector({ onSelectCourse }: CourseSelectorProps) 
           })}
         </Grid>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
+        <DialogTitle>Delete Course?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete "{deleteTarget?.title}"? This will permanently remove all modules, lessons, and quizzes. This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteTarget(null)} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button onClick={handleDelete} color="error" disabled={deleting}>
+            {deleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
+
 

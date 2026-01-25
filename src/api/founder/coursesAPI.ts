@@ -180,6 +180,22 @@ export async function getQuizByLesson(
   }
 }
 
+/**
+ * Delete a course and all its content
+ * DELETE /v1/courses/detail/{courseUUID}
+ * 
+ * @param courseUUID - The course UUID to delete
+ */
+export async function deleteCourse(courseUUID: string): Promise<void> {
+  const endpoint = `/v1/courses/detail/${courseUUID}`;
+  
+  console.log('[coursesAPI] deleteCourse calling:', endpoint);
+  
+  await founderClient.delete(endpoint);
+  
+  console.log('[coursesAPI] deleteCourse success');
+}
+
 // ============================================================================
 // Helper Functions
 // ============================================================================
@@ -266,6 +282,7 @@ export const coursesAPI = {
   getLessonsByModule,
   getLessonByUUID,
   getQuizByLesson,
+  deleteCourse,
   // Helpers
   getCourseStatusLabel,
   getCourseStatusColor,

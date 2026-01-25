@@ -645,6 +645,8 @@ export type ErrorPayload = z.infer<typeof ErrorPayloadSchema>;
 // Course status enum
 export const CourseStatusSchema = z.enum([
   'pending',
+  'pending_intake',  // New: waiting for user to complete intake questions
+  'active',          // New: intake complete, learning in progress
   'processing_chunks',
   'creating_modules',
   'enriching',

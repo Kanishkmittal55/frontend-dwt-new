@@ -14,6 +14,7 @@ import Chip from '@mui/material/Chip';
 import Skeleton from '@mui/material/Skeleton';
 import LinearProgress from '@mui/material/LinearProgress';
 import { useTheme, alpha } from '@mui/material/styles';
+import IconButton from '@mui/material/IconButton';
 import {
   IconFolder,
   IconFolderOpen,
@@ -21,7 +22,8 @@ import {
   IconChevronDown,
   IconChevronRight,
   IconCheck,
-  IconClock
+  IconClock,
+  IconLayoutSidebarLeftCollapse
 } from '@tabler/icons-react';
 
 import type { CourseModule, CourseLesson } from '@/api/founder/coursesAPI';
@@ -41,6 +43,7 @@ interface ModuleNavProps {
   onSelectModule: (module: CourseModule) => void;
   onSelectLesson: (lesson: CourseLesson) => void;
   onLoadLessons: (moduleUUID: string) => void;
+  onToggle?: () => void;
 }
 
 // ============================================================================
@@ -56,7 +59,8 @@ export default function ModuleNav({
   completedLessonUUIDs,
   onSelectModule,
   onSelectLesson,
-  onLoadLessons
+  onLoadLessons,
+  onToggle
 }: ModuleNavProps) {
   const theme = useTheme();
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
@@ -104,25 +108,33 @@ export default function ModuleNav({
       sx={{
         height: '100%',
         overflow: 'auto',
-        bgcolor: alpha(theme.palette.background.default, 0.5),
-        borderRight: `1px solid ${theme.palette.divider}`
+        bgcolor: alpha(theme.palette.background.default, 0.5)
       }}
     >
       {/* Header */}
       <Box
         sx={{
-          px: 2,
-          py: 2,
+          p: 2,
           borderBottom: `1px solid ${theme.palette.divider}`,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.08)} 0%, ${alpha(theme.palette.secondary.main, 0.04)} 100%)`
         }}
       >
-        <Typography variant="subtitle1" fontWeight={600} color="primary">
-          Course Modules
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          {modules.length} modules
-        </Typography>
+        <Box>
+          <Typography variant="subtitle1" fontWeight={600} color="primary">
+            Course Modules
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {modules.length} modules
+          </Typography>
+        </Box>
+        {onToggle && (
+          <IconButton size="small" onClick={onToggle} sx={{ color: 'text.secondary' }}>
+            <IconLayoutSidebarLeftCollapse size={18} />
+          </IconButton>
+        )}
       </Box>
 
       {/* Modules List */}

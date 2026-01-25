@@ -1,28 +1,37 @@
 /**
  * CLRSCourse View
  * Main course reading experience with modules, lessons, and quizzes
- * Fetches content from the backend courses API
+ * Supports two modes:
+ * 1. Static Mode: Traditional course navigation from pre-generated content
+ * 2. Interactive Mode: Real-time personalized learning with AI tutor
  */
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
-import Breadcrumbs from '@mui/material/Breadcrumbs';
-import Link from '@mui/material/Link';
-import Skeleton from '@mui/material/Skeleton';
-import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
+import Button from '@mui/material/Button';
 import LinearProgress from '@mui/material/LinearProgress';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import Stack from '@mui/material/Stack';
 import { useTheme, alpha } from '@mui/material/styles';
+import Slide from '@mui/material/Slide';
+import Tooltip from '@mui/material/Tooltip';
+import { IconCircleCheck, IconCircleCheckFilled, IconShare, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+
 import {
   IconMenu2,
   IconArrowLeft,
-  IconBook2,
   IconCheck,
-  IconClock
+  IconClock,
+  IconSparkles,
+  IconBook2,
+  IconRobot,
+  IconX
 } from '@tabler/icons-react';
 
 import MainCard from '@/ui-component/cards/MainCard';
@@ -39,17 +48,30 @@ import {
   type CourseQuiz
 } from '@/api/founder/coursesAPI';
 
+// Hooks
+import useTutorAgent from '@/hooks/useTutorAgent';
+
 // Components
 import CourseSelector from './components/CourseSelector';
 import ModuleNav from './components/ModuleNav';
 import LessonContent from './components/LessonContent';
 import QuizView from './components/QuizView';
+import IntakeForm from './components/IntakeForm';
+import TutorChat from './components/TutorChat';
+import StreamingLesson from './components/StreamingLesson';
 
 // ============================================================================
 // Constants
 // ============================================================================
 
 const NAV_WIDTH = 320;
+const CHAT_WIDTH = 380;
+
+// Get API key from env - in production use proper auth
+const API_KEY = import.meta.env.VITE_API_KEY || 'test-all-access-key';
+const USER_ID = 1; // TODO: Get from auth context
+
+type ViewMode = 'static' | 'interactive';
 
 // ============================================================================
 // Main Component
@@ -58,98 +80,159 @@ const NAV_WIDTH = 320;
 export default function CLRSCourse() {
   const theme = useTheme();
 
-  // View state
+  // =========================================================================
+  // View State
+  // =========================================================================
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('static');
   const [showNav, setShowNav] = useState(true);
+  const [showChat, setShowChat] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
-  // Course data state
+  // =========================================================================
+  // Static Mode State (existing functionality)
+  // =========================================================================
   const [modules, setModules] = useState<CourseModule[]>([]);
   const [lessonsByModule, setLessonsByModule] = useState<Record<string, CourseLesson[]>>({});
   const [loadingCourse, setLoadingCourse] = useState(false);
   const [loadingModuleUUID, setLoadingModuleUUID] = useState<string | null>(null);
-
-  // Selection state
   const [selectedModuleUUID, setSelectedModuleUUID] = useState<string | null>(null);
   const [selectedLessonUUID, setSelectedLessonUUID] = useState<string | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<CourseLesson | null>(null);
   const [selectedQuiz, setSelectedQuiz] = useState<CourseQuiz | null>(null);
   const [loadingLesson, setLoadingLesson] = useState(false);
-
-  // Progress state (stored in localStorage)
   const [completedLessonUUIDs, setCompletedLessonUUIDs] = useState<Set<string>>(new Set());
-
-  // Quiz state
   const [showQuiz, setShowQuiz] = useState(false);
 
-  // Load completed lessons from localStorage
+  // =========================================================================
+  // Interactive Mode - Tutor Agent Hook
+  // =========================================================================
+  const tutor = useTutorAgent({
+    apiKey: API_KEY,
+    userId: USER_ID,
+    ...(selectedCourse?.uuid && { courseId: selectedCourse.uuid }), // Uses spread operator to conditionally add the courseId property only when selectedCourse?.uuid exists
+    autoConnect: false
+  });
+
+  // =========================================================================
+  // Effects
+  // =========================================================================
+
+  // This local storage is to track user's progress not for lesson storage
   useEffect(() => {
     if (!selectedCourse) return;
     const key = `course_progress_${selectedCourse.uuid}`;
     const stored = localStorage.getItem(key);
     if (stored) {
       try {
-        const parsed = JSON.parse(stored);
-        setCompletedLessonUUIDs(new Set(parsed));
-      } catch {
-        // Ignore
-      }
+        setCompletedLessonUUIDs(new Set(JSON.parse(stored)));
+      } catch { /* ignore */ }
     }
   }, [selectedCourse?.uuid]);
 
-  // Save completed lessons to localStorage
+  // Connect tutor once when a course is selected (stays connected across mode switches)
+  const hasConnectedRef = useRef(false);
+  const lastCourseIdRef = useRef<string | null>(null);
+  
+  useEffect(() => {
+    // Only connect once per course selection (not per mode switch)
+    if (selectedCourse && selectedCourse.uuid !== lastCourseIdRef.current) {
+      lastCourseIdRef.current = selectedCourse.uuid;
+      hasConnectedRef.current = false;
+    }
+    
+    if (selectedCourse && !hasConnectedRef.current && !tutor.isConnected) {
+      console.log('[CLRSCourse] Connecting tutor for course:', selectedCourse.uuid);
+      hasConnectedRef.current = true;
+      tutor.connect(selectedCourse.uuid);
+    }
+  }, [selectedCourse?.uuid, tutor.isConnected]);
+
+  // Clean up on unmount only
+  useEffect(() => {
+    return () => {
+      if (tutor.isConnected) {
+        tutor.disconnect();
+      }
+    };
+  }, []);
+
+  // Auto-start session when connected (only once per course)
+  const hasStartedSessionRef = useRef(false);
+  useEffect(() => {
+    if (tutor.isConnected && selectedCourse && !tutor.hasSession && !hasStartedSessionRef.current) {
+      console.log('[CLRSCourse] Starting session for course:', selectedCourse.uuid);
+      hasStartedSessionRef.current = true;
+      tutor.startSession(selectedCourse.uuid);
+
+       // If course already completed intake
+      if (selectedCourse.status === 'active') {
+        tutor.setIntakeComplete(true);
+      }
+    }
+    // Reset when course changes
+    if (!selectedCourse) {
+      hasStartedSessionRef.current = false;
+    }
+  }, [tutor.isConnected, tutor.hasSession, selectedCourse?.uuid]);
+
+
+  // =========================================================================
+  // Handlers - General
+  // =========================================================================
+
   const saveProgress = useCallback((lessonUUID: string) => {
     if (!selectedCourse) return;
-
     setCompletedLessonUUIDs(prev => {
       const next = new Set([...prev, lessonUUID]);
-      const key = `course_progress_${selectedCourse.uuid}`;
-      localStorage.setItem(key, JSON.stringify([...next]));
+      localStorage.setItem(`course_progress_${selectedCourse.uuid}`, JSON.stringify([...next]));
       return next;
     });
   }, [selectedCourse]);
 
-  // Handle course selection
-  const handleSelectCourse = useCallback(async (course: Course) => {
-    setSelectedCourse(course);
-    setLoadingCourse(true);
+  const handleBackToCourses = useCallback(() => {
+    if (tutor.isConnected) {
+      tutor.disconnect();
+    }
+    // Reset connection tracking refs
+    hasConnectedRef.current = false;
+    hasStartedSessionRef.current = false;
+    
+    setSelectedCourse(null);
     setModules([]);
     setLessonsByModule({});
     setSelectedModuleUUID(null);
     setSelectedLessonUUID(null);
     setSelectedLesson(null);
     setSelectedQuiz(null);
+    setCompletedLessonUUIDs(new Set());
+    setViewMode('static');
+    setShowChat(false);
+  }, [tutor]);
 
-    try {
-      const detail = await getCourseByUUID(course.uuid);
-      setModules(detail.modules);
-
-      // Auto-select first module and load its lessons
-      if (detail.modules.length > 0) {
-        const firstModule = detail.modules[0];
-        setSelectedModuleUUID(firstModule.uuid);
-        await handleLoadLessons(firstModule.uuid);
+  const handleModeChange = useCallback((_: any, newMode: ViewMode | null) => {
+    if (newMode) {
+      setViewMode(newMode);
+      if (newMode === 'interactive' && !tutor.isConnected && selectedCourse) {
+        tutor.connect(selectedCourse.uuid);
       }
-    } catch (err) {
-      const apiError = err as { message?: string };
-      setNotification({ type: 'error', message: apiError.message || 'Failed to load course' });
-    } finally {
-      setLoadingCourse(false);
     }
-  }, []);
+  }, [tutor, selectedCourse]);
 
-  // Load lessons for a module
+  // =========================================================================
+  // Handlers - Static Mode
+  // =========================================================================
   const handleLoadLessons = useCallback(async (moduleUUID: string) => {
-    if (lessonsByModule[moduleUUID]) return; // Already loaded
-
+    if (lessonsByModule[moduleUUID]) return;
     setLoadingModuleUUID(moduleUUID);
     try {
       const lessons = await getLessonsByModule(moduleUUID);
       setLessonsByModule(prev => ({ ...prev, [moduleUUID]: lessons }));
-
-      // Auto-select first lesson if this is the selected module
+      const firstLesson = lessons[0]
       if (lessons.length > 0) {
-        handleSelectLesson(lessons[0]);
+        if (firstLesson){
+          handleSelectLesson(firstLesson);
+        }
       }
     } catch (err) {
       const apiError = err as { message?: string };
@@ -159,12 +242,45 @@ export default function CLRSCourse() {
     }
   }, [lessonsByModule]);
 
-  // Handle module selection
+  const handleSelectCourse = useCallback(async (course: Course) => {
+    setSelectedCourse(course);
+    setLoadingCourse(true);
+
+    // Reset all pervious state
+    setModules([]);
+    setLessonsByModule({});
+    setSelectedModuleUUID(null);
+    setSelectedLessonUUID(null);
+    setSelectedLesson(null);
+    setSelectedQuiz(null);
+
+    // Auto-start interactive mode for courses pending intake
+    if (course.status === 'pending_intake') {
+      setViewMode('interactive');
+    }
+
+    try {
+      const detail = await getCourseByUUID(course.uuid);
+      setModules(detail.modules);
+      if (detail.modules.length > 0) {
+        const firstModule = detail.modules[0];
+        if (firstModule){
+          setSelectedModuleUUID(firstModule?.uuid);
+          await handleLoadLessons(firstModule.uuid);
+        }
+      }
+    } catch (err) {
+      const apiError = err as { message?: string };
+      setNotification({ type: 'error', message: apiError.message || 'Failed to load course' });
+    } finally {
+      setLoadingCourse(false);
+    }
+  }, [handleLoadLessons]);
+
   const handleSelectModule = useCallback((module: CourseModule) => {
     setSelectedModuleUUID(module.uuid);
   }, []);
 
-  // Handle lesson selection
   const handleSelectLesson = useCallback(async (lesson: CourseLesson) => {
     setSelectedLessonUUID(lesson.uuid);
     setSelectedModuleUUID(lesson.module_uuid);
@@ -178,20 +294,18 @@ export default function CLRSCourse() {
     } catch (err) {
       const apiError = err as { message?: string };
       setNotification({ type: 'error', message: apiError.message || 'Failed to load lesson' });
-      setSelectedLesson(lesson); // Fallback to passed lesson
+      setSelectedLesson(lesson);
     } finally {
       setLoadingLesson(false);
     }
   }, []);
 
-  // Handle mark complete
   const handleMarkComplete = useCallback(() => {
     if (!selectedLesson) return;
     saveProgress(selectedLesson.uuid);
     setNotification({ type: 'success', message: 'Lesson marked as complete!' });
   }, [selectedLesson, saveProgress]);
 
-  // Handle quiz complete
   const handleQuizComplete = useCallback((score: number, passed: boolean) => {
     if (passed && selectedLesson) {
       saveProgress(selectedLesson.uuid);
@@ -203,17 +317,68 @@ export default function CLRSCourse() {
     });
   }, [selectedLesson, saveProgress]);
 
-  // Get all lessons in order for navigation
+  // =========================================================================
+  // Handlers - Interactive Mode
+  // =========================================================================
+
+  const handleIntakeAnswer = useCallback((questionId: string, answer: any) => {
+    tutor.answerIntakeQuestion(questionId, answer);
+  }, [tutor]);
+
+  const handleRequestLesson = useCallback(() => {
+    tutor.requestLesson();
+  }, [tutor]);
+
+  const handleLessonComplete = useCallback(async (lessonUUID: string, timeSpent: number, scrollDepth: number) => {
+    tutor.completeLesson(lessonUUID, timeSpent, scrollDepth);
+    saveProgress(lessonUUID);
+    setNotification({ type: 'success', message: 'Great work! Keep going!' });
+    
+    // Refresh course data from DB to show newly created modules/lessons in sidebar
+    if (selectedCourse) {
+      try {
+        const detail = await getCourseByUUID(selectedCourse.uuid);
+        setModules(detail.modules);
+        // Clear cached lessons to force re-fetch
+        setLessonsByModule({});
+        // Auto-load lessons for first module if available
+        if (detail.modules.length > 0) {
+          const module = detail.modules[0]
+          if (module){
+          const lessons = await getLessonsByModule(module.uuid);
+          setLessonsByModule(prev => ({ ...prev, [module.uuid]: lessons }));
+          }
+      }
+      } catch (err) {
+        console.warn('[CLRSCourse] Failed to refresh course data after lesson complete', err);
+      }
+    }
+  }, [tutor, saveProgress, selectedCourse]);
+
+  const handleLessonSkip = useCallback((lessonUUID: string, reason: string) => {
+    tutor.skipLesson(lessonUUID, reason);
+  }, [tutor]);
+
+  const handleStartInteractiveQuiz = useCallback(() => {
+    tutor.startQuiz('knowledge', tutor.currentLesson?.lessonUUID);
+  }, [tutor]);
+
+  const handleSendChat = useCallback(async (message: string) => {
+    await tutor.sendChat(message);
+  }, [tutor]);
+
+  // =========================================================================
+  // Computed Values
+  // =========================================================================
+
   const allLessonsInOrder = useMemo(() => {
     const lessons: CourseLesson[] = [];
     modules.forEach(module => {
-      const moduleLessons = lessonsByModule[module.uuid] || [];
-      lessons.push(...moduleLessons);
+      lessons.push(...(lessonsByModule[module.uuid] || []));
     });
     return lessons;
   }, [modules, lessonsByModule]);
 
-  // Navigation helpers
   const currentLessonIndex = useMemo(() => {
     if (!selectedLessonUUID) return -1;
     return allLessonsInOrder.findIndex(l => l.uuid === selectedLessonUUID);
@@ -223,38 +388,25 @@ export default function CLRSCourse() {
   const hasPrevLesson = currentLessonIndex > 0;
 
   const handleNextLesson = useCallback(() => {
-    if (hasNextLesson) {
-      handleSelectLesson(allLessonsInOrder[currentLessonIndex + 1]);
-    }
+    const nextLesson = allLessonsInOrder[currentLessonIndex + 1];
+    if (hasNextLesson && nextLesson) handleSelectLesson(nextLesson);
   }, [hasNextLesson, currentLessonIndex, allLessonsInOrder, handleSelectLesson]);
 
   const handlePrevLesson = useCallback(() => {
-    if (hasPrevLesson) {
-      handleSelectLesson(allLessonsInOrder[currentLessonIndex - 1]);
-    }
+    const prevLesson = allLessonsInOrder[currentLessonIndex - 1];
+    if (hasPrevLesson && prevLesson) handleSelectLesson(prevLesson);
   }, [hasPrevLesson, currentLessonIndex, allLessonsInOrder, handleSelectLesson]);
 
-  // Calculate course progress
   const courseProgress = useMemo(() => {
-    const totalLessons = allLessonsInOrder.length;
-    if (totalLessons === 0) return 0;
-    const completed = allLessonsInOrder.filter(l => completedLessonUUIDs.has(l.uuid)).length;
-    return Math.round((completed / totalLessons) * 100);
+    const total = allLessonsInOrder.length;
+    if (total === 0) return 0;
+    return Math.round((allLessonsInOrder.filter(l => completedLessonUUIDs.has(l.uuid)).length / total) * 100);
   }, [allLessonsInOrder, completedLessonUUIDs]);
 
-  // Handle back to courses
-  const handleBackToCourses = useCallback(() => {
-    setSelectedCourse(null);
-    setModules([]);
-    setLessonsByModule({});
-    setSelectedModuleUUID(null);
-    setSelectedLessonUUID(null);
-    setSelectedLesson(null);
-    setSelectedQuiz(null);
-    setCompletedLessonUUIDs(new Set());
-  }, []);
+  // =========================================================================
+  // Render - Course Selector
+  // =========================================================================
 
-  // Course selector view
   if (!selectedCourse) {
     return (
       <MainCard
@@ -263,17 +415,13 @@ export default function CLRSCourse() {
         contentSX={{ p: 0, height: '100%', overflow: 'auto' }}
       >
         <CourseSelector onSelectCourse={handleSelectCourse} />
-        
         <Snackbar
           open={!!notification}
           autoHideDuration={4000}
           onClose={() => setNotification(null)}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         >
-          <Alert
-            severity={notification?.type || 'info'}
-            onClose={() => setNotification(null)}
-          >
+          <Alert severity={notification?.type || 'info'} onClose={() => setNotification(null)}>
             {notification?.message}
           </Alert>
         </Snackbar>
@@ -281,55 +429,136 @@ export default function CLRSCourse() {
     );
   }
 
-  // Course view
+  // =========================================================================
+  // Render - Course View
+  // =========================================================================
+
   return (
     <MainCard
       title={
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <IconButton onClick={handleBackToCourses} size="small">
             <IconArrowLeft size={20} />
           </IconButton>
-          <Box>
-            <Typography variant="h5" fontWeight={600} noWrap sx={{ maxWidth: 400 }}>
-              {selectedCourse.title}
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 0.5 }}>
-              {selectedCourse.total_modules && (
-                <Typography variant="caption" color="text.secondary">
-                  {selectedCourse.total_modules} modules
-                </Typography>
-              )}
-              {selectedCourse.estimated_hours && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <IconClock size={12} />
-                  <Typography variant="caption" color="text.secondary">
-                    {formatEstimatedHours(selectedCourse.estimated_hours)}
-                  </Typography>
-                </Box>
-              )}
-              <Chip
-                size="small"
-                icon={<IconCheck size={12} />}
-                label={`${courseProgress}% complete`}
-                color={courseProgress === 100 ? 'success' : 'default'}
-                variant="outlined"
-                sx={{ height: 22 }}
-              />
-            </Box>
-          </Box>
+          <Typography variant="h6" fontWeight={600} noWrap sx={{ maxWidth: 200 }}>
+            {selectedCourse.title}
+          </Typography>
         </Box>
       }
       secondary={
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <IconButton size="small" onClick={() => setShowNav(!showNav)}>
-            <IconMenu2 size={18} />
-          </IconButton>
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', width: '100%' }}>
+          {/* Left: Mark Complete & Share */}
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Tooltip title={selectedLesson && completedLessonUUIDs.has(selectedLesson.uuid) ? "Completed" : "Mark complete"}>
+              <IconButton
+                size="small"
+                onClick={handleMarkComplete}
+                disabled={!selectedLesson}
+                sx={{
+                  color: selectedLesson && completedLessonUUIDs.has(selectedLesson.uuid) ? '#22c55e' : 'text.secondary',
+                  '&:hover': { bgcolor: alpha(theme.palette.success.main, 0.08) }
+                }}
+              >
+                {selectedLesson && completedLessonUUIDs.has(selectedLesson.uuid) ? (
+                  <IconCircleCheckFilled size={20} />
+                ) : (
+                  <IconCircleCheck size={20} />
+                )}
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Share">
+              <IconButton size="small" sx={{ color: 'text.secondary' }}>
+                <IconShare size={20} />
+              </IconButton>
+            </Tooltip>
+          </Box>
+      
+          {/* Center: Lesson Navigation */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1 }}>
+            <IconButton
+              size="small"
+              onClick={handlePrevLesson}
+              disabled={!hasPrevLesson}
+              sx={{ color: hasPrevLesson ? 'text.primary' : 'text.disabled' }}
+            >
+              <IconChevronLeft size={20} />
+            </IconButton>
+            {selectedLesson && (
+              <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500, minWidth: 80, textAlign: 'center' }}>
+                Lesson {selectedLesson.sequence_order || 1}
+              </Typography>
+            )}
+            <IconButton
+              size="small"
+              onClick={handleNextLesson}
+              disabled={!hasNextLesson}
+              sx={{ color: hasNextLesson ? 'text.primary' : 'text.disabled' }}
+            >
+              <IconChevronRight size={20} />
+            </IconButton>
+          </Box>
+      
+          {/* Right: Mode Toggle */}
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <ToggleButtonGroup
+              value={viewMode}
+              exclusive
+              onChange={handleModeChange}
+              size="small"
+              sx={{
+                bgcolor: alpha(theme.palette.background.default, 0.8),
+                '& .MuiToggleButton-root': {
+                  px: 1.5,
+                  py: 0.5,
+                  textTransform: 'none',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                  border: 'none',
+                  '&.Mui-selected': {
+                    bgcolor: theme.palette.primary.main,
+                    color: 'white',
+                    '&:hover': { bgcolor: theme.palette.primary.dark }
+                  }
+                }
+              }}
+            >
+              <ToggleButton value="static">
+                <IconBook2 size={16} style={{ marginRight: 6 }} />
+                Read
+              </ToggleButton>
+              <ToggleButton value="interactive">
+                <IconSparkles size={16} style={{ marginRight: 6 }} />
+                Interactive
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
         </Box>
       }
-      sx={{ height: 'calc(100vh - 100px)', position: 'relative' }}
-      contentSX={{ p: 0, height: '100%', display: 'flex', flexDirection: 'row', overflow: 'hidden' }}
+      border={false}
+      sx={{
+        height: 'calc(100vh - 100px)', 
+        position: 'relative',
+        display: 'flex',           
+        flexDirection: 'column',
+        border: `1px solid ${theme.palette.divider}`,
+        borderRadius: 2,
+        overflow: 'hidden',
+        '& .MuiCardHeader-root': {
+          '& .MuiCardHeader-content': {
+            flex: '0 0 auto',
+            maxWidth: 350
+          },
+          '& .MuiCardHeader-action': {
+            flex: '1 1 auto',
+            alignSelf: 'center',
+            marginTop: 0,
+            marginRight: 0,
+            marginLeft: 24
+          }
+        }
+      }}
+      contentSX={{ p: 0, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'row', overflow: 'hidden', '&:last-child': { pb: 0 } }}
     >
-      {/* Course Progress */}
       <LinearProgress
         variant="determinate"
         value={courseProgress}
@@ -347,31 +576,27 @@ export default function CLRSCourse() {
         }}
       />
 
-      {/* Module Navigation - Left Sidebar */}
-      <Drawer
-        variant="persistent"
-        anchor="left"
-        open={showNav}
-        sx={{
-          width: showNav ? NAV_WIDTH : 0,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: NAV_WIDTH,
-            position: 'relative',
-            border: 'none',
-            borderRight: `1px solid ${theme.palette.divider}`
-          }
-        }}
-      >
-        {loadingCourse ? (
-          <Box sx={{ p: 2 }}>
-            <Skeleton variant="text" width={200} height={32} />
-            <Skeleton variant="text" width={120} />
-            <Skeleton variant="rounded" height={60} sx={{ mt: 2 }} />
-            <Skeleton variant="rounded" height={60} sx={{ mt: 1 }} />
-            <Skeleton variant="rounded" height={60} sx={{ mt: 1 }} />
-          </Box>
-        ) : (
+      {/* Left Navigation Drawer (Static mode only) */}
+      {viewMode === 'static' && (
+        
+        <Slide direction="right" in={viewMode === 'static'} mountOnEnter unmountOnExit>
+          
+        <Drawer
+          variant="persistent"
+          anchor="left"
+          open={showNav}
+          sx={{
+            width: showNav ? NAV_WIDTH : 0,
+            flexShrink: 0,
+            '& .MuiDrawer-paper': {
+              width: NAV_WIDTH,
+              position: 'relative',
+              border: 'none',
+              borderRight: `1px solid ${theme.palette.divider}`,  // ← Only right border
+              boxSizing: 'border-box'  // ← Important for alignment
+            }
+          }}
+        >
           <ModuleNav
             modules={modules}
             selectedModuleUUID={selectedModuleUUID}
@@ -382,35 +607,86 @@ export default function CLRSCourse() {
             onSelectModule={handleSelectModule}
             onSelectLesson={handleSelectLesson}
             onLoadLessons={handleLoadLessons}
+            onToggle={() => setShowNav(false)}
           />
-        )}
-      </Drawer>
+        </Drawer>
+        </Slide>
+      )}
 
-      {/* Main Content */}
+      {/* Nav Toggle Button (when nav is collapsed) */}
+      {viewMode === 'static' && !showNav && (
+        <IconButton
+          onClick={() => setShowNav(true)}
+          size="small"
+          sx={{
+            position: 'absolute',
+            left: 8,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            zIndex: 10,
+            bgcolor: theme.palette.background.paper,
+            border: `1px solid ${theme.palette.divider}`,
+            '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08) }
+          }}
+        >
+          <IconMenu2 size={18} />
+        </IconButton>
+      )}
+
+      {/* Main Content Area */}
       <Box
         sx={{
           flex: 1,
           minHeight: 0,
           display: 'flex',
-          flexDirection: 'column',
-          minWidth: 0
+          flexDirection: 'row',
+          overflow: 'hidden'
         }}
       >
-        <LessonContent
-          lesson={selectedLesson}
-          quiz={selectedQuiz}
-          loading={loadingLesson}
-          isCompleted={selectedLesson ? completedLessonUUIDs.has(selectedLesson.uuid) : false}
-          hasNextLesson={hasNextLesson}
-          hasPrevLesson={hasPrevLesson}
-          onMarkComplete={handleMarkComplete}
-          onStartQuiz={() => setShowQuiz(true)}
-          onNextLesson={handleNextLesson}
-          onPrevLesson={handlePrevLesson}
-        />
+
+        {/* ================= STATIC MODE ================= */}
+          <LessonContent
+            lesson={selectedLesson}
+            quiz={selectedQuiz}
+            loading={loadingLesson || loadingCourse}
+            isCompleted={selectedLesson ? completedLessonUUIDs.has(selectedLesson.uuid) : false}
+            hasNextLesson={hasNextLesson}
+            hasPrevLesson={hasPrevLesson}
+            onMarkComplete={handleMarkComplete}
+            onStartQuiz={() => setShowQuiz(true)}
+            onNextLesson={handleNextLesson}
+            onPrevLesson={handlePrevLesson}
+          />
+
+          {/* Chat Panel - only in Interactive mode */}
+          {viewMode === 'interactive' && (
+            <Slide direction="left" in={viewMode === 'interactive'}>
+            <Box
+              sx={{
+                width: 360,
+                height: '100%',         
+                flexShrink: 0,
+                borderLeft: `1px solid ${theme.palette.divider}`,
+                display: 'flex',
+                flexDirection: 'column',
+                bgcolor: theme.palette.background.paper,
+                overflow: 'hidden'
+              }}
+            >
+              <TutorChat
+                messages={tutor.messages}
+                isTyping={tutor.isTutorTyping}
+                isConnected={tutor.isConnected}
+                onSend={handleSendChat}
+              />
+            </Box>
+            </Slide>
+          )}
+        
       </Box>
 
-      {/* Quiz Dialog */}
+
+      {/* Quiz Dialog (Static mode) */}
       {selectedQuiz && (
         <QuizView
           quiz={selectedQuiz}
@@ -422,19 +698,24 @@ export default function CLRSCourse() {
 
       {/* Notifications */}
       <Snackbar
-        open={!!notification}
+        open={!!notification || !!tutor.error}
         autoHideDuration={4000}
-        onClose={() => setNotification(null)}
+        onClose={() => {
+          setNotification(null);
+          tutor.clearError();
+        }}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
         <Alert
-          severity={notification?.type || 'info'}
-          onClose={() => setNotification(null)}
+          severity={tutor.error ? 'error' : notification?.type || 'info'}
+          onClose={() => {
+            setNotification(null);
+            tutor.clearError();
+          }}
         >
-          {notification?.message}
+          {tutor.error || notification?.message}
         </Alert>
       </Snackbar>
     </MainCard>
   );
 }
-
