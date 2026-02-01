@@ -2,7 +2,7 @@
  * Founder Dashboard
  * Main dashboard for Founder OS
  */
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // MUI
@@ -14,16 +14,22 @@ import CardContent from '@mui/material/CardContent';
 import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
 import Alert from '@mui/material/Alert';
+import Snackbar from '@mui/material/Snackbar';
+import CircularProgress from '@mui/material/CircularProgress';
 
 // Icons
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import TaskAltIcon from '@mui/icons-material/TaskAlt';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import SaveIcon from '@mui/icons-material/Save';
 
 // Context
 import { useFounder } from 'contexts/FounderContext';
 import { useAuth } from 'contexts/AuthContext';
+
+// API
+import { syncSeeds } from 'api/founder';
 
 // ============================================================================
 // Component
@@ -33,6 +39,31 @@ export default function FounderDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { founderProfile, isProfileLoading, isProfileComplete, profileError } = useFounder();
+
+  // Sync seeds state
+  const [syncing, setSyncing] = useState(false);
+  const [syncNotification, setSyncNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Handle sync seeds
+  const handleSyncSeeds = useCallback(async () => {
+    setSyncing(true);
+    try {
+      const result = await syncSeeds();
+      const tableCount = result.results?.length || 0;
+      setSyncNotification({
+        type: 'success',
+        message: `✅ Synced ${tableCount} tables to CSV in ${result.total_time || 'N/A'}`
+      });
+    } catch (error) {
+      console.error('[FounderDashboard] Sync failed:', error);
+      setSyncNotification({
+        type: 'error',
+        message: 'Failed to sync data. Check console for details.'
+      });
+    } finally {
+      setSyncing(false);
+    }
+  }, []);
 
   // Redirect to onboarding if no profile
   useEffect(() => {
@@ -185,9 +216,34 @@ export default function FounderDashboard() {
             >
               Edit Profile
             </Button>
+            <Button 
+              variant="outlined"
+              color="secondary"
+              startIcon={syncing ? <CircularProgress size={16} /> : <SaveIcon />}
+              onClick={handleSyncSeeds}
+              disabled={syncing}
+            >
+              {syncing ? 'Syncing...' : 'Sync to CSV'}
+            </Button>
           </Box>
         </CardContent>
       </Card>
+
+      {/* Sync Notification */}
+      <Snackbar
+        open={!!syncNotification}
+        autoHideDuration={5000}
+        onClose={() => setSyncNotification(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          severity={syncNotification?.type || 'info'} 
+          onClose={() => setSyncNotification(null)}
+          sx={{ width: '100%' }}
+        >
+          {syncNotification?.message}
+        </Alert>
+      </Snackbar>
 
       {/* Profile Summary */}
       <Card sx={{ mt: 3 }}>

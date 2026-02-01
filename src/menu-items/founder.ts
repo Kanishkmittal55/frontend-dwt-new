@@ -4,8 +4,6 @@ import type { MenuItem } from 'types';
 import { 
   IconBulb, 
   IconChecklist, 
-  IconChartBar, 
-  IconUser,
   IconRocket,
   IconBooks,
   IconRobot,
@@ -16,8 +14,6 @@ import {
 const icons = { 
   IconBulb, 
   IconChecklist, 
-  IconChartBar, 
-  IconUser,
   IconRocket,
   IconBooks,
   IconRobot,
@@ -77,14 +73,6 @@ const founder: MenuItem = {
       type: 'item',
       url: '/founder/today',
       icon: icons.IconChecklist,
-      breadcrumbs: false
-    },
-    {
-      id: 'founder-profile',
-      title: 'Profile',
-      type: 'item',
-      url: '/founder/profile',
-      icon: icons.IconUser,
       breadcrumbs: false
     }
   ]

@@ -31,8 +31,10 @@ import {
   IconCheck,
   IconAlertCircle,
   IconLoader,
-  IconTrash
+  IconTrash,
+  IconPlus
 } from '@tabler/icons-react';
+import { useNavigate } from 'react-router-dom';
 
 import type { Course, CourseFilter } from '@/api/founder/coursesAPI';
 import {
@@ -59,6 +61,7 @@ interface CourseSelectorProps {
 
 export default function CourseSelector({ onSelectCourse }: CourseSelectorProps) {
   const theme = useTheme();
+  const navigate = useNavigate();
 
   // State
   const [courses, setCourses] = useState<Course[]>([]);
@@ -164,14 +167,23 @@ export default function CourseSelector({ onSelectCourse }: CourseSelectorProps) 
             {total} courses available
           </Typography>
         </Box>
-        <Button
-          variant="outlined"
-          startIcon={<IconRefresh size={18} />}
-          onClick={fetchCourses}
-          disabled={loading}
-        >
-          Refresh
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            startIcon={<IconRefresh size={18} />}
+            onClick={fetchCourses}
+            disabled={loading}
+          >
+            Refresh
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<IconPlus size={18} />}
+            onClick={() => navigate('/founder/courses/create')}
+          >
+            Create Course
+          </Button>
+        </Box>
       </Box>
 
       {/* Filter Tabs */}

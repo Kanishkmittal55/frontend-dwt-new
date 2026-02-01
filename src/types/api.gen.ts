@@ -465,6 +465,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/founder/profile/{userID}/llm-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get LLM configuration for a user
+         * @description Retrieves the LLM provider, model, and masked API keys for the specified user.
+         */
+        get: operations["v1GetLLMConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/profile/{userID}/llm-config/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update LLM configuration
+         * @description Updates the LLM provider, model, and/or API keys for the specified user.
+         */
+        put: operations["v1PutLLMConfig"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/founder/sync-seeds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync database to CSV seed files
+         * @description Exports all database tables to CSV files for persistence. Used to save founder-entered content before container rebuild.
+         */
+        post: operations["V1PostSyncSeeds"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/founder/{userID}/ideas": {
         parameters: {
             query?: never;
@@ -851,7 +911,11 @@ export interface paths {
         get: operations["V1GetCourseByUUID"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete a course and all its content
+         * @description Deletes a course along with all its modules, lessons, and quizzes
+         */
+        delete: operations["V1DeleteCourse"];
         options?: never;
         head?: never;
         patch?: never;
@@ -996,6 +1060,290 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/htil/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a new HTIL course
+         * @description Creates a new empty course for incremental content building
+         */
+        post: operations["V1PostHTILCourse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/htil/courses/{courseUUID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get HTIL course with all nested data
+         * @description Returns course with modules, lessons, exercises, and quizzes
+         */
+        get: operations["V1GetHTILCourse"];
+        /**
+         * Update HTIL course metadata
+         * @description Updates course title, description, or status
+         */
+        put: operations["V1PutHTILCourse"];
+        post?: never;
+        /**
+         * Delete HTIL course and all children
+         * @description Deletes course with all modules, lessons, exercises, and quizzes
+         */
+        delete: operations["V1DeleteHTILCourse"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/htil/courses/{courseUUID}/modules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add module to course
+         * @description Creates a new module in the specified course
+         */
+        post: operations["V1PostHTILModule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/htil/modules/{moduleUUID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update module
+         * @description Updates module title, description, or label
+         */
+        put: operations["V1PutHTILModule"];
+        post?: never;
+        /**
+         * Delete module and its lessons
+         * @description Deletes module with all lessons, exercises, and quizzes
+         */
+        delete: operations["V1DeleteHTILModule"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/htil/modules/{moduleUUID}/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change module sequence order
+         * @description Reorders a module within its course
+         */
+        patch: operations["V1PatchHTILModuleReorder"];
+        trace?: never;
+    };
+    "/v1/htil/modules/{moduleUUID}/lessons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add lesson to module
+         * @description Creates a new lesson in the specified module
+         */
+        post: operations["V1PostHTILLesson"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/htil/lessons/{lessonUUID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update lesson content
+         * @description Updates lesson title, content, summary, or concepts
+         */
+        put: operations["V1PutHTILLesson"];
+        post?: never;
+        /**
+         * Delete lesson and its exercises
+         * @description Deletes lesson with all exercises and quiz
+         */
+        delete: operations["V1DeleteHTILLesson"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/htil/lessons/{lessonUUID}/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change lesson sequence order
+         * @description Reorders a lesson within its module
+         */
+        patch: operations["V1PatchHTILLessonReorder"];
+        trace?: never;
+    };
+    "/v1/htil/lessons/{lessonUUID}/exercises": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add exercise to lesson
+         * @description Creates a new exercise in the specified lesson
+         */
+        post: operations["V1PostHTILExercise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/htil/exercises/{exerciseUUID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update exercise
+         * @description Updates exercise statement, hints, solution, or difficulty
+         */
+        put: operations["V1PutHTILExercise"];
+        post?: never;
+        /**
+         * Delete exercise
+         * @description Deletes an exercise
+         */
+        delete: operations["V1DeleteHTILExercise"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/htil/exercises/{exerciseUUID}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Mark exercise complete with notes
+         * @description Marks exercise as done and saves founder's notes
+         */
+        patch: operations["V1PatchHTILExerciseComplete"];
+        trace?: never;
+    };
+    "/v1/htil/lessons/{lessonUUID}/quiz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create or replace quiz for lesson
+         * @description Creates a new quiz or replaces existing quiz for the lesson
+         */
+        post: operations["V1PostHTILQuiz"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/htil/quizzes/{quizUUID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update quiz questions
+         * @description Updates quiz questions, passing score, or difficulty
+         */
+        put: operations["V1PutHTILQuiz"];
+        post?: never;
+        /**
+         * Delete quiz
+         * @description Deletes a quiz
+         */
+        delete: operations["V1DeleteHTILQuiz"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2117,6 +2465,98 @@ export interface components {
              */
             warnings?: string[];
         };
+        /** @description LLM configuration for a founder's AI assistant. */
+        LLMConfig: {
+            /**
+             * @description The LLM provider to use
+             * @example openai
+             * @enum {string}
+             */
+            llm_provider: "openai" | "anthropic" | "xai";
+            /**
+             * @description The specific model to use (e.g., gpt-4o, claude-3-opus, grok-1)
+             * @example gpt-4o
+             */
+            llm_model: string;
+            /**
+             * @description OpenAI API key (masked in responses, only last 4 chars shown)
+             * @example sk-...xxxx
+             */
+            openai_api_key?: string;
+            /**
+             * @description Anthropic API key (masked in responses, only last 4 chars shown)
+             * @example sk-ant-...xxxx
+             */
+            anthropic_api_key?: string;
+            /**
+             * @description xAI (Grok) API key (masked in responses, only last 4 chars shown)
+             * @example xai-...xxxx
+             */
+            xai_api_key?: string;
+            /**
+             * @description Whether an OpenAI API key is configured
+             * @example true
+             */
+            has_openai_key?: boolean;
+            /**
+             * @description Whether an Anthropic API key is configured
+             * @example false
+             */
+            has_anthropic_key?: boolean;
+            /**
+             * @description Whether an xAI API key is configured
+             * @example false
+             */
+            has_xai_key?: boolean;
+        };
+        /** @description Request to update LLM configuration. */
+        UpdateLLMConfigRequest: {
+            /**
+             * @description The LLM provider to use
+             * @example openai
+             * @enum {string}
+             */
+            llm_provider?: "openai" | "anthropic" | "xai";
+            /**
+             * @description The specific model to use
+             * @example gpt-4o
+             */
+            llm_model?: string;
+            /**
+             * @description OpenAI API key (provide empty string to clear)
+             * @example sk-proj-xxxx...
+             */
+            openai_api_key?: string;
+            /**
+             * @description Anthropic API key (provide empty string to clear)
+             * @example sk-ant-xxxx...
+             */
+            anthropic_api_key?: string;
+            /**
+             * @description xAI (Grok) API key (provide empty string to clear)
+             * @example xai-xxxx...
+             */
+            xai_api_key?: string;
+        };
+        SyncTableResult: {
+            /** @description Table name */
+            table: string;
+            /**
+             * Format: int32
+             * @description Number of rows exported
+             */
+            exported: number;
+            /** @description Time taken to export this table */
+            duration?: string;
+        };
+        SyncSeedsResponse: {
+            /** @description Whether the sync completed successfully */
+            success: boolean;
+            /** @description Results for each table */
+            results: components["schemas"]["SyncTableResult"][];
+            /** @description Total time taken for sync */
+            total_time?: string;
+        };
         IdeaResponse: {
             /**
              * Format: uuid
@@ -2968,6 +3408,273 @@ export interface components {
             /** @description Quiz for this lesson (if available) */
             quiz?: components["schemas"]["CourseQuiz"];
         };
+        /** @description Request to create a new HTIL course (minimal) */
+        CreateHTILCourseRequest: {
+            /**
+             * Format: int32
+             * @description ID of the user who owns the course
+             */
+            user_id: number;
+            /** @description Course title */
+            title: string;
+            /** @description Optional course description */
+            description?: string;
+            /** @description Optional URL to source material */
+            source_document_url?: string;
+        };
+        /** @description Request to update an HTIL course */
+        UpdateHTILCourseRequest: {
+            /** @description Course title */
+            title?: string;
+            /** @description Course description */
+            description?: string;
+            /** @description URL to source material */
+            source_document_url?: string;
+            /**
+             * @description Course status
+             * @enum {string}
+             */
+            status?: "draft" | "ready" | "archived";
+        };
+        /** @description Request to create a new module in a course */
+        CreateHTILModuleRequest: {
+            /** @description Module title */
+            title: string;
+            /** @description Module description */
+            description?: string;
+            /** @description Optional label for categorization */
+            cluster_label?: string;
+            /**
+             * Format: int32
+             * @description Order within the course (auto-assigned if not provided)
+             */
+            sequence_order?: number;
+        };
+        /** @description Request to update a module */
+        UpdateHTILModuleRequest: {
+            /** @description Module title */
+            title?: string;
+            /** @description Module description */
+            description?: string;
+            /** @description Label for categorization */
+            cluster_label?: string;
+        };
+        /** @description Request to change sequence order */
+        ReorderRequest: {
+            /**
+             * Format: int32
+             * @description New sequence order position
+             */
+            sequence_order: number;
+        };
+        /** @description Request to create a new lesson in a module */
+        CreateHTILLessonRequest: {
+            /** @description Lesson title */
+            title: string;
+            /** @description Lesson content (Markdown/HTML supported) */
+            content: string;
+            /** @description Brief summary of the lesson */
+            summary?: string;
+            /** @description Key concepts covered in this lesson */
+            key_concepts?: string[];
+            /**
+             * Format: int32
+             * @description Order within the module (auto-assigned if not provided)
+             */
+            sequence_order?: number;
+            /**
+             * Format: int32
+             * @description Estimated reading time in minutes
+             */
+            estimated_minutes?: number;
+        };
+        /** @description Request to update a lesson */
+        UpdateHTILLessonRequest: {
+            /** @description Lesson title */
+            title?: string;
+            /** @description Lesson content (Markdown/HTML supported) */
+            content?: string;
+            /** @description Brief summary of the lesson */
+            summary?: string;
+            /** @description Key concepts covered in this lesson */
+            key_concepts?: string[];
+            /**
+             * Format: int32
+             * @description Estimated reading time in minutes
+             */
+            estimated_minutes?: number;
+        };
+        /** @description Request to create an exercise in a lesson */
+        CreateHTILExerciseRequest: {
+            /** @description Exercise identifier (e.g., "2.2-1", "Problem 2-1") */
+            exercise_id: string;
+            /** @description Exercise question/problem statement */
+            statement: string;
+            /** @description Array of hints */
+            hints?: string[];
+            /** @description Solution text */
+            solution?: string;
+            /** @description Detailed explanation */
+            explanation?: string;
+            /**
+             * @default intermediate
+             * @enum {string}
+             */
+            difficulty: "beginner" | "intermediate" | "advanced";
+            /**
+             * @default practice
+             * @enum {string}
+             */
+            exercise_type: "practice" | "concept" | "problem" | "starred";
+            /**
+             * Format: int32
+             * @description Order within the lesson (auto-assigned if not provided)
+             */
+            sequence_order?: number;
+        };
+        CourseExercise: {
+            /**
+             * Format: uuid
+             * @description Unique identifier for the exercise
+             */
+            uuid: string;
+            /**
+             * Format: uuid
+             * @description UUID of the parent lesson
+             */
+            lesson_uuid: string;
+            /** @description Exercise identifier (e.g., "2.2-1", "Problem 2-1") */
+            exercise_id: string;
+            /** @description Exercise question/problem statement */
+            statement: string;
+            /** @description Array of hints */
+            hints?: string[];
+            /** @description Solution text (may be hidden from student) */
+            solution?: string;
+            /** @description Detailed explanation of the solution */
+            explanation?: string;
+            /**
+             * @description Difficulty level
+             * @enum {string}
+             */
+            difficulty?: "beginner" | "intermediate" | "advanced";
+            /**
+             * @description Type of exercise
+             * @enum {string}
+             */
+            exercise_type?: "practice" | "concept" | "problem" | "starred";
+            /**
+             * Format: int32
+             * @description Order within the lesson
+             */
+            sequence_order: number;
+            /** @description Whether the founder has completed this exercise */
+            is_completed?: boolean;
+            /**
+             * Format: date-time
+             * @description When the exercise was completed
+             */
+            completed_at?: string;
+            /** @description Founder's notes on this exercise */
+            founder_notes?: string;
+            /** Format: date-time */
+            created_at?: string;
+        };
+        /** @description Request to update an exercise */
+        UpdateHTILExerciseRequest: {
+            /** @description Exercise identifier */
+            exercise_id?: string;
+            /** @description Exercise question/problem statement */
+            statement?: string;
+            /** @description Array of hints */
+            hints?: string[];
+            /** @description Solution text */
+            solution?: string;
+            /** @description Detailed explanation */
+            explanation?: string;
+            /** @enum {string} */
+            difficulty?: "beginner" | "intermediate" | "advanced";
+            /** @enum {string} */
+            exercise_type?: "practice" | "concept" | "problem" | "starred";
+        };
+        /** @description Request to mark an exercise as complete with optional notes */
+        CompleteExerciseRequest: {
+            /**
+             * @description Whether the exercise is completed
+             * @default true
+             */
+            is_completed: boolean;
+            /** @description Founder's notes on this exercise */
+            founder_notes?: string;
+        };
+        /** @description Input for a quiz question */
+        HTILQuizQuestionInput: {
+            /** @description The question text */
+            question: string;
+            /**
+             * @default multiple_choice
+             * @enum {string}
+             */
+            question_type: "multiple_choice" | "true_false" | "short_answer" | "fill_blank";
+            /** @description Answer options (for multiple choice) */
+            options?: string[];
+            /** @description The correct answer */
+            correct_answer: string;
+            /** @description Explanation of the correct answer */
+            explanation?: string;
+            /**
+             * @default medium
+             * @enum {string}
+             */
+            difficulty: "easy" | "medium" | "hard";
+            /**
+             * Format: int32
+             * @default 1
+             */
+            points: number;
+        };
+        /** @description Request to create a quiz for a lesson */
+        CreateHTILQuizRequest: {
+            /** @description Quiz title */
+            title?: string;
+            /** @description Quiz questions */
+            questions: components["schemas"]["HTILQuizQuestionInput"][];
+            /**
+             * Format: float
+             * @description Score required to pass (0.0 to 1.0)
+             * @default 0.7
+             */
+            passing_score: number;
+            /**
+             * @default mixed
+             * @enum {string}
+             */
+            difficulty: "easy" | "medium" | "hard" | "mixed";
+            /**
+             * Format: int32
+             * @description Optional time limit in minutes
+             */
+            time_limit_minutes?: number;
+        };
+        /** @description Request to update a quiz */
+        UpdateHTILQuizRequest: {
+            /** @description Quiz title */
+            title?: string;
+            /** @description Quiz questions */
+            questions?: components["schemas"]["HTILQuizQuestionInput"][];
+            /**
+             * Format: float
+             * @description Score required to pass (0.0 to 1.0)
+             */
+            passing_score?: number;
+            /** @enum {string} */
+            difficulty?: "easy" | "medium" | "hard" | "mixed";
+            /**
+             * Format: int32
+             * @description Time limit in minutes
+             */
+            time_limit_minutes?: number;
+        };
         SubmitIdeaRequest: {
             /**
              * Format: int32
@@ -3113,6 +3820,136 @@ export interface components {
              */
             correlation_id?: string;
         };
+        /** @description Input for creating a course exercise manually */
+        HTILExerciseRequest: {
+            /** @description Exercise identifier (e.g., "2.2-1", "2.3-5", "Problem 2-1") */
+            exercise_id: string;
+            /** @description Exercise question/problem statement */
+            statement: string;
+            /** @description Array of hint strings */
+            hints?: string[];
+            /** @description Solution text */
+            solution?: string;
+            /** @description Detailed explanation */
+            explanation?: string;
+            /**
+             * @default intermediate
+             * @enum {string}
+             */
+            difficulty: "beginner" | "intermediate" | "advanced";
+            /**
+             * @default practice
+             * @enum {string}
+             */
+            exercise_type: "practice" | "concept" | "problem" | "starred";
+            /**
+             * Format: int32
+             * @description Order within the lesson (auto-assigned if not provided)
+             */
+            sequence_order?: number;
+        };
+        /** @description Input for creating a course quiz manually */
+        HTILQuizInput: {
+            /** @description Quiz title */
+            title?: string;
+            questions: components["schemas"]["HTILQuizQuestionInput"][];
+            /**
+             * Format: float
+             * @description Score required to pass (0.0 to 1.0)
+             * @default 0.7
+             */
+            passing_score: number;
+            /**
+             * @default mixed
+             * @enum {string}
+             */
+            difficulty: "easy" | "medium" | "hard" | "mixed";
+            /**
+             * Format: int32
+             * @description Optional time limit in minutes
+             */
+            time_limit_minutes?: number;
+        };
+        /** @description Input for creating a course lesson manually */
+        HTILLessonInput: {
+            /** @description Lesson title */
+            title: string;
+            /** @description Lesson content (Markdown/HTML supported) */
+            content: string;
+            /** @description Brief summary of the lesson */
+            summary?: string;
+            /** @description Key concepts covered in this lesson */
+            key_concepts?: string[];
+            /**
+             * Format: int32
+             * @description Order within the module (auto-assigned if not provided)
+             */
+            sequence_order?: number;
+            /**
+             * Format: int32
+             * @description Estimated reading time in minutes
+             */
+            estimated_minutes?: number;
+            /** @description Exercises for this lesson */
+            exercises?: components["schemas"]["HTILExerciseRequest"][];
+            /** @description Optional quiz for this lesson */
+            quiz?: components["schemas"]["HTILQuizInput"];
+        };
+        /** @description Input for creating a course module manually */
+        HTILModuleInput: {
+            /** @description Module title */
+            title: string;
+            /** @description Module description */
+            description?: string;
+            /** @description Optional label for categorization */
+            cluster_label?: string;
+            /**
+             * Format: int32
+             * @description Order within the course (auto-assigned if not provided)
+             */
+            sequence_order?: number;
+            /** @description Lessons in this module */
+            lessons: components["schemas"]["HTILLessonInput"][];
+        };
+        /** @description Request body for creating a course manually */
+        HTILCourseRequest: {
+            /**
+             * Format: int32
+             * @description ID of the user who will own the course
+             */
+            user_id: number;
+            /** @description Course title */
+            title: string;
+            /** @description Course description */
+            description?: string;
+            /**
+             * @description Source of the course content
+             * @default manual
+             * @enum {string}
+             */
+            source_type: "textbook" | "manual" | "import";
+            /** @description Optional URL to source material */
+            source_document_url?: string;
+            /** @description Modules in this course */
+            modules: components["schemas"]["HTILModuleInput"][];
+        };
+        /** @description Response after creating a manual course */
+        HTILCourseResponse: {
+            course: components["schemas"]["Course"];
+            summary: {
+                /** Format: int32 */
+                total_modules?: number;
+                /** Format: int32 */
+                total_lessons?: number;
+                /** Format: int32 */
+                total_exercises?: number;
+                /** Format: int32 */
+                total_quizzes?: number;
+                /** Format: float */
+                estimated_hours?: number;
+            };
+        };
+        HTILExerciseInput: components["schemas"]["HTILExerciseRequest"];
     };
     responses: never;
     parameters: never;
@@ -4545,6 +5382,176 @@ export interface operations {
             };
         };
     };
+    v1GetLLMConfig: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key of the service making the request */
+                "X-API-KEY": string;
+            };
+            path: {
+                /** @description The user ID to retrieve LLM config for */
+                userID: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description LLM configuration retrieved successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LLMConfig"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Founder profile not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    v1PutLLMConfig: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key of the service making the request */
+                "X-API-KEY": string;
+            };
+            path: {
+                /** @description The user ID to update LLM config for */
+                userID: number;
+            };
+            cookie?: never;
+        };
+        /** @description LLM configuration to update */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLLMConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description LLM configuration updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LLMConfig"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Founder profile not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PostSyncSeeds: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key of the service making the request */
+                "X-API-KEY": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sync completed successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncSeedsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     V1GetIdeas: {
         parameters: {
             query?: {
@@ -5300,6 +6307,54 @@ export interface operations {
             };
         };
     };
+    V1DeleteCourse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The course UUID to delete */
+                courseUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Course deleted successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Course not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     V1GetCourseLessons: {
         parameters: {
             query?: never;
@@ -5477,6 +6532,737 @@ export interface operations {
             };
             /** @description Service unavailable - WebSocket hub not ready */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PostHTILCourse: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key */
+                "X-API-KEY": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateHTILCourseRequest"];
+            };
+        };
+        responses: {
+            /** @description Course created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Course"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1GetHTILCourse: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key */
+                "X-API-KEY": string;
+            };
+            path: {
+                courseUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Course details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseDetailResponse"];
+                };
+            };
+            /** @description Course not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PutHTILCourse: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key */
+                "X-API-KEY": string;
+            };
+            path: {
+                courseUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateHTILCourseRequest"];
+            };
+        };
+        responses: {
+            /** @description Course updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Course"];
+                };
+            };
+            /** @description Course not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1DeleteHTILCourse: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key */
+                "X-API-KEY": string;
+            };
+            path: {
+                courseUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Course deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Course not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PostHTILModule: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key */
+                "X-API-KEY": string;
+            };
+            path: {
+                courseUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateHTILModuleRequest"];
+            };
+        };
+        responses: {
+            /** @description Module created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseModule"];
+                };
+            };
+            /** @description Course not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PutHTILModule: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key */
+                "X-API-KEY": string;
+            };
+            path: {
+                moduleUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateHTILModuleRequest"];
+            };
+        };
+        responses: {
+            /** @description Module updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseModule"];
+                };
+            };
+            /** @description Module not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1DeleteHTILModule: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key */
+                "X-API-KEY": string;
+            };
+            path: {
+                moduleUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Module deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Module not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PatchHTILModuleReorder: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key */
+                "X-API-KEY": string;
+            };
+            path: {
+                moduleUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderRequest"];
+            };
+        };
+        responses: {
+            /** @description Module reordered */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseModule"];
+                };
+            };
+            /** @description Module not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PostHTILLesson: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key */
+                "X-API-KEY": string;
+            };
+            path: {
+                moduleUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateHTILLessonRequest"];
+            };
+        };
+        responses: {
+            /** @description Lesson created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseLesson"];
+                };
+            };
+            /** @description Module not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PutHTILLesson: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key */
+                "X-API-KEY": string;
+            };
+            path: {
+                lessonUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateHTILLessonRequest"];
+            };
+        };
+        responses: {
+            /** @description Lesson updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseLesson"];
+                };
+            };
+            /** @description Lesson not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1DeleteHTILLesson: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key */
+                "X-API-KEY": string;
+            };
+            path: {
+                lessonUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lesson deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Lesson not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PatchHTILLessonReorder: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key */
+                "X-API-KEY": string;
+            };
+            path: {
+                lessonUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderRequest"];
+            };
+        };
+        responses: {
+            /** @description Lesson reordered */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseLesson"];
+                };
+            };
+            /** @description Lesson not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PostHTILExercise: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key */
+                "X-API-KEY": string;
+            };
+            path: {
+                lessonUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateHTILExerciseRequest"];
+            };
+        };
+        responses: {
+            /** @description Exercise created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseExercise"];
+                };
+            };
+            /** @description Lesson not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PutHTILExercise: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key */
+                "X-API-KEY": string;
+            };
+            path: {
+                exerciseUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateHTILExerciseRequest"];
+            };
+        };
+        responses: {
+            /** @description Exercise updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseExercise"];
+                };
+            };
+            /** @description Exercise not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1DeleteHTILExercise: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key */
+                "X-API-KEY": string;
+            };
+            path: {
+                exerciseUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Exercise deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Exercise not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PatchHTILExerciseComplete: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key */
+                "X-API-KEY": string;
+            };
+            path: {
+                exerciseUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompleteExerciseRequest"];
+            };
+        };
+        responses: {
+            /** @description Exercise marked complete */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseExercise"];
+                };
+            };
+            /** @description Exercise not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PostHTILQuiz: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key */
+                "X-API-KEY": string;
+            };
+            path: {
+                lessonUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateHTILQuizRequest"];
+            };
+        };
+        responses: {
+            /** @description Quiz created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseQuiz"];
+                };
+            };
+            /** @description Lesson not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PutHTILQuiz: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key */
+                "X-API-KEY": string;
+            };
+            path: {
+                quizUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateHTILQuizRequest"];
+            };
+        };
+        responses: {
+            /** @description Quiz updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseQuiz"];
+                };
+            };
+            /** @description Quiz not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1DeleteHTILQuiz: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description API Key */
+                "X-API-KEY": string;
+            };
+            path: {
+                quizUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Quiz deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Quiz not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

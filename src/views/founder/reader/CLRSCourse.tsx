@@ -22,6 +22,7 @@ import { useTheme, alpha } from '@mui/material/styles';
 import Slide from '@mui/material/Slide';
 import Tooltip from '@mui/material/Tooltip';
 import { IconCircleCheck, IconCircleCheckFilled, IconShare, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+import CircularProgress from '@mui/material/CircularProgress';
 
 import {
   IconMenu2,
@@ -165,9 +166,13 @@ export default function CLRSCourse() {
       hasStartedSessionRef.current = true;
       tutor.startSession(selectedCourse.uuid);
 
-       // If course already completed intake
+      // If course already completed intake, skip to chat
       if (selectedCourse.status === 'active') {
         tutor.setIntakeComplete(true);
+      } else {
+        // Start intake for new/pending courses
+        console.log('[CLRSCourse] Starting intake for course:', selectedCourse.uuid);
+        tutor.startIntake();
       }
     }
     // Reset when course changes
@@ -175,6 +180,12 @@ export default function CLRSCourse() {
       hasStartedSessionRef.current = false;
     }
   }, [tutor.isConnected, tutor.hasSession, selectedCourse?.uuid]);
+
+    useEffect(() => {
+      if (tutor.isConnected && selectedLesson?.uuid) {
+          tutor.selectLesson(selectedLesson.uuid);
+      }
+  }, [tutor.isConnected, selectedLesson?.uuid, tutor.selectLesson]);
 
 
   // =========================================================================
@@ -228,6 +239,8 @@ export default function CLRSCourse() {
     try {
       const lessons = await getLessonsByModule(moduleUUID);
       setLessonsByModule(prev => ({ ...prev, [moduleUUID]: lessons }));
+      // Add in CLRSCourse.tsx temporarily for debug
+      console.log('[Debug] selectedLesson content length:', selectedLesson?.content?.length);
       const firstLesson = lessons[0]
       if (lessons.length > 0) {
         if (firstLesson){
@@ -254,8 +267,8 @@ export default function CLRSCourse() {
     setSelectedLesson(null);
     setSelectedQuiz(null);
 
-    // Auto-start interactive mode for courses pending intake
-    if (course.status === 'pending_intake') {
+    // Auto-start interactive mode for pending courses
+    if (course.status === 'pending') {
       setViewMode('interactive');
     }
 
@@ -304,6 +317,7 @@ export default function CLRSCourse() {
     if (!selectedLesson) return;
     saveProgress(selectedLesson.uuid);
     setNotification({ type: 'success', message: 'Lesson marked as complete!' });
+    tutor.completeLesson(selectedLesson.uuid, 0, 1.0);
   }, [selectedLesson, saveProgress]);
 
   const handleQuizComplete = useCallback((score: number, passed: boolean) => {
@@ -661,25 +675,71 @@ export default function CLRSCourse() {
           {/* Chat Panel - only in Interactive mode */}
           {viewMode === 'interactive' && (
             <Slide direction="left" in={viewMode === 'interactive'}>
-            <Box
-              sx={{
-                width: 360,
-                height: '100%',         
-                flexShrink: 0,
-                borderLeft: `1px solid ${theme.palette.divider}`,
-                display: 'flex',
-                flexDirection: 'column',
-                bgcolor: theme.palette.background.paper,
-                overflow: 'hidden'
-              }}
-            >
-              <TutorChat
-                messages={tutor.messages}
-                isTyping={tutor.isTutorTyping}
-                isConnected={tutor.isConnected}
-                onSend={handleSendChat}
-              />
-            </Box>
+              <Box
+                sx={{
+                  width: 360,
+                  height: '100%',         
+                  flexShrink: 0,
+                  borderLeft: `1px solid ${theme.palette.divider}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  bgcolor: theme.palette.background.paper,
+                  overflow: 'hidden'
+                }}
+              >
+                {/* Show IntakeForm if intake not complete, otherwise TutorChat */}
+                {!tutor.intakeComplete ? (
+                tutor.currentIntakeQuestion ? (
+                  <IntakeForm
+                    question={tutor.currentIntakeQuestion}
+                    progress={tutor.intakeProgress}
+                    loading={tutor.isTutorTyping}
+                    onAnswer={handleIntakeAnswer}
+                    onSkip={() => {}}
+                    onComplete={() => {
+                      tutor.setIntakeComplete(true);
+                      tutor.completeIntake();  // Send complete to backend
+                      tutor.requestLesson(); 
+                    }}
+                  />
+                ) : (
+                  // Waiting for first intake question
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                    <CircularProgress size={32} />
+                  </Box>
+                )
+              ) : (
+                <>
+                  {console.log('[Debug] Lesson context:', {
+                    hasSelectedLesson: !!selectedLesson,
+                    title: selectedLesson?.title,
+                    contentLength: selectedLesson?.content?.length,
+                    contentPreview: selectedLesson?.content?.substring(0, 100)
+                  })}
+                  <TutorChat
+                    messages={tutor.messages}
+                    isTyping={tutor.isTutorTyping}
+                    isConnected={tutor.isConnected}
+                    onSend={handleSendChat}
+                    lessonContext={selectedLesson ? {
+                      title: selectedLesson.title,
+                      content: selectedLesson.content || '',
+                      keyConcepts: []
+                    } : undefined}
+                    lessonCompletePrompt={tutor.lessonCompletePrompt}
+                    onStartQuiz={() => {
+                      tutor.dismissLessonPrompt();
+                      if (selectedLesson?.uuid) {
+                        tutor.startQuiz('comprehension', selectedLesson.uuid);
+                      }
+                    }}
+                    onSkipToNext={(lessonUUID, nextChunkIdx) => {
+                      tutor.requestNextLesson(lessonUUID, nextChunkIdx);
+                    }}
+                  />
+                </>
+              )}
+              </Box>
             </Slide>
           )}
         

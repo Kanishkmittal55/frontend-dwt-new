@@ -12,6 +12,8 @@ import type { components } from '@/types/api.gen';
 export type FounderProfile = components['schemas']['FounderProfile'];
 export type CreateFounderProfileRequest = components['schemas']['CreateFounderProfileRequest'];
 export type UpdateFounderProfileRequest = components['schemas']['UpdateFounderProfileRequest'];
+export type LLMConfig = components['schemas']['LLMConfig'];
+export type UpdateLLMConfigRequest = components['schemas']['UpdateLLMConfigRequest'];
 
 // ============================================================================
 // API Functions
@@ -137,6 +139,67 @@ export async function calculateFitScore(
 }
 
 // ============================================================================
+// Sync Seeds
+// ============================================================================
+
+export type SyncSeedsResponse = components['schemas']['SyncSeedsResponse'];
+export type SyncTableResult = components['schemas']['SyncTableResult'];
+
+/**
+ * Sync database data to CSV seed files
+ * POST /v1/founder/sync-seeds
+ * 
+ * Exports all database tables to CSV files for persistence.
+ * This allows data to survive container rebuilds.
+ * 
+ * @returns SyncSeedsResponse with results for each table
+ */
+export async function syncSeeds(): Promise<SyncSeedsResponse> {
+  const response = await founderClient.post<SyncSeedsResponse>(
+    '/v1/founder/sync-seeds',
+    {}
+  );
+  return response;
+}
+
+// ============================================================================
+// LLM Configuration
+// ============================================================================
+
+/**
+ * Get LLM configuration for a user
+ * GET /v1/founder/profile/{userID}/llm-config
+ * 
+ * @param userID - The user's ID
+ * @returns LLMConfig with provider, model, and key status
+ */
+export async function getLLMConfig(userID: number): Promise<LLMConfig> {
+  const response = await founderClient.get<LLMConfig>(
+    `/v1/founder/profile/${userID}/llm-config`
+  );
+  return response;
+}
+
+/**
+ * Update LLM configuration
+ * PUT /v1/founder/profile/{userID}/llm-config/update
+ * 
+ * @param userID - The user's ID
+ * @param config - LLM configuration to update
+ * @returns Updated LLMConfig
+ */
+export async function updateLLMConfig(
+  userID: number,
+  config: UpdateLLMConfigRequest
+): Promise<LLMConfig> {
+  const response = await founderClient.put<LLMConfig>(
+    `/v1/founder/profile/${userID}/llm-config/update`,
+    config
+  );
+  return response;
+}
+
+// ============================================================================
 // Export
 // ============================================================================
 
@@ -147,7 +210,10 @@ export const founderProfileAPI = {
   updateProfile,
   completeOnboarding,
   deleteProfile,
-  calculateFitScore
+  calculateFitScore,
+  syncSeeds,
+  getLLMConfig,
+  updateLLMConfig
 };
 
 export default founderProfileAPI;

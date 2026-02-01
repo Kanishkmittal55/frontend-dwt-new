@@ -12,6 +12,7 @@
     "@mui/icons-material": "7.1.0",
     "@mui/material": "7.1.0",
     "@tabler/icons-react": "3.31.0",
+    "@tldraw/tldraw": "^4.3.1",
     "@vitejs/plugin-react": "4.4.1",
     "apexcharts": "4.7.0",
     "d3": "^7.9.0",

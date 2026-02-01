@@ -1,6 +1,9 @@
-// Main course component
+// Main course components
 export { default } from './CLRSCourse';
 export { default as CLRSCourse } from './CLRSCourse';
+
+// New canvas-based course viewer (tldraw)
+export { default as CourseViewer } from './CourseViewer';
 
 // Legacy reader (deprecated, kept for reference)
 export { default as CLRSReader } from './CLRSReader';

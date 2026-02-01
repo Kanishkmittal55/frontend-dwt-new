@@ -18,7 +18,9 @@ const OnboardingWizard = Loadable(lazy(() => import('views/founder/onboarding/On
 const IdeasDashboard = Loadable(lazy(() => import('views/founder/ideas/IdeasDashboard')));
 const LibraryDashboard = Loadable(lazy(() => import('views/founder/library/LibraryDashboard')));
 const AgentChat = Loadable(lazy(() => import('views/founder/agent/AgentChat')));
-const CLRSCourse = Loadable(lazy(() => import('views/founder/reader/CLRSCourse')));
+// Course viewers - uses feature flag to switch between legacy and canvas viewers
+const CourseViewerSwitch = Loadable(lazy(() => import('views/founder/reader/CourseViewerSwitch')));
+const HTILCourseCreator = Loadable(lazy(() => import('views/founder/reader/htil/HTILCourseCreator')));
 
 // utilities routing
 const UtilsTypography = Loadable(lazy(() => import('views/utilities/Typography')));
@@ -90,11 +92,19 @@ const MainRoutes = {
         },
         {
           path: 'courses',
-          element: <CLRSCourse />
+          element: <CourseViewerSwitch />
+        },
+        {
+          path: 'courses/create',
+          element: <HTILCourseCreator userId={1} onBack={() => window.history.back()} />
         },
         {
           path: 'onboarding',
           element: <OnboardingWizard />
+        },
+        {
+          path: 'profile',
+          element: <Settings />
         }
       ]
     },

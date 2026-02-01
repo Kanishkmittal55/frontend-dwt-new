@@ -46,7 +46,8 @@ export {
   updateProfile,
   completeOnboarding,
   deleteProfile,
-  calculateFitScore
+  calculateFitScore,
+  syncSeeds
 } from './founderProfileAPI';
 
 export type { 
@@ -54,7 +55,9 @@ export type {
   CreateFounderProfileRequest, 
   UpdateFounderProfileRequest,
   FitScoreRequest,
-  FitScoreResponse
+  FitScoreResponse,
+  SyncSeedsResponse,
+  SyncTableResult
 } from './founderProfileAPI';
 
 // Ideas API
@@ -196,6 +199,42 @@ export type {
   CourseFilter,
   GetCoursesParams
 } from './coursesAPI';
+
+// HTIL (How To Infuse Learning) API
+export {
+  createHTILCourse,
+  getHTILCourse,
+  updateHTILCourse,
+  deleteHTILCourse,
+  createHTILModule,
+  updateHTILModule,
+  deleteHTILModule,
+  reorderHTILModule,
+  createHTILLesson,
+  updateHTILLesson,
+  deleteHTILLesson,
+  reorderHTILLesson,
+  createHTILExercise,
+  updateHTILExercise,
+  deleteHTILExercise,
+  completeHTILExercise,
+  createHTILQuiz,
+  updateHTILQuiz,
+  deleteHTILQuiz,
+  buildCourseTree
+} from './htilAPI';
+
+export type {
+  CourseExercise,
+  HTILCourseTree
+} from './htilAPI';
+
+// HTIL Schemas
+export * from './htilSchemas';
+
+// Re-export HTIL schemas as a namespace
+import * as htilSchemas from './htilSchemas';
+export { htilSchemas };
 
 // Schemas & Types
 export * from './schemas';

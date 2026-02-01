@@ -70,6 +70,15 @@ export interface ProgressPayload {
   completionPercent: number;
 }
 
+export interface LessonCompletePrompt {
+  lessonUUID: string;
+  lessonTitle: string;
+  promptType: string;
+  message: string;
+  nextChunkIdx: number;
+  hasMoreContent: boolean;
+}
+
 export interface TutorState {
   isConnected: boolean;
   isConnecting: boolean;
@@ -77,6 +86,10 @@ export interface TutorState {
   currentState: string;
   sessionId: string | null;
   courseId: string | null;
+  
+  // LLM Configuration (from session start)
+  llmProvider: string | null;
+  llmModel: string | null;
   
   // Intake
   isIntakeActive: boolean;
@@ -87,6 +100,7 @@ export interface TutorState {
   // Learning
   currentLesson: LessonPayload | null;
   isGeneratingLesson: boolean;
+  lessonCompletePrompt: LessonCompletePrompt | null;
   
   // Quiz
   currentQuiz: QuizPayload | null;
@@ -98,6 +112,15 @@ export interface TutorState {
   
   // Progress
   progress: ProgressPayload | null;
+  
+  // Canvas AI - when AI wants to write on canvas
+  canvasAIWrite: CanvasAIWritePayload | null;
+  
+  // Canvas AI Status - feedback when AI doesn't respond
+  canvasAIStatus: CanvasAIStatusPayload | null;
+  
+  // Canvas AI Context - debug info showing context/prompt sent to LLM
+  canvasAIContext: CanvasAIContextPayload | null;
   
   // Errors
   error: string | null;
@@ -114,11 +137,15 @@ const MSG_TYPES = {
   LESSON_REQUEST: 'tutor.lesson.request',
   LESSON_COMPLETE: 'tutor.lesson.complete',
   LESSON_SKIP: 'tutor.lesson.skip',
+  LESSON_SELECT: 'tutor.lesson.select',
+  LESSON_NEXT: 'tutor.lesson.next',
   QUIZ_START: 'tutor.quiz.start',
   QUIZ_ANSWER: 'tutor.quiz.answer',
   CHAT: 'tutor.chat',
   FEEDBACK: 'tutor.feedback',
   PROGRESS_GET: 'tutor.progress.get',
+  CANVAS_TEXT_UPDATE: 'canvas.text_update', // User typed on canvas
+  CANVAS_IDLE: 'canvas.idle', // User idle on canvas
   PING: 'ping',
   
   // Outbound (server → client)
@@ -129,15 +156,60 @@ const MSG_TYPES = {
   INTAKE_READY: 'tutor.intake.ready',
   LESSON_GENERATED: 'tutor.lesson.generated',
   LESSON_CONTENT: 'tutor.lesson.content',
+  LESSON_COMPLETE_PROMPT: 'tutor.lesson.complete_prompt',
   TUTOR_RESPONSE: 'tutor.response',
   TUTOR_TYPING: 'tutor.typing',
   QUIZ_GENERATED: 'tutor.quiz.generated',
   QUIZ_RESULT: 'tutor.quiz.result',
   PROGRESS_UPDATE: 'tutor.progress.update',
+  CANVAS_AI_WRITE: 'canvas.ai_write', // AI wants to write on canvas
+  CANVAS_AI_STATUS: 'canvas.ai_status', // AI status update (thinking, rate limited, etc.)
+  CANVAS_AI_CONTEXT: 'canvas.ai_context', // Debug: shows context/prompt sent to LLM
   ACK: 'ack',
   ERROR: 'error',
   PONG: 'pong'
 };
+
+// Canvas AI Write payload
+export interface CanvasAIWritePayload {
+  text: string;
+  position?: { x: number; y: number };
+  color?: 'black' | 'blue' | 'violet' | 'green' | 'red' | 'orange';
+  typingSpeed?: number;
+  size?: 's' | 'm' | 'l' | 'xl';
+}
+
+// Canvas AI Status payload - sent when AI doesn't respond to explain why
+export type AIStatusType = 'thinking' | 'rate_limited' | 'ready' | 'need_more' | 'error' | 'duplicate';
+
+export interface CanvasAIStatusPayload {
+  status: AIStatusType;
+  message: string;
+  retry_after_ms?: number;
+}
+
+// Context message in conversation history
+export interface ContextMessage {
+  role: 'user' | 'assistant' | 'system' | 'summary';
+  content: string;
+  token_count: number;
+}
+
+// Canvas AI Context payload - debug info showing what was sent to LLM
+export interface CanvasAIContextPayload {
+  summaries: ContextMessage[];
+  recent_messages: ContextMessage[];
+  lesson_title?: string;
+  lesson_content?: string;
+  user_input: string;
+  full_prompt: string;
+  token_estimate: number;
+  window_size: number;
+  summarize_threshold: number;
+  total_messages_in_db: number;
+  summarized_count: number;
+  timestamp: number;
+}
 
 // Import Zod-validated converters
 import {
@@ -179,6 +251,9 @@ export function useTutorAgent({
     sessionId: null,
     courseId: initialCourseId || null,
     
+    llmProvider: null,
+    llmModel: null,
+    
     isIntakeActive: false,
     currentIntakeQuestion: null,
     intakeProgress: null,
@@ -186,6 +261,7 @@ export function useTutorAgent({
     
     currentLesson: null,
     isGeneratingLesson: false,
+    lessonCompletePrompt: null,
     
     currentQuiz: null,
     quizResult: null,
@@ -194,6 +270,9 @@ export function useTutorAgent({
     isTutorTyping: false,
     
     progress: null,
+    canvasAIWrite: null,
+    canvasAIStatus: null,
+    canvasAIContext: null,
     error: null
   });
 
@@ -219,7 +298,11 @@ export function useTutorAgent({
   const handleMessage = useCallback((event: MessageEvent) => {
     try {
       const message: TutorMessage = JSON.parse(event.data);
-      console.log('[TutorAgent] Received:', message.type, message.payload);
+      
+      // Only log important messages (skip ack, pong, etc)
+      if (!['ack', 'pong', 'connected'].includes(message.type)) {
+        console.log('[TutorAgent] ←', message.type);
+      }
       
       switch (message.type) {
         case MSG_TYPES.CONNECTED:
@@ -232,11 +315,23 @@ export function useTutorAgent({
           break;
           
         case MSG_TYPES.STATE_CHANGE:
+          // Backend sends snake_case: current_state, session_id, llm_provider, llm_model
           setState(prev => ({
             ...prev,
-            currentState: message.payload.newState,
-            hasSession: message.payload.sessionId != null
+            currentState: message.payload.current_state || message.payload.newState,
+            hasSession: (message.payload.session_id ?? message.payload.sessionId) != null,
+            sessionId: message.payload.session_id || message.payload.sessionId || prev.sessionId,
+            // Capture LLM config from session start
+            llmProvider: message.payload.llm_provider || prev.llmProvider,
+            llmModel: message.payload.llm_model || prev.llmModel
           }));
+          console.log('%c[TutorAgent] Session state updated', 'color: #4caf50', {
+            hasSession: (message.payload.session_id ?? message.payload.sessionId) != null,
+            sessionId: message.payload.session_id || message.payload.sessionId,
+            state: message.payload.current_state || message.payload.newState,
+            llmProvider: message.payload.llm_provider,
+            llmModel: message.payload.llm_model
+          });
           break;
           
         case MSG_TYPES.INTAKE_QUESTION:
@@ -288,6 +383,21 @@ export function useTutorAgent({
           }));
           break;
           
+        case MSG_TYPES.LESSON_COMPLETE_PROMPT:
+          console.log('[TutorAgent] LESSON_COMPLETE_PROMPT received:', message.payload);
+          setState(prev => ({
+            ...prev,
+            lessonCompletePrompt: {
+              lessonUUID: message.payload.lesson_uuid,
+              lessonTitle: message.payload.lesson_title,
+              promptType: message.payload.prompt_type,
+              message: message.payload.message,
+              nextChunkIdx: message.payload.next_chunk_idx,
+              hasMoreContent: message.payload.has_more_content
+            }
+          }));
+          break;
+          
         case MSG_TYPES.TUTOR_RESPONSE:
           console.log('[TutorAgent] TUTOR_RESPONSE received, setting isTutorTyping=false', message.payload);
           setState(prev => ({
@@ -328,6 +438,50 @@ export function useTutorAgent({
         case MSG_TYPES.PROGRESS_UPDATE:
           setState(prev => ({ ...prev, progress: message.payload }));
           break;
+        
+        case MSG_TYPES.CANVAS_AI_WRITE:
+          // AI wants to write on canvas - pass to CourseViewer to handle
+          {
+            const aiPayload = message.payload as CanvasAIWritePayload;
+            console.log('%c[Canvas] 🤖 AI Response', 'color: #9c27b0; font-weight: bold; font-size: 12px', {
+              text: aiPayload.text,
+              position: aiPayload.position,
+              color: aiPayload.color
+            });
+            // Clear any previous status when AI responds
+            setState(prev => ({ ...prev, canvasAIWrite: aiPayload, canvasAIStatus: null }));
+          }
+          break;
+          
+        case MSG_TYPES.CANVAS_AI_STATUS:
+          // AI status update (thinking, rate limited, need more content, etc.)
+          {
+            const statusPayload = message.payload as CanvasAIStatusPayload;
+            // Only log if not 'ready' or 'duplicate' (less spammy)
+            if (!['ready', 'duplicate'].includes(statusPayload.status)) {
+              console.log('%c[Canvas] 📊 AI Status', 'color: #ff9800; font-weight: bold', {
+                status: statusPayload.status,
+                message: statusPayload.message,
+                retryAfterMs: statusPayload.retry_after_ms
+              });
+            }
+            setState(prev => ({ ...prev, canvasAIStatus: statusPayload }));
+          }
+          break;
+          
+        case MSG_TYPES.CANVAS_AI_CONTEXT:
+          // Debug context info showing what was sent to the LLM
+          {
+            const contextPayload = message.payload as CanvasAIContextPayload;
+            console.log('%c[Canvas] 🧠 AI Context', 'color: #2196f3; font-weight: bold; font-size: 12px', {
+              recentMessages: contextPayload.recent_messages?.length || 0,
+              summaries: contextPayload.summaries?.length || 0,
+              tokenEstimate: contextPayload.token_estimate,
+              lessonTitle: contextPayload.lesson_title
+            });
+            setState(prev => ({ ...prev, canvasAIContext: contextPayload }));
+          }
+          break;
           
         case MSG_TYPES.ERROR:
           setState(prev => ({ ...prev, error: message.payload.message }));
@@ -338,7 +492,8 @@ export function useTutorAgent({
           break;
           
         default:
-          console.log('[TutorAgent] Unknown message type:', message.type);
+          // Ignore unknown message types (ack, pong, etc are handled silently)
+          break;
       }
     } catch (err) {
       console.error('[TutorAgent] Failed to parse message:', err);
@@ -525,6 +680,34 @@ export function useTutorAgent({
     sendMessage(MSG_TYPES.CHAT, { message: text });
   }, [sendMessage]);
 
+  const selectLesson = useCallback((lessonUUID: string) => {
+    console.log('[TutorAgent] selectLesson:', lessonUUID);
+    sendMessage(MSG_TYPES.LESSON_SELECT, { lesson_uuid: lessonUUID });
+  }, [sendMessage]);
+
+  // Request next lesson (skip quiz)
+  const requestNextLesson = useCallback((lessonUUID: string, chunkIndex: number) => {
+    console.log('[TutorAgent] requestNextLesson:', lessonUUID, 'chunk:', chunkIndex);
+    setState(prev => ({
+      ...prev,
+      lessonCompletePrompt: null, // Clear the prompt
+      isGeneratingLesson: true
+    }));
+    sendMessage(MSG_TYPES.LESSON_NEXT, { 
+      lesson_uuid: lessonUUID, 
+      skip_quiz: true,
+      chunk_index: chunkIndex 
+    });
+  }, [sendMessage]);
+
+  // Dismiss lesson complete prompt (e.g., user chose quiz)
+  const dismissLessonPrompt = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      lessonCompletePrompt: null
+    }));
+  }, []);
+
   // Submit feedback
   const submitFeedback = useCallback((type: string, rating: number, comment: string, targetId: string) => {
     sendMessage(MSG_TYPES.FEEDBACK, { type, rating, comment, target_id: targetId });
@@ -543,6 +726,55 @@ export function useTutorAgent({
   // The hook uses a single setState for the entire state object, not individual setters.
   const setIntakeComplete = useCallback((value: boolean) => {
     setState(prev => ({ ...prev, intakeComplete: value }));
+  }, []);
+
+  // ==========================================================================
+  // Canvas Collaboration Methods
+  // ==========================================================================
+
+  // Send canvas text update (user typed on canvas)
+  const sendCanvasText = useCallback((
+    text: string, 
+    position: { x: number; y: number }, 
+    shapeId: string
+  ) => {
+    if (!state.isConnected) {
+      console.warn('[Canvas] Cannot send text - not connected');
+      return;
+    }
+    
+    console.log('%c[Canvas] → Sending text to server', 'color: #9c27b0', text.substring(0, 50));
+    sendMessage(MSG_TYPES.CANVAS_TEXT_UPDATE, {
+      text,
+      position_x: position.x,
+      position_y: position.y,
+      shape_id: shapeId
+    });
+  }, [sendMessage, state.isConnected]);
+
+  // Send canvas idle signal (user idle for threshold)
+  const sendCanvasIdle = useCallback((durationMs: number) => {
+    if (!state.isConnected) return;
+    
+    console.log('%c[Canvas] → Sending idle signal', 'color: #2196f3', `${(durationMs/1000).toFixed(0)}s`);
+    sendMessage(MSG_TYPES.CANVAS_IDLE, {
+      idle_duration_ms: durationMs
+    });
+  }, [sendMessage, state.isConnected]);
+
+  // Clear canvas AI write state after processing
+  const clearCanvasAIWrite = useCallback(() => {
+    setState(prev => ({ ...prev, canvasAIWrite: null }));
+  }, []);
+
+  // Clear canvas AI status state
+  const clearCanvasAIStatus = useCallback(() => {
+    setState(prev => ({ ...prev, canvasAIStatus: null }));
+  }, []);
+
+  // Clear canvas AI context state
+  const clearCanvasAIContext = useCallback(() => {
+    setState(prev => ({ ...prev, canvasAIContext: null }));
   }, []);
 
   // Auto-connect
@@ -574,10 +806,19 @@ export function useTutorAgent({
     startQuiz,
     answerQuizQuestion,
     sendChat,
+    selectLesson,
+    requestNextLesson,
+    dismissLessonPrompt,
     submitFeedback,
     getProgress,
     clearError,
-    setIntakeComplete
+    setIntakeComplete,
+    // Canvas collaboration
+    sendCanvasText,
+    sendCanvasIdle,
+    clearCanvasAIWrite,
+    clearCanvasAIStatus,
+    clearCanvasAIContext
   };
 }
 

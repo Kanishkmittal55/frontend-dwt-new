@@ -27,7 +27,7 @@ export interface ApiError {
 }
 
 export interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   body?: unknown;
   headers?: Record<string, string>;
   skipAuth?: boolean;
@@ -180,7 +180,7 @@ class FounderClient {
       }
     };
 
-    if (body && (method === 'POST' || method === 'PUT')) {
+    if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
       fetchOptions.body = JSON.stringify(body);
     }
 
@@ -246,6 +246,13 @@ class FounderClient {
    */
   async delete<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: 'DELETE' });
+  }
+
+  /**
+   * PATCH request
+   */
+  async patch<T>(endpoint: string, data?: unknown): Promise<T> {
+    return this.request<T>(endpoint, { method: 'PATCH', body: data });
   }
 }
 

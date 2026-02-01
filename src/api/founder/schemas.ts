@@ -418,6 +418,43 @@ export const EnrichmentResultSchema = z.object({
 });
 
 // ============================================================================
+// LLM Config Schemas
+// ============================================================================
+
+export const LLMProviderSchema = z.enum(['openai', 'anthropic', 'xai']);
+
+export const LLMConfigSchema = z.object({
+  llm_provider: LLMProviderSchema,
+  llm_model: z.string(),
+  openai_api_key: z.string().optional().nullable(),
+  anthropic_api_key: z.string().optional().nullable(),
+  xai_api_key: z.string().optional().nullable(),
+  has_openai_key: z.boolean().optional(),
+  has_anthropic_key: z.boolean().optional(),
+  has_xai_key: z.boolean().optional(),
+  // Tutor behavior config
+  tutor_response_interval_sec: z.number().int().min(1).max(60).optional().nullable(),
+  tutor_idle_nudge_sec: z.number().int().min(10).max(300).optional().nullable(),
+  tutor_context_window_size: z.number().int().min(5).max(100).optional().nullable(),
+  tutor_summarize_threshold: z.number().int().min(20).max(500).optional().nullable(),
+  tutor_max_context_tokens: z.number().int().min(1000).max(32000).optional().nullable()
+});
+
+export const UpdateLLMConfigRequestSchema = z.object({
+  llm_provider: LLMProviderSchema.optional(),
+  llm_model: z.string().optional(),
+  openai_api_key: z.string().optional(),
+  anthropic_api_key: z.string().optional(),
+  xai_api_key: z.string().optional(),
+  // Tutor behavior config
+  tutor_response_interval_sec: z.number().int().min(1).max(60).optional(),
+  tutor_idle_nudge_sec: z.number().int().min(10).max(300).optional(),
+  tutor_context_window_size: z.number().int().min(5).max(100).optional(),
+  tutor_summarize_threshold: z.number().int().min(20).max(500).optional(),
+  tutor_max_context_tokens: z.number().int().min(1000).max(32000).optional()
+});
+
+// ============================================================================
 // Error Schema
 // ============================================================================
 
@@ -478,6 +515,10 @@ export type FitScore = z.infer<typeof FitScoreSchema>;
 export type EnrichmentFact = z.infer<typeof EnrichmentFactSchema>;
 export type EnrichmentStatus = z.infer<typeof EnrichmentStatusSchema>;
 export type EnrichmentResult = z.infer<typeof EnrichmentResultSchema>;
+
+export type LLMProvider = z.infer<typeof LLMProviderSchema>;
+export type LLMConfig = z.infer<typeof LLMConfigSchema>;
+export type UpdateLLMConfigRequest = z.infer<typeof UpdateLLMConfigRequestSchema>;
 
 // ============================================================================
 // Founder Agent WebSocket Schemas
@@ -642,11 +683,9 @@ export type ErrorPayload = z.infer<typeof ErrorPayloadSchema>;
 // Course Schemas
 // ============================================================================
 
-// Course status enum
+// Course status enum - must match backend OpenAPI spec
 export const CourseStatusSchema = z.enum([
   'pending',
-  'pending_intake',  // New: waiting for user to complete intake questions
-  'active',          // New: intake complete, learning in progress
   'processing_chunks',
   'creating_modules',
   'enriching',

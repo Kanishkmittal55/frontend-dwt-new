@@ -23,8 +23,14 @@ import {
   IconChevronRight,
   IconCheck,
   IconClock,
-  IconLayoutSidebarLeftCollapse
+  IconLayoutSidebarLeftCollapse,
+  IconPlus,
+  IconFolderPlus,
+  IconFilePlus
 } from '@tabler/icons-react';
+import Button from '@mui/material/Button';
+import Divider from '@mui/material/Divider';
+import Stack from '@mui/material/Stack';
 
 import type { CourseModule, CourseLesson } from '@/api/founder/coursesAPI';
 import { formatEstimatedTime } from '@/api/founder/coursesAPI';
@@ -44,6 +50,8 @@ interface ModuleNavProps {
   onSelectLesson: (lesson: CourseLesson) => void;
   onLoadLessons: (moduleUUID: string) => void;
   onToggle?: () => void;
+  onAddModule?: () => void;
+  onAddLesson?: (moduleUUID: string) => void;
 }
 
 // ============================================================================
@@ -60,7 +68,9 @@ export default function ModuleNav({
   onSelectModule,
   onSelectLesson,
   onLoadLessons,
-  onToggle
+  onToggle,
+  onAddModule,
+  onAddLesson
 }: ModuleNavProps) {
   const theme = useTheme();
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
@@ -107,7 +117,8 @@ export default function ModuleNav({
     <Box
       sx={{
         height: '100%',
-        overflow: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
         bgcolor: alpha(theme.palette.background.default, 0.5)
       }}
     >
@@ -138,7 +149,7 @@ export default function ModuleNav({
       </Box>
 
       {/* Modules List */}
-      <List component="nav" sx={{ p: 1 }}>
+      <List component="nav" sx={{ p: 1, flex: 1, overflow: 'auto' }}>
         {modules.map((module, index) => {
           const isExpanded = expandedModules.has(module.uuid);
           const isSelected = selectedModuleUUID === module.uuid;
@@ -306,6 +317,59 @@ export default function ModuleNav({
           );
         })}
       </List>
+
+      {/* Add Module & Lesson Buttons */}
+      {(onAddModule || onAddLesson) && (
+        <Box sx={{ 
+          p: 2, 
+          borderTop: `1px solid ${theme.palette.divider}`,
+          mt: 'auto'
+        }}>
+          <Stack spacing={1}>
+            {onAddModule && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<IconFolderPlus size={16} />}
+                onClick={onAddModule}
+                fullWidth
+                sx={{
+                  justifyContent: 'flex-start',
+                  textTransform: 'none',
+                  borderColor: alpha(theme.palette.primary.main, 0.3),
+                  '&:hover': {
+                    borderColor: theme.palette.primary.main,
+                    bgcolor: alpha(theme.palette.primary.main, 0.04)
+                  }
+                }}
+              >
+                Add Module
+              </Button>
+            )}
+            {onAddLesson && selectedModuleUUID && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<IconFilePlus size={16} />}
+                onClick={() => onAddLesson(selectedModuleUUID)}
+                fullWidth
+                sx={{
+                  justifyContent: 'flex-start',
+                  textTransform: 'none',
+                  borderColor: alpha(theme.palette.secondary.main, 0.3),
+                  color: theme.palette.secondary.main,
+                  '&:hover': {
+                    borderColor: theme.palette.secondary.main,
+                    bgcolor: alpha(theme.palette.secondary.main, 0.04)
+                  }
+                }}
+              >
+                Add Lesson
+              </Button>
+            )}
+          </Stack>
+        </Box>
+      )}
     </Box>
   );
 }
