@@ -602,16 +602,24 @@ export function useTutorAgent({
     sendMessage(MSG_TYPES.SESSION_START, { course_id: courseId });
   }, [sendMessage]);
 
-  // End session
+  // End session - clears all session and canvas state
   const endSession = useCallback(() => {
     sendMessage(MSG_TYPES.SESSION_END);
     setState(prev => ({
       ...prev,
       hasSession: false,
       sessionId: null,
+      courseId: null,
       currentLesson: null,
       currentQuiz: null,
-      messages: []
+      messages: [],
+      // Clear all canvas-related state
+      canvasAIWrite: null,
+      canvasAIStatus: null,
+      canvasAIContext: null,
+      // Reset LLM info
+      llmProvider: null,
+      llmModel: null
     }));
   }, [sendMessage]);
 

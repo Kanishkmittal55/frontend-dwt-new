@@ -335,12 +335,16 @@ export default function CourseViewer() {
   }, [tutor.llmProvider, tutor.llmModel]);
 
   // Sync selected lesson with tutor - only after session is established
+  // Clear AI context when switching lessons to ensure fresh context from DB
   useEffect(() => {
     if (tutor.isConnected && tutor.hasSession && selectedLesson?.uuid) {
       console.log('%c[Tutor] 📖 Selecting lesson', 'color: #2196f3', selectedLesson.uuid);
+      // Clear previous AI context before selecting new lesson
+      tutor.clearCanvasAIContext();
+      tutor.clearCanvasAIStatus();
       tutor.selectLesson(selectedLesson.uuid);
     }
-  }, [tutor.isConnected, tutor.hasSession, selectedLesson?.uuid, tutor.selectLesson]);
+  }, [tutor.isConnected, tutor.hasSession, selectedLesson?.uuid, tutor.selectLesson, tutor.clearCanvasAIContext, tutor.clearCanvasAIStatus]);
 
   // =========================================================================
   // Computed Values
@@ -385,6 +389,10 @@ export default function CourseViewer() {
   }, [selectedCourse]);
 
   const handleBackToCourses = useCallback(() => {
+    // End session first to clear all tutor state including AI context
+    if (tutor.hasSession) {
+      tutor.endSession();
+    }
     if (tutor.isConnected) {
       tutor.disconnect();
     }
@@ -400,6 +408,7 @@ export default function CourseViewer() {
     setCompletedLessonUUIDs(new Set());
     setViewMode('static');
     setIsFullScreen(false);
+    setShowContextDebug(false);
   }, [tutor]);
 
   const handleModeChange = useCallback((_: any, newMode: ViewMode | null) => {
