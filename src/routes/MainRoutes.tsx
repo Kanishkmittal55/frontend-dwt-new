@@ -21,6 +21,8 @@ const AgentChat = Loadable(lazy(() => import('views/founder/agent/AgentChat')));
 // Course viewers - uses feature flag to switch between legacy and canvas viewers
 const CourseViewerSwitch = Loadable(lazy(() => import('views/founder/reader/CourseViewerSwitch')));
 const HTILCourseCreator = Loadable(lazy(() => import('views/founder/reader/htil/HTILCourseCreator')));
+// Daily tasks / revision system
+const DailyTasksDashboard = Loadable(lazy(() => import('views/founder/today/DailyTasksDashboard')));
 
 // utilities routing
 const UtilsTypography = Loadable(lazy(() => import('views/utilities/Typography')));
@@ -105,6 +107,10 @@ const MainRoutes = {
         {
           path: 'profile',
           element: <Settings />
+        },
+        {
+          path: 'today',
+          element: <DailyTasksDashboard />
         }
       ]
     },

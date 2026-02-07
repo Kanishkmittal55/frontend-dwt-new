@@ -42,7 +42,8 @@ import {
   IconBrain,
   IconChevronDown,
   IconChevronUp,
-  IconX
+  IconX,
+  IconPlayerStop
 } from '@tabler/icons-react';
 import Collapse from '@mui/material/Collapse';
 import Paper from '@mui/material/Paper';
@@ -80,6 +81,8 @@ import CourseSelector from './components/CourseSelector';
 import ModuleNav from './components/ModuleNav';
 import TutorChat from './components/TutorChat';
 import IntakeForm from './components/IntakeForm';
+import LessonEndDialog from './components/LessonEndDialog';
+import { CustomRichTextToolbar, type SourceType, type SelectionData } from './components/CustomRichTextToolbar';
 import { 
   UnifiedCanvas, 
   type CanvasData, 
@@ -177,6 +180,11 @@ export default function CourseViewer() {
   
   // AI state tracking ref - prevents activity tracker from sending during AI typing animation
   const aiTypingRef = useRef<boolean>(false);
+  
+  // Lesson session tracking
+  const [showLessonEndDialog, setShowLessonEndDialog] = useState(false);
+  const [isSavingSelection, setIsSavingSelection] = useState(false);
+  const lessonStartTimeRef = useRef<number>(Date.now());
 
   // =========================================================================
   // Interactive Mode - Tutor Agent Hook
@@ -343,8 +351,45 @@ export default function CourseViewer() {
       tutor.clearCanvasAIContext();
       tutor.clearCanvasAIStatus();
       tutor.selectLesson(selectedLesson.uuid);
+      // Reset lesson start time
+      lessonStartTimeRef.current = Date.now();
     }
   }, [tutor.isConnected, tutor.hasSession, selectedLesson?.uuid, tutor.selectLesson, tutor.clearCanvasAIContext, tutor.clearCanvasAIStatus]);
+
+  // Handle selection result from server
+  useEffect(() => {
+    if (tutor.selectionResult) {
+      setIsSavingSelection(false);
+      if (tutor.selectionResult.success) {
+        setNotification({
+          type: 'success',
+          message: tutor.selectionResult.action === 'save_concept' 
+            ? '💡 Concept saved!' 
+            : '❓ Confusion point marked!'
+        });
+      } else {
+        setNotification({
+          type: 'error',
+          message: tutor.selectionResult.message || 'Failed to save'
+        });
+      }
+      tutor.clearSelectionResult();
+    }
+  }, [tutor.selectionResult, tutor]);
+
+  // Also reset saving state on any error (e.g., if server rejects the message)
+  useEffect(() => {
+    if (tutor.error && isSavingSelection) {
+      setIsSavingSelection(false);
+    }
+  }, [tutor.error, isSavingSelection]);
+
+  // Handle lesson score from server (after ending lesson)
+  useEffect(() => {
+    if (tutor.lessonScore) {
+      setShowLessonEndDialog(true);
+    }
+  }, [tutor.lessonScore]);
 
   // =========================================================================
   // Computed Values
@@ -768,6 +813,88 @@ export default function CourseViewer() {
   }, [tutor, saveProgress, selectedCourse]);
 
   // =========================================================================
+  // Handlers - Canvas Selection (save concepts/confusion points via RichTextToolbar)
+  // =========================================================================
+
+  const handleSaveConcept = useCallback((data: SelectionData) => {
+    if (!data.text || !selectedLesson?.uuid) return;
+    
+    setIsSavingSelection(true);
+    tutor.sendCanvasSelection({
+      text: data.text,
+      action: 'save_concept',
+      source_type: data.sourceType,
+      lesson_uuid: selectedLesson.uuid,
+      ...(data.annotation ? { annotation: data.annotation } : {})
+    });
+  }, [selectedLesson?.uuid, tutor]);
+
+  const handleMarkConfusion = useCallback((data: SelectionData) => {
+    if (!data.text || !selectedLesson?.uuid) return;
+    
+    setIsSavingSelection(true);
+    tutor.sendCanvasSelection({
+      text: data.text,
+      action: 'mark_confusion',
+      source_type: data.sourceType,
+      lesson_uuid: selectedLesson.uuid,
+      ...(data.annotation ? { annotation: data.annotation } : {})
+    });
+  }, [selectedLesson?.uuid, tutor]);
+
+  // =========================================================================
+  // Handlers - End Lesson Session
+  // =========================================================================
+
+  const handleEndLesson = useCallback(() => {
+    if (!selectedLesson?.uuid) return;
+    
+    const timeSpentSeconds = Math.round((Date.now() - lessonStartTimeRef.current) / 1000);
+    tutor.sendLessonEnd({
+      lesson_uuid: selectedLesson.uuid,
+      time_spent_seconds: timeSpentSeconds
+    });
+  }, [selectedLesson?.uuid, tutor]);
+
+  const handleLessonEndConfirm = useCallback((energyLevel: number) => {
+    // Energy level could be sent in a follow-up or stored locally
+    console.log('[Lesson] Energy level:', energyLevel);
+    tutor.clearLessonScore();
+    setShowLessonEndDialog(false);
+    
+    // Optionally mark as complete and move to next
+    if (selectedLesson?.uuid) {
+      saveProgress(selectedLesson.uuid);
+    }
+  }, [tutor, selectedLesson?.uuid, saveProgress]);
+
+  // =========================================================================
+  // Memoized tldraw Components Override (Custom RichTextToolbar)
+  // =========================================================================
+  
+  const tldrawComponents = useMemo(() => {
+    // Only provide custom toolbar when in interactive mode and connected
+    if (viewMode !== 'interactive' || !tutor.isConnected) {
+      return undefined;
+    }
+    
+    // Create a wrapper component that passes our callbacks to CustomRichTextToolbar
+    const lessonUUID = selectedLesson?.uuid;
+    const RichTextToolbarWithCallbacks = () => (
+      <CustomRichTextToolbar
+        onSaveConcept={handleSaveConcept}
+        onMarkConfusion={handleMarkConfusion}
+        {...(lessonUUID ? { lessonUUID } : {})}
+        isSaving={isSavingSelection}
+      />
+    );
+    
+    return {
+      RichTextToolbar: RichTextToolbarWithCallbacks
+    };
+  }, [viewMode, tutor.isConnected, handleSaveConcept, handleMarkConfusion, selectedLesson?.uuid, isSavingSelection]);
+
+  // =========================================================================
   // Render: No Course Selected
   // =========================================================================
 
@@ -1081,6 +1208,24 @@ export default function CourseViewer() {
                           ? 'Save *'
                           : 'Save'}
                   </Button>
+                  {/* End Lesson Button (only in interactive mode) */}
+                  {viewMode === 'interactive' && tutor.isConnected && (
+                    <Tooltip title="End lesson and see your scores">
+                      <Button
+                        variant="outlined"
+                        color="secondary"
+                        size="small"
+                        onClick={handleEndLesson}
+                        startIcon={<IconPlayerStop size={16} />}
+                        sx={{
+                          textTransform: 'none',
+                          fontWeight: 600
+                        }}
+                      >
+                        End Lesson
+                      </Button>
+                    </Tooltip>
+                  )}
                 </Stack>
               </Stack>
             </Box>
@@ -1109,6 +1254,7 @@ export default function CourseViewer() {
                 minHeight="100%"
                 hideUi={false}
                 transparentBg={false}
+                components={tldrawComponents}
               />
             ) : (
               <Box
@@ -1266,6 +1412,17 @@ export default function CourseViewer() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Lesson End Dialog - Shows scores after ending lesson */}
+      <LessonEndDialog
+        open={showLessonEndDialog}
+        lessonScore={tutor.lessonScore}
+        onClose={() => {
+          setShowLessonEndDialog(false);
+          tutor.clearLessonScore();
+        }}
+        onConfirm={handleLessonEndConfirm}
+      />
 
       {/* Notifications */}
       <Snackbar

@@ -179,7 +179,8 @@ const UnifiedCanvas = forwardRef<UnifiedCanvasRef, UnifiedCanvasProps>(
       readOnly = false,
       minHeight = 600,
       hideUi = false,
-      transparentBg = false
+      transparentBg = false,
+      components // Custom tldraw UI component overrides
     },
     ref
   ) => {
@@ -401,6 +402,7 @@ const UnifiedCanvas = forwardRef<UnifiedCanvasRef, UnifiedCanvasProps>(
           onMount={handleMount}
           inferDarkMode={theme.palette.mode === 'dark'}
           hideUi={hideUi}
+          {...(components ? { components } : {})}
         />
 
         {/* Error snackbar */}

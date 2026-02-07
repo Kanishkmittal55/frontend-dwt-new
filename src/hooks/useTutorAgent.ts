@@ -122,8 +122,99 @@ export interface TutorState {
   // Canvas AI Context - debug info showing context/prompt sent to LLM
   canvasAIContext: CanvasAIContextPayload | null;
   
+  // Canvas Selection - result of saving a concept/confusion point
+  selectionResult: SelectionResultPayload | null;
+  
+  // Lesson Score - scores after ending a lesson
+  lessonScore: LessonScorePayload | null;
+  
+  // Revision System - spaced repetition queue
+  revisionQueue: RevisionQueueItem[];
+  revisionStats: RevisionStatsPayload | null;
+  revisionReviewResult: RevisionReviewResultPayload | null;
+  isLoadingRevision: boolean;
+  
+  // Active Review Session state
+  activeReviewSession: ActiveReviewSession | null;
+  currentReviewItem: RevisionQueueItem | null;
+  
   // Errors
   error: string | null;
+}
+
+// ============================================================================
+// Revision System Types
+// ============================================================================
+
+/** Single item in the revision queue */
+export interface RevisionQueueItem {
+  itemUUID: string;
+  itemType: string;        // 'concept' or 'confusion'
+  itemTitle?: string;
+  conceptText: string;
+  priority: number;        // 1=first review, 2=regular, 3=mastered
+  masteryState: string;    // new, learning, mastered, graduated
+  totalReviews: number;
+  sourceLessonUUID?: string;
+  difficultyRating?: number;
+
+  // LLM-generated content for concepts (active recall)
+  reviewQuestion?: string;   // Active recall question
+  reviewAnswer?: string;     // Expected answer
+  keyInsight?: string;       // Core "aha!" moment
+
+  // LLM-generated content for confusion points
+  clarificationAnswer?: string;  // LLM explanation
+  followUpCheck?: string;        // Verify understanding
+  relatedConcepts?: string[];    // For interleaving
+}
+
+/** Revision queue response from server */
+export interface RevisionQueuePayload {
+  items: RevisionQueueItem[];
+  totalDue: number;
+  firstReviews: number;
+  mastered: number;
+}
+
+/** Revision stats */
+export interface RevisionStatsPayload {
+  totalActive: number;
+  dueToday: number;
+  firstReviews: number;
+  masteredItems: number;
+  pendingVetting: number;
+  retentionCoeff: number;
+}
+
+/** Review submission result */
+export interface RevisionReviewResultPayload {
+  itemUUID: string;
+  success: boolean;
+  newInterval: number;
+  newEaseFactor: number;
+  masteryState: string;
+  nextReviewAt: string;
+  message: string;
+}
+
+/** Session started response from backend */
+export interface RevisionSessionStartedPayload {
+  sessionUUID: string;
+  itemUUID: string;
+  sessionNumber: number;
+  startedAt: string;
+}
+
+/** Active review session state */
+export interface ActiveReviewSession {
+  sessionUUID: string;
+  itemUUID: string;
+  sessionNumber: number;
+  startedAt: Date;
+  isTypingAnswer: boolean;
+  founderAnswer: string;
+  confidenceBefore: number;
 }
 
 // Message types
@@ -146,6 +237,14 @@ const MSG_TYPES = {
   PROGRESS_GET: 'tutor.progress.get',
   CANVAS_TEXT_UPDATE: 'canvas.text_update', // User typed on canvas
   CANVAS_IDLE: 'canvas.idle', // User idle on canvas
+  CANVAS_SELECTION: 'canvas.selection', // User wants to save selection as concept/confusion
+  CANVAS_LESSON_END: 'canvas.lesson_end', // User ends lesson session
+  // Revision System
+  REVISION_QUEUE_REQUEST: 'revision.queue.request',
+  REVISION_SESSION_START: 'revision.session.start', // Start timing for a card
+  REVISION_REVIEW: 'revision.review',
+  REVISION_STATS_REQUEST: 'revision.stats.request',
+  REVISION_VET_REQUEST: 'revision.vet.request',
   PING: 'ping',
   
   // Outbound (server → client)
@@ -165,6 +264,14 @@ const MSG_TYPES = {
   CANVAS_AI_WRITE: 'canvas.ai_write', // AI wants to write on canvas
   CANVAS_AI_STATUS: 'canvas.ai_status', // AI status update (thinking, rate limited, etc.)
   CANVAS_AI_CONTEXT: 'canvas.ai_context', // Debug: shows context/prompt sent to LLM
+  SELECTION_RESULT: 'tutor.selection.result', // Response after saving selection
+  LESSON_SCORE: 'tutor.lesson.score', // Final scores after ending lesson
+  // Revision System responses
+  REVISION_QUEUE_RESPONSE: 'revision.queue.response',
+  REVISION_SESSION_STARTED: 'revision.session.started', // Session timing started
+  REVISION_REVIEW_RESULT: 'revision.review.result',
+  REVISION_STATS_RESPONSE: 'revision.stats.response',
+  REVISION_VET_RESULT: 'revision.vet.result',
   ACK: 'ack',
   ERROR: 'error',
   PONG: 'pong'
@@ -209,6 +316,52 @@ export interface CanvasAIContextPayload {
   total_messages_in_db: number;
   summarized_count: number;
   timestamp: number;
+}
+
+// ============================================================================
+// Canvas Selection Types (for saving concepts/confusion points)
+// ============================================================================
+
+/** Action types for canvas selection */
+export type SelectionActionType = 'save_concept' | 'mark_confusion' | 'explain' | 'relate';
+
+/** Payload sent when user wants to save a selection */
+export interface CanvasSelectionPayload {
+  text: string;
+  action: SelectionActionType;
+  annotation?: string;
+  source_type?: 'lesson' | 'notes' | 'ai_response';
+  lesson_uuid?: string;
+  position?: { x: number; y: number };
+}
+
+/** Response from server after selection is saved */
+export interface SelectionResultPayload {
+  action: SelectionActionType;
+  success: boolean;
+  item_uuid?: string;
+  item_type?: string;
+  next_review_at?: string;
+  message?: string;
+}
+
+/** Payload for ending a lesson session */
+export interface LessonEndPayload {
+  lesson_uuid: string;
+  time_spent_seconds: number;
+  energy_level?: number; // 1-5 self-reported
+}
+
+/** Scores returned after ending a lesson */
+export interface LessonScorePayload {
+  lesson_uuid: string;
+  understanding_score: number; // 0-10
+  difficulty_score: number;    // 0-10
+  ease_factor: number;         // SM-2 ease factor
+  interval_days: number;       // Days until next review
+  concepts_captured: number;
+  confusion_points: number;
+  time_spent_minutes: number;
 }
 
 // Import Zod-validated converters
@@ -273,6 +426,16 @@ export function useTutorAgent({
     canvasAIWrite: null,
     canvasAIStatus: null,
     canvasAIContext: null,
+    selectionResult: null,
+    lessonScore: null,
+    // Revision System
+    revisionQueue: [],
+    revisionStats: null,
+    revisionReviewResult: null,
+    isLoadingRevision: false,
+    // Active Review Session
+    activeReviewSession: null,
+    currentReviewItem: null,
     error: null
   });
 
@@ -480,6 +643,176 @@ export function useTutorAgent({
               lessonTitle: contextPayload.lesson_title
             });
             setState(prev => ({ ...prev, canvasAIContext: contextPayload }));
+          }
+          break;
+          
+        case MSG_TYPES.SELECTION_RESULT:
+          // Response after saving a selection as concept/confusion
+          {
+            const resultPayload = message.payload as SelectionResultPayload;
+            console.log('%c[Canvas] 💾 Selection saved', 'color: #4caf50; font-weight: bold', {
+              action: resultPayload.action,
+              success: resultPayload.success,
+              itemUUID: resultPayload.item_uuid
+            });
+            setState(prev => ({ ...prev, selectionResult: resultPayload }));
+          }
+          break;
+          
+        case MSG_TYPES.LESSON_SCORE:
+          // Final scores after ending a lesson
+          {
+            const scorePayload = message.payload as LessonScorePayload;
+            console.log('%c[Lesson] 📊 Scores received', 'color: #9c27b0; font-weight: bold', {
+              understanding: scorePayload.understanding_score,
+              difficulty: scorePayload.difficulty_score,
+              easeFactor: scorePayload.ease_factor
+            });
+            setState(prev => ({ ...prev, lessonScore: scorePayload }));
+          }
+          break;
+        
+        // =======================================================================
+        // Revision System Messages
+        // =======================================================================
+        case MSG_TYPES.REVISION_QUEUE_RESPONSE:
+          {
+            const queuePayload = message.payload;
+            // DEBUG: Log raw payload from backend
+            console.log('%c[Revision] 🔍 RAW payload from backend:', 'color: #ff5722; font-weight: bold', JSON.stringify(queuePayload, null, 2));
+            console.log('%c[Revision] 🔍 RAW items array:', 'color: #ff5722; font-weight: bold', queuePayload.items);
+            if (queuePayload.items && queuePayload.items.length > 0) {
+              console.log('%c[Revision] 🔍 First item raw:', 'color: #ff5722; font-weight: bold', queuePayload.items[0]);
+            }
+            // Convert snake_case to camelCase, including LLM-generated content
+            const items: RevisionQueueItem[] = (queuePayload.items || []).map((item: any) => ({
+              itemUUID: item.item_uuid,
+              itemType: item.item_type,
+              itemTitle: item.item_title,
+              conceptText: item.concept_text,
+              priority: item.priority,
+              masteryState: item.mastery_state,
+              totalReviews: item.total_reviews,
+              sourceLessonUUID: item.source_lesson_uuid,
+              difficultyRating: item.difficulty_rating,
+              // LLM-generated content for concepts
+              reviewQuestion: item.review_question,
+              reviewAnswer: item.review_answer,
+              keyInsight: item.key_insight,
+              // LLM-generated content for confusion points
+              clarificationAnswer: item.clarification_answer,
+              followUpCheck: item.follow_up_check,
+              relatedConcepts: item.related_concepts
+            }));
+            console.log('%c[Revision] 📋 Queue received', 'color: #673ab7; font-weight: bold', {
+              items: items.length,
+              totalDue: queuePayload.total_due,
+              hasLLMContent: items.some(i => i.reviewQuestion || i.clarificationAnswer)
+            });
+            // DEBUG: Log parsed items
+            if (items.length > 0) {
+              console.log('%c[Revision] 📋 First parsed item:', 'color: #4caf50; font-weight: bold', items[0]);
+            } else {
+              console.log('%c[Revision] ⚠️ NO ITEMS after parsing!', 'color: #f44336; font-weight: bold');
+            }
+            setState(prev => {
+              console.log('%c[Revision] 🔄 Setting revisionQueue state:', 'color: #2196f3; font-weight: bold', {
+                prevLength: prev.revisionQueue.length,
+                newLength: items.length
+              });
+              return {
+                ...prev,
+                revisionQueue: items,
+                isLoadingRevision: false
+              };
+            });
+          }
+          break;
+        
+        case MSG_TYPES.REVISION_SESSION_STARTED:
+          {
+            const sessionPayload = message.payload;
+            const session: ActiveReviewSession = {
+              sessionUUID: sessionPayload.session_uuid,
+              itemUUID: sessionPayload.item_uuid,
+              sessionNumber: sessionPayload.session_number,
+              startedAt: new Date(sessionPayload.started_at),
+              isTypingAnswer: false,
+              founderAnswer: '',
+              confidenceBefore: 3
+            };
+            // Find the current review item from the queue
+            const currentItem = state.revisionQueue.find(
+              item => item.itemUUID === sessionPayload.item_uuid
+            ) || null;
+            console.log('%c[Revision] ⏱️ Session started', 'color: #4caf50; font-weight: bold', {
+              sessionUUID: session.sessionUUID,
+              itemUUID: session.itemUUID,
+              sessionNumber: session.sessionNumber
+            });
+            setState(prev => ({
+              ...prev,
+              activeReviewSession: session,
+              currentReviewItem: currentItem,
+              isLoadingRevision: false
+            }));
+          }
+          break;
+          
+        case MSG_TYPES.REVISION_STATS_RESPONSE:
+          {
+            const statsPayload = message.payload;
+            const stats: RevisionStatsPayload = {
+              totalActive: statsPayload.total_active,
+              dueToday: statsPayload.due_today,
+              firstReviews: statsPayload.first_reviews,
+              masteredItems: statsPayload.mastered_items,
+              pendingVetting: statsPayload.pending_vetting,
+              retentionCoeff: statsPayload.retention_coeff
+            };
+            console.log('%c[Revision] 📊 Stats received', 'color: #673ab7; font-weight: bold', stats);
+            setState(prev => ({
+              ...prev,
+              revisionStats: stats,
+              isLoadingRevision: false
+            }));
+          }
+          break;
+          
+        case MSG_TYPES.REVISION_REVIEW_RESULT:
+          {
+            const resultPayload = message.payload;
+            const result: RevisionReviewResultPayload = {
+              itemUUID: resultPayload.item_uuid,
+              success: resultPayload.success,
+              newInterval: resultPayload.new_interval,
+              newEaseFactor: resultPayload.new_ease_factor,
+              masteryState: resultPayload.mastery_state,
+              nextReviewAt: resultPayload.next_review_at,
+              message: resultPayload.message
+            };
+            console.log('%c[Revision] ✅ Review result', 'color: #4caf50; font-weight: bold', result);
+            // Remove reviewed item from queue and clear active session
+            setState(prev => ({
+              ...prev,
+              revisionReviewResult: result,
+              revisionQueue: prev.revisionQueue.filter(item => item.itemUUID !== result.itemUUID),
+              activeReviewSession: null,  // Clear session after review
+              currentReviewItem: null,
+              isLoadingRevision: false
+            }));
+          }
+          break;
+          
+        case MSG_TYPES.REVISION_VET_RESULT:
+          {
+            const vetPayload = message.payload;
+            console.log('%c[Revision] 🔍 Vetting result', 'color: #ff9800; font-weight: bold', {
+              processed: vetPayload.processed,
+              activated: vetPayload.activated
+            });
+            // After vetting, refresh stats
+            setState(prev => ({ ...prev, isLoadingRevision: false }));
           }
           break;
           
@@ -785,6 +1118,174 @@ export function useTutorAgent({
     setState(prev => ({ ...prev, canvasAIContext: null }));
   }, []);
 
+  // ==========================================================================
+  // Canvas Selection Methods (save concepts/confusion points)
+  // ==========================================================================
+
+  // Send canvas selection (user wants to save selected text)
+  const sendCanvasSelection = useCallback((params: CanvasSelectionPayload) => {
+    if (!state.isConnected) {
+      console.warn('[Canvas] Cannot send selection - not connected');
+      return;
+    }
+    
+    console.log('%c[Canvas] → Saving selection', 'color: #4caf50; font-weight: bold', {
+      action: params.action,
+      text: params.text.substring(0, 50) + (params.text.length > 50 ? '...' : '')
+    });
+    sendMessage(MSG_TYPES.CANVAS_SELECTION, params);
+  }, [sendMessage, state.isConnected]);
+
+  // Send lesson end (user ends the lesson session)
+  const sendLessonEnd = useCallback((params: LessonEndPayload) => {
+    if (!state.isConnected) {
+      console.warn('[Canvas] Cannot end lesson - not connected');
+      return;
+    }
+    
+    console.log('%c[Lesson] → Ending lesson', 'color: #ff9800; font-weight: bold', {
+      lessonUUID: params.lesson_uuid,
+      timeSpent: params.time_spent_seconds
+    });
+    sendMessage(MSG_TYPES.CANVAS_LESSON_END, params);
+  }, [sendMessage, state.isConnected]);
+
+  // Clear selection result state
+  const clearSelectionResult = useCallback(() => {
+    setState(prev => ({ ...prev, selectionResult: null }));
+  }, []);
+
+  // Clear lesson score state
+  const clearLessonScore = useCallback(() => {
+    setState(prev => ({ ...prev, lessonScore: null }));
+  }, []);
+
+  // ==========================================================================
+  // Revision System Methods
+  // ==========================================================================
+
+  // Request the daily revision queue
+  const getRevisionQueue = useCallback((limit: number = 10) => {
+    if (!state.isConnected) {
+      console.warn('[Revision] Cannot get queue - not connected');
+      return;
+    }
+    
+    console.log('%c[Revision] → Requesting queue', 'color: #673ab7; font-weight: bold', { limit });
+    setState(prev => ({ ...prev, isLoadingRevision: true }));
+    sendMessage(MSG_TYPES.REVISION_QUEUE_REQUEST, { limit });
+  }, [sendMessage, state.isConnected]);
+
+  /** Start a review session for a specific item (tracks timing on backend) */
+  const startReviewSession = useCallback((itemUUID: string) => {
+    if (!state.isConnected) {
+      console.warn('[Revision] Cannot start session - not connected');
+      return;
+    }
+    
+    // Find the item in the queue and set it as current
+    const item = state.revisionQueue.find(i => i.itemUUID === itemUUID) || null;
+    
+    console.log('%c[Revision] → Starting session', 'color: #4caf50; font-weight: bold', { itemUUID });
+    setState(prev => ({ 
+      ...prev, 
+      isLoadingRevision: true,
+      currentReviewItem: item
+    }));
+    sendMessage(MSG_TYPES.REVISION_SESSION_START, { item_uuid: itemUUID });
+  }, [sendMessage, state.isConnected, state.revisionQueue]);
+
+  /** Update active session state (typing mode, confidence, etc.) */
+  const updateActiveSession = useCallback((updates: Partial<{
+    isTypingAnswer: boolean;
+    founderAnswer: string;
+    confidenceBefore: number;
+  }>) => {
+    setState(prev => {
+      if (!prev.activeReviewSession) return prev;
+      return {
+        ...prev,
+        activeReviewSession: {
+          ...prev.activeReviewSession,
+          ...updates
+        }
+      };
+    });
+  }, []);
+
+  /** Clear the active review session */
+  const clearActiveSession = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      activeReviewSession: null,
+      currentReviewItem: null
+    }));
+  }, []);
+
+  // Submit a review (user rates recall quality)
+  /** Submit a review with full session data */
+  const submitRevisionReview = useCallback((params: {
+    itemUUID: string;
+    quality: 1 | 2 | 3 | 4;
+    timeSpentMs: number | undefined;
+    timeToRevealMs: number | undefined;
+    timeToRateMs: number | undefined;
+    founderAnswer: string | undefined;
+    confidenceBefore: number | undefined;
+    confidenceAfter: number | undefined;
+    hintRequested: boolean | undefined;
+    gaveUp: boolean | undefined;
+  }) => {
+    if (!state.isConnected) {
+      console.warn('[Revision] Cannot submit review - not connected');
+      return;
+    }
+    
+    console.log('%c[Revision] → Submitting review', 'color: #4caf50; font-weight: bold', params);
+    setState(prev => ({ ...prev, isLoadingRevision: true }));
+    sendMessage(MSG_TYPES.REVISION_REVIEW, {
+      item_uuid: params.itemUUID,
+      quality: params.quality,
+      time_spent_ms: params.timeSpentMs || 0,
+      time_to_reveal_ms: params.timeToRevealMs,
+      time_to_rate_ms: params.timeToRateMs,
+      founder_answer: params.founderAnswer,
+      confidence_before: params.confidenceBefore,
+      confidence_after: params.confidenceAfter,
+      hint_requested: params.hintRequested,
+      gave_up: params.gaveUp
+    });
+  }, [sendMessage, state.isConnected]);
+
+  // Request revision stats
+  const getRevisionStats = useCallback(() => {
+    if (!state.isConnected) {
+      console.warn('[Revision] Cannot get stats - not connected');
+      return;
+    }
+    
+    console.log('%c[Revision] → Requesting stats', 'color: #673ab7; font-weight: bold');
+    setState(prev => ({ ...prev, isLoadingRevision: true }));
+    sendMessage(MSG_TYPES.REVISION_STATS_REQUEST, {});
+  }, [sendMessage, state.isConnected]);
+
+  // Request vetting of pending concepts
+  const requestRevisionVetting = useCallback(() => {
+    if (!state.isConnected) {
+      console.warn('[Revision] Cannot request vetting - not connected');
+      return;
+    }
+    
+    console.log('%c[Revision] → Requesting vetting', 'color: #ff9800; font-weight: bold');
+    setState(prev => ({ ...prev, isLoadingRevision: true }));
+    sendMessage(MSG_TYPES.REVISION_VET_REQUEST, {});
+  }, [sendMessage, state.isConnected]);
+
+  // Clear revision review result
+  const clearRevisionReviewResult = useCallback(() => {
+    setState(prev => ({ ...prev, revisionReviewResult: null }));
+  }, []);
+
   // Auto-connect
   useEffect(() => {
     if (autoConnect && userId && apiKey) {
@@ -826,7 +1327,21 @@ export function useTutorAgent({
     sendCanvasIdle,
     clearCanvasAIWrite,
     clearCanvasAIStatus,
-    clearCanvasAIContext
+    clearCanvasAIContext,
+    // Canvas selection (save concepts/confusion)
+    sendCanvasSelection,
+    sendLessonEnd,
+    clearSelectionResult,
+    clearLessonScore,
+    // Revision system
+    getRevisionQueue,
+    startReviewSession,
+    updateActiveSession,
+    clearActiveSession,
+    submitRevisionReview,
+    getRevisionStats,
+    requestRevisionVetting,
+    clearRevisionReviewResult
   };
 }
 

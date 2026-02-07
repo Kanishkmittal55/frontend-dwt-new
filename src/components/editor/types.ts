@@ -39,6 +39,16 @@ export interface CanvasChangeEvent {
 export type CanvasMode = 'select' | 'draw' | 'text' | 'eraser' | 'hand' | 'arrow' | 'note';
 
 /**
+ * TLUiComponents subset for our overrides
+ * Full type available from 'tldraw' but we only need RichTextToolbar
+ */
+export interface TLUiComponentsOverride {
+  /** Custom RichTextToolbar component */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  RichTextToolbar?: React.ComponentType<any> | null;
+}
+
+/**
  * Props for the UnifiedCanvas component
  */
 export interface UnifiedCanvasProps {
@@ -60,6 +70,8 @@ export interface UnifiedCanvasProps {
   hideUi?: boolean;
   /** Transparent background (for overlay mode) */
   transparentBg?: boolean;
+  /** Override tldraw UI components (e.g., custom RichTextToolbar) */
+  components?: TLUiComponentsOverride;
 }
 
 /**
