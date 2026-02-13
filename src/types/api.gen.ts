@@ -2465,7 +2465,7 @@ export interface components {
              */
             warnings?: string[];
         };
-        /** @description LLM configuration for a founder's AI assistant. */
+        /** @description LLM and AI Tutor configuration for a founder's AI assistant. */
         LLMConfig: {
             /**
              * @description The LLM provider to use
@@ -2508,8 +2508,38 @@ export interface components {
              * @example false
              */
             has_xai_key?: boolean;
+            /**
+             * @description Minimum seconds between AI responses (1-60). Controls how quickly the AI responds to user input.
+             * @default 3
+             * @example 3
+             */
+            tutor_response_interval_sec: number;
+            /**
+             * @description Seconds of user idle before AI sends a gentle nudge (10-300). Set higher for less intrusive tutoring.
+             * @default 60
+             * @example 60
+             */
+            tutor_idle_nudge_sec: number;
+            /**
+             * @description Number of recent messages always included in AI context (5-100). Higher values give more context but cost more tokens.
+             * @default 20
+             * @example 20
+             */
+            tutor_context_window_size: number;
+            /**
+             * @description Message count before auto-summarization triggers (20-500). Older messages are compressed into summaries.
+             * @default 50
+             * @example 50
+             */
+            tutor_summarize_threshold: number;
+            /**
+             * @description Maximum tokens for conversation context (1000-32000). Limits how much history is sent to the LLM.
+             * @default 4000
+             * @example 4000
+             */
+            tutor_max_context_tokens: number;
         };
-        /** @description Request to update LLM configuration. */
+        /** @description Request to update LLM and AI Tutor configuration. All fields are optional - only provided fields will be updated. */
         UpdateLLMConfigRequest: {
             /**
              * @description The LLM provider to use
@@ -2537,6 +2567,31 @@ export interface components {
              * @example xai-xxxx...
              */
             xai_api_key?: string;
+            /**
+             * @description Minimum seconds between AI responses (1-60)
+             * @example 3
+             */
+            tutor_response_interval_sec?: number;
+            /**
+             * @description Seconds of user idle before AI sends a nudge (10-300)
+             * @example 60
+             */
+            tutor_idle_nudge_sec?: number;
+            /**
+             * @description Number of recent messages in context (5-100)
+             * @example 20
+             */
+            tutor_context_window_size?: number;
+            /**
+             * @description Message count before auto-summarization (20-500)
+             * @example 50
+             */
+            tutor_summarize_threshold?: number;
+            /**
+             * @description Maximum tokens for context (1000-32000)
+             * @example 4000
+             */
+            tutor_max_context_tokens?: number;
         };
         SyncTableResult: {
             /** @description Table name */
@@ -3321,8 +3376,10 @@ export interface components {
             chunk_uuid?: string;
             /** @description Lesson title */
             title: string;
-            /** @description Lesson content (enriched text) */
+            /** @description Lesson content (original markdown/text or OneNote HTML) */
             content: string;
+            /** @description Canvas tldraw JSON snapshot (CanvasData format) */
+            canvas_content?: string;
             /** @description Brief summary of the lesson */
             summary?: string;
             /** @description Key concepts covered in this lesson */
@@ -3492,8 +3549,10 @@ export interface components {
         UpdateHTILLessonRequest: {
             /** @description Lesson title */
             title?: string;
-            /** @description Lesson content (Markdown/HTML supported) */
+            /** @description Lesson content (original markdown/text or OneNote HTML) */
             content?: string;
+            /** @description Canvas tldraw JSON snapshot (CanvasData format) */
+            canvas_content?: string;
             /** @description Brief summary of the lesson */
             summary?: string;
             /** @description Key concepts covered in this lesson */

@@ -1,8 +1,9 @@
 /**
  * Daily Tasks Dashboard
  * Revision system UI for spaced repetition learning
+ * Includes calendar integration for scheduled reviews
  */
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 
 // MUI
 import Box from '@mui/material/Box';
@@ -17,6 +18,9 @@ import LinearProgress from '@mui/material/LinearProgress';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import IconButton from '@mui/material/IconButton';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import Collapse from '@mui/material/Collapse';
 
 // Icons
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -24,17 +28,45 @@ import SchoolIcon from '@mui/icons-material/School';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+
+// MUI Dialog
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Divider from '@mui/material/Divider';
 
 // Components
 import QueueStats from './components/QueueStats';
 import ReviewCard, { type ReviewSubmitParams } from './components/ReviewCard';
+import TodaySchedule from './components/TodaySchedule';
+import ReviewCalendar from './components/ReviewCalendar';
 
 // Hooks
-import useTutorAgent, { RevisionQueueItem } from '@/hooks/useTutorAgent';
+import useTutorAgent, { RevisionQueueItem, CalendarDay, ScheduledReview } from '@/hooks/useTutorAgent';
 
 // Constants - Get API key from env, fallback to test-all-access-key (matches backend dev config)
 const API_KEY = import.meta.env.VITE_API_KEY || 'test-all-access-key';
 const USER_ID = 1; // TODO: Get from auth context
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+/** Convert 24h time string (HH:MM) to 12h format with AM/PM */
+function formatTimeWithAMPM(time: string): string {
+  if (!time) return '';
+  const [hoursStr, minutes] = time.split(':');
+  const hours = parseInt(hoursStr, 10);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12;
+  return `${hours12}:${minutes} ${period}`;
+}
 
 // ============================================================================
 // Component
@@ -54,17 +86,29 @@ export default function DailyTasksDashboard() {
   const [reviewStartTime, setReviewStartTime] = useState<number | null>(null);
   const [completedCount, setCompletedCount] = useState(0);
   const [notification, setNotification] = useState<{ type: 'success' | 'info' | 'error'; message: string } | null>(null);
+  
+  // View state
+  const [activeTab, setActiveTab] = useState(0); // 0 = Today, 1 = Calendar
+  const [showTodaySchedule, setShowTodaySchedule] = useState(true);
+  const [selectedScheduledReview, setSelectedScheduledReview] = useState<ScheduledReview | null>(null);
 
   // Current card being reviewed
   const currentCard = tutor.revisionQueue[currentCardIndex] || null;
   const totalCards = tutor.revisionQueue.length;
   const hasCards = totalCards > 0;
 
-  // Load queue and stats on mount/connect
+  // Get today's calendar day
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0] as string, []);
+  const todaySchedule: CalendarDay | null = useMemo(() => {
+    return tutor.calendarDays.find(d => d.date === todayStr) || null;
+  }, [tutor.calendarDays, todayStr]);
+
+  // Load queue, stats, and today's schedule on mount/connect
   useEffect(() => {
     if (tutor.isConnected) {
       tutor.getRevisionQueue(20);
       tutor.getRevisionStats();
+      tutor.getTodaySchedule();
     }
   }, [tutor.isConnected]);
 
@@ -91,9 +135,54 @@ export default function DailyTasksDashboard() {
   const handleRefresh = useCallback(() => {
     tutor.getRevisionQueue(20);
     tutor.getRevisionStats();
+    tutor.getTodaySchedule();
     setCurrentCardIndex(0);
     setCompletedCount(0);
   }, [tutor]);
+
+  // Handle calendar date range change
+  const handleCalendarDateChange = useCallback((startDate: string, endDate: string) => {
+    tutor.getCalendar(startDate, endDate);
+  }, [tutor]);
+
+  // Handle reschedule
+  const handleReschedule = useCallback((slotUUID: string, newDate: string) => {
+    tutor.rescheduleSlot(slotUUID, newDate);
+  }, [tutor]);
+
+  // Handle scheduled review click - show details or start review
+  const handleScheduledReviewClick = useCallback((review: ScheduledReview) => {
+    // Try to find in queue first
+    const queueItem = tutor.revisionQueue.find(item => item.itemUUID === review.itemUUID);
+    if (queueItem) {
+      // Item is in queue and ready to review
+      const index = tutor.revisionQueue.indexOf(queueItem);
+      setCurrentCardIndex(index);
+      setIsReviewing(true);
+      setReviewStartTime(Date.now());
+    } else {
+      // Show the scheduled review details dialog
+      setSelectedScheduledReview(review);
+    }
+  }, [tutor.revisionQueue]);
+
+  // Close the scheduled review dialog
+  const handleCloseScheduledReviewDialog = useCallback(() => {
+    setSelectedScheduledReview(null);
+  }, []);
+
+  // Start review from scheduled item (force load into queue and start)
+  const handleStartScheduledReview = useCallback(() => {
+    if (!selectedScheduledReview) return;
+    
+    // Request the queue to refresh and check if the item becomes available
+    tutor.getRevisionQueue(20);
+    setNotification({
+      type: 'info',
+      message: 'Loading review... Please wait.'
+    });
+    setSelectedScheduledReview(null);
+  }, [selectedScheduledReview, tutor]);
 
   // Start review session
   const handleStartReview = useCallback(() => {
@@ -144,9 +233,9 @@ export default function DailyTasksDashboard() {
   }
 
   return (
-    <Box sx={{ maxWidth: 800, mx: 'auto', p: 2 }}>
+    <Box sx={{ width: '100%', maxWidth: 1400, mx: 'auto', px: 3, py: 2 }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Box>
           <Typography variant="h4" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <SchoolIcon color="primary" />
@@ -161,8 +250,47 @@ export default function DailyTasksDashboard() {
         </IconButton>
       </Box>
 
-      {/* Stats */}
-      <QueueStats stats={tutor.revisionStats} loading={tutor.isLoadingRevision} />
+      {/* Tabs */}
+      <Tabs 
+        value={activeTab} 
+        onChange={(_, v) => {
+          setActiveTab(v);
+          if (v === 1) {
+            tutor.getWeekSchedule();
+          }
+        }}
+        sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}
+      >
+        <Tab label="Today" icon={<AccessTimeIcon />} iconPosition="start" />
+        <Tab label="Calendar" icon={<CalendarMonthIcon />} iconPosition="start" />
+      </Tabs>
+
+      {/* Today View */}
+      {activeTab === 0 && (
+        <>
+          {/* Stats */}
+          <QueueStats stats={tutor.revisionStats} loading={tutor.isLoadingRevision} />
+
+          {/* Today's Schedule - Collapsible */}
+          {!isReviewing && (
+            <Box sx={{ mt: 2, mb: 2 }}>
+              <Button
+                onClick={() => setShowTodaySchedule(!showTodaySchedule)}
+                endIcon={showTodaySchedule ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                sx={{ mb: 1 }}
+              >
+                Today's Schedule
+              </Button>
+              <Collapse in={showTodaySchedule}>
+                <TodaySchedule 
+                  calendarDay={todaySchedule}
+                  loading={tutor.calendarLoading}
+                  onReviewClick={handleScheduledReviewClick}
+                  compact
+                />
+              </Collapse>
+            </Box>
+          )}
 
       {/* Review Session or Start Button */}
       {isReviewing && hasCards ? (
@@ -282,6 +410,21 @@ export default function DailyTasksDashboard() {
           </CardContent>
         </Card>
       )}
+        </>
+      )}
+
+      {/* Calendar View */}
+      {activeTab === 1 && (
+        <Box sx={{ mt: 2 }}>
+          <ReviewCalendar
+            days={tutor.calendarDays}
+            loading={tutor.calendarLoading}
+            onDateRangeChange={handleCalendarDateChange}
+            onReschedule={handleReschedule}
+            onReviewClick={handleScheduledReviewClick}
+          />
+        </Box>
+      )}
 
       {/* Info Alert */}
       <Alert severity="info" sx={{ mt: 3 }}>
@@ -306,6 +449,100 @@ export default function DailyTasksDashboard() {
           {notification?.message}
         </Alert>
       </Snackbar>
+
+      {/* Scheduled Review Detail Dialog */}
+      <Dialog
+        open={!!selectedScheduledReview}
+        onClose={handleCloseScheduledReviewDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <InfoOutlinedIcon color="primary" />
+          Scheduled Review
+        </DialogTitle>
+        <DialogContent>
+          {selectedScheduledReview && (
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              {/* Item Title */}
+              <Box>
+                <Typography variant="overline" color="text.secondary">
+                  {selectedScheduledReview.itemType === 'concept' ? 'Concept' : 'Confusion Point'}
+                </Typography>
+                <Typography variant="h6">
+                  {selectedScheduledReview.itemTitle}
+                </Typography>
+              </Box>
+
+              <Divider />
+
+              {/* Schedule Info */}
+              <Stack spacing={1}>
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="body2" color="text.secondary">
+                    Scheduled Time
+                  </Typography>
+                  <Typography variant="body2" fontWeight={500}>
+                    {formatTimeWithAMPM(selectedScheduledReview.slotStart)} - {formatTimeWithAMPM(selectedScheduledReview.slotEnd)}
+                  </Typography>
+                </Stack>
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="body2" color="text.secondary">
+                    Review Number
+                  </Typography>
+                  <Typography variant="body2" fontWeight={500}>
+                    #{selectedScheduledReview.reviewNumber}
+                  </Typography>
+                </Stack>
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="body2" color="text.secondary">
+                    Mastery State
+                  </Typography>
+                  <Chip 
+                    label={selectedScheduledReview.masteryState || 'Learning'} 
+                    size="small" 
+                    color={selectedScheduledReview.masteryState === 'mastered' ? 'success' : 'default'}
+                  />
+                </Stack>
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="body2" color="text.secondary">
+                    Status
+                  </Typography>
+                  <Chip 
+                    label={selectedScheduledReview.status} 
+                    size="small" 
+                    color={selectedScheduledReview.status === 'completed' ? 'success' : 'info'}
+                  />
+                </Stack>
+              </Stack>
+
+              {selectedScheduledReview.status === 'scheduled' && (
+                <>
+                  <Divider />
+                  <Alert severity="info" icon={<AccessTimeIcon />}>
+                    This review is scheduled but not yet due according to the spaced repetition algorithm. 
+                    You can still start the review early if you'd like.
+                  </Alert>
+                </>
+              )}
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={handleCloseScheduledReviewDialog}>
+            Close
+          </Button>
+          {selectedScheduledReview?.status === 'scheduled' && (
+            <Button 
+              variant="contained" 
+              startIcon={<PlayArrowIcon />}
+              onClick={handleStartScheduledReview}
+            >
+              Start Review
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

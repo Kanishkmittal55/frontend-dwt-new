@@ -97,6 +97,9 @@ export const UpdateHTILLessonRequestSchema = z.object({
     .min(1, 'Content is required')
     .max(100000, 'Content must be less than 100,000 characters')
     .optional(),
+  canvas_content: z.string()
+    .max(5000000, 'Canvas content must be less than 5MB')
+    .optional(),
   summary: z.string().max(1000, 'Summary must be less than 1000 characters').optional(),
   key_concepts: z.array(z.string().max(100)).max(20, 'Maximum 20 key concepts').optional(),
   estimated_minutes: z.number().int().min(1).max(600, 'Maximum 10 hours').optional()

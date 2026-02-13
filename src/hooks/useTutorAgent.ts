@@ -122,6 +122,9 @@ export interface TutorState {
   // Canvas AI Context - debug info showing context/prompt sent to LLM
   canvasAIContext: CanvasAIContextPayload | null;
   
+  // Canvas Clear Context - result of clearing conversation history
+  canvasClearResult: CanvasClearResultPayload | null;
+  
   // Canvas Selection - result of saving a concept/confusion point
   selectionResult: SelectionResultPayload | null;
   
@@ -137,6 +140,11 @@ export interface TutorState {
   // Active Review Session state
   activeReviewSession: ActiveReviewSession | null;
   currentReviewItem: RevisionQueueItem | null;
+  
+  // Calendar System
+  calendarDays: CalendarDay[];
+  calendarLoading: boolean;
+  rescheduleResult: RescheduleResultPayload | null;
   
   // Errors
   error: string | null;
@@ -239,12 +247,16 @@ const MSG_TYPES = {
   CANVAS_IDLE: 'canvas.idle', // User idle on canvas
   CANVAS_SELECTION: 'canvas.selection', // User wants to save selection as concept/confusion
   CANVAS_LESSON_END: 'canvas.lesson_end', // User ends lesson session
+  CANVAS_CLEAR_CONTEXT: 'canvas.clear_context', // Clear conversation history
   // Revision System
   REVISION_QUEUE_REQUEST: 'revision.queue.request',
   REVISION_SESSION_START: 'revision.session.start', // Start timing for a card
   REVISION_REVIEW: 'revision.review',
   REVISION_STATS_REQUEST: 'revision.stats.request',
   REVISION_VET_REQUEST: 'revision.vet.request',
+  // Calendar System
+  CALENDAR_REQUEST: 'calendar.request',
+  SLOT_RESCHEDULE: 'calendar.reschedule',
   PING: 'ping',
   
   // Outbound (server → client)
@@ -264,6 +276,7 @@ const MSG_TYPES = {
   CANVAS_AI_WRITE: 'canvas.ai_write', // AI wants to write on canvas
   CANVAS_AI_STATUS: 'canvas.ai_status', // AI status update (thinking, rate limited, etc.)
   CANVAS_AI_CONTEXT: 'canvas.ai_context', // Debug: shows context/prompt sent to LLM
+  CANVAS_CLEAR_RESULT: 'canvas.clear_result', // Result of clearing context
   SELECTION_RESULT: 'tutor.selection.result', // Response after saving selection
   LESSON_SCORE: 'tutor.lesson.score', // Final scores after ending lesson
   // Revision System responses
@@ -272,6 +285,8 @@ const MSG_TYPES = {
   REVISION_REVIEW_RESULT: 'revision.review.result',
   REVISION_STATS_RESPONSE: 'revision.stats.response',
   REVISION_VET_RESULT: 'revision.vet.result',
+  // Calendar System responses
+  CALENDAR_RESPONSE: 'calendar.response',
   ACK: 'ack',
   ERROR: 'error',
   PONG: 'pong'
@@ -318,6 +333,14 @@ export interface CanvasAIContextPayload {
   timestamp: number;
 }
 
+// Canvas Clear Context result payload
+export interface CanvasClearResultPayload {
+  success: boolean;
+  message: string;
+  deleted_count: number;
+  lesson_uuid: string;
+}
+
 // ============================================================================
 // Canvas Selection Types (for saving concepts/confusion points)
 // ============================================================================
@@ -362,6 +385,60 @@ export interface LessonScorePayload {
   concepts_captured: number;
   confusion_points: number;
   time_spent_minutes: number;
+}
+
+// ============================================================================
+// Calendar System Types
+// ============================================================================
+
+/** Available time slot for scheduling */
+export interface CalendarTimeSlot {
+  start: string;     // "07:30"
+  end: string;       // "08:30"
+  duration: number;  // minutes
+}
+
+/** Scheduled review in the calendar */
+export interface ScheduledReview {
+  slotUUID: string;
+  itemUUID: string;
+  itemTitle: string;
+  itemType: 'concept' | 'confusion';
+  slotStart: string;
+  slotEnd: string;
+  status: 'scheduled' | 'completed' | 'skipped' | 'rescheduled';
+  masteryState: string;
+  reviewNumber: number;
+  priority: number;
+}
+
+/** Calendar day representation */
+export interface CalendarDay {
+  date: string;           // "2026-02-08"
+  dayOfWeek: string;      // "Saturday"
+  availableSlots: CalendarTimeSlot[];
+  scheduledReviews: ScheduledReview[];
+  totalMinutes: number;   // Total available time
+  bookedMinutes: number;  // Already scheduled
+}
+
+/** Calendar response from server */
+export interface CalendarResponsePayload {
+  days: CalendarDay[];
+  totalDays: number;
+  totalReviews: number;
+  totalMinutes: number;
+  bookedMinutes: number;
+}
+
+/** Reschedule result from server */
+export interface RescheduleResultPayload {
+  success: boolean;
+  slotUUID?: string;
+  scheduledAt?: string;
+  slotStart?: string;
+  slotEnd?: string;
+  message: string;
 }
 
 // Import Zod-validated converters
@@ -426,6 +503,7 @@ export function useTutorAgent({
     canvasAIWrite: null,
     canvasAIStatus: null,
     canvasAIContext: null,
+    canvasClearResult: null,
     selectionResult: null,
     lessonScore: null,
     // Revision System
@@ -436,6 +514,10 @@ export function useTutorAgent({
     // Active Review Session
     activeReviewSession: null,
     currentReviewItem: null,
+    // Calendar System
+    calendarDays: [],
+    calendarLoading: false,
+    rescheduleResult: null,
     error: null
   });
 
@@ -645,6 +727,24 @@ export function useTutorAgent({
             setState(prev => ({ ...prev, canvasAIContext: contextPayload }));
           }
           break;
+        
+        case MSG_TYPES.CANVAS_CLEAR_RESULT:
+          // Result of clearing conversation history
+          {
+            const clearPayload = message.payload as CanvasClearResultPayload;
+            console.log('%c[Canvas] 🗑️ Context cleared', 'color: #ff5722; font-weight: bold', {
+              success: clearPayload.success,
+              deletedCount: clearPayload.deleted_count,
+              message: clearPayload.message
+            });
+            setState(prev => ({ 
+              ...prev, 
+              canvasClearResult: clearPayload,
+              // Also reset the context display since it's now empty
+              canvasAIContext: clearPayload.success ? null : prev.canvasAIContext
+            }));
+          }
+          break;
           
         case MSG_TYPES.SELECTION_RESULT:
           // Response after saving a selection as concept/confusion
@@ -813,6 +913,58 @@ export function useTutorAgent({
             });
             // After vetting, refresh stats
             setState(prev => ({ ...prev, isLoadingRevision: false }));
+          }
+          break;
+        
+        // Calendar System
+        case MSG_TYPES.CALENDAR_RESPONSE:
+          {
+            const calPayload = message.payload as CalendarResponsePayload;
+            console.log('%c[Calendar] 📅 Calendar received', 'color: #2196f3; font-weight: bold', {
+              days: calPayload.days?.length || 0,
+              totalReviews: calPayload.totalReviews
+            });
+            
+            // Check if this is a reschedule response (has success field)
+            if ('success' in calPayload) {
+              const reschedulePayload = message.payload as RescheduleResultPayload;
+              setState(prev => ({
+                ...prev,
+                calendarLoading: false,
+                rescheduleResult: reschedulePayload
+              }));
+            } else {
+              // Regular calendar response
+              const days: CalendarDay[] = (calPayload.days || []).map((day: any) => ({
+                date: day.date,
+                dayOfWeek: day.day_of_week || day.dayOfWeek,
+                availableSlots: (day.available_slots || day.availableSlots || []).map((slot: any) => ({
+                  start: slot.start,
+                  end: slot.end,
+                  duration: slot.duration
+                })),
+                scheduledReviews: (day.scheduled_reviews || day.scheduledReviews || []).map((review: any) => ({
+                  slotUUID: review.slot_uuid || review.slotUUID,
+                  itemUUID: review.item_uuid || review.itemUUID,
+                  itemTitle: review.item_title || review.itemTitle,
+                  itemType: review.item_type || review.itemType,
+                  slotStart: review.slot_start || review.slotStart,
+                  slotEnd: review.slot_end || review.slotEnd,
+                  status: review.status,
+                  masteryState: review.mastery_state || review.masteryState,
+                  reviewNumber: review.review_number || review.reviewNumber,
+                  priority: review.priority
+                })),
+                totalMinutes: day.total_minutes || day.totalMinutes || 0,
+                bookedMinutes: day.booked_minutes || day.bookedMinutes || 0
+              }));
+              
+              setState(prev => ({
+                ...prev,
+                calendarDays: days,
+                calendarLoading: false
+              }));
+            }
           }
           break;
           
@@ -1113,9 +1265,27 @@ export function useTutorAgent({
     setState(prev => ({ ...prev, canvasAIStatus: null }));
   }, []);
 
-  // Clear canvas AI context state
+  // Clear canvas AI context state (local only - doesn't delete from server)
   const clearCanvasAIContext = useCallback(() => {
     setState(prev => ({ ...prev, canvasAIContext: null }));
+  }, []);
+
+  // Clear conversation history on server (deletes all messages for this lesson)
+  const clearConversationHistory = useCallback((lessonUUID: string) => {
+    if (!state.isConnected) {
+      console.warn('[Canvas] Cannot clear context - not connected');
+      return;
+    }
+    
+    console.log('%c[Canvas] → Clearing conversation history', 'color: #ff5722; font-weight: bold', {
+      lessonUUID
+    });
+    sendMessage(MSG_TYPES.CANVAS_CLEAR_CONTEXT, { lesson_uuid: lessonUUID });
+  }, [sendMessage, state.isConnected]);
+
+  // Clear the clear result state
+  const clearClearResult = useCallback(() => {
+    setState(prev => ({ ...prev, canvasClearResult: null }));
   }, []);
 
   // ==========================================================================
@@ -1286,6 +1456,59 @@ export function useTutorAgent({
     setState(prev => ({ ...prev, revisionReviewResult: null }));
   }, []);
 
+  // ============================================================================
+  // Calendar System Methods
+  // ============================================================================
+
+  // Get calendar for date range
+  const getCalendar = useCallback((startDate: string, endDate: string) => {
+    if (!state.isConnected) {
+      console.warn('[Calendar] Cannot get calendar - not connected');
+      return;
+    }
+    
+    console.log('%c[Calendar] → Requesting calendar', 'color: #2196f3; font-weight: bold', { startDate, endDate });
+    setState(prev => ({ ...prev, calendarLoading: true }));
+    sendMessage(MSG_TYPES.CALENDAR_REQUEST, {
+      start_date: startDate,
+      end_date: endDate
+    });
+  }, [sendMessage, state.isConnected]);
+
+  // Reschedule a review slot
+  const rescheduleSlot = useCallback((slotUUID: string, newDate: string) => {
+    if (!state.isConnected) {
+      console.warn('[Calendar] Cannot reschedule - not connected');
+      return;
+    }
+    
+    console.log('%c[Calendar] → Rescheduling slot', 'color: #ff9800; font-weight: bold', { slotUUID, newDate });
+    setState(prev => ({ ...prev, calendarLoading: true }));
+    sendMessage(MSG_TYPES.SLOT_RESCHEDULE, {
+      slot_uuid: slotUUID,
+      new_date: newDate
+    });
+  }, [sendMessage, state.isConnected]);
+
+  // Clear reschedule result
+  const clearRescheduleResult = useCallback(() => {
+    setState(prev => ({ ...prev, rescheduleResult: null }));
+  }, []);
+
+  // Get today's scheduled reviews
+  const getTodaySchedule = useCallback(() => {
+    const today = new Date().toISOString().split('T')[0] as string;
+    getCalendar(today, today);
+  }, [getCalendar]);
+
+  // Get this week's schedule
+  const getWeekSchedule = useCallback(() => {
+    const today = new Date();
+    const startDate = today.toISOString().split('T')[0] as string;
+    const endDate = new Date(today.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] as string;
+    getCalendar(startDate, endDate);
+  }, [getCalendar]);
+
   // Auto-connect
   useEffect(() => {
     if (autoConnect && userId && apiKey) {
@@ -1328,6 +1551,8 @@ export function useTutorAgent({
     clearCanvasAIWrite,
     clearCanvasAIStatus,
     clearCanvasAIContext,
+    clearConversationHistory,
+    clearClearResult,
     // Canvas selection (save concepts/confusion)
     sendCanvasSelection,
     sendLessonEnd,
@@ -1341,7 +1566,13 @@ export function useTutorAgent({
     submitRevisionReview,
     getRevisionStats,
     requestRevisionVetting,
-    clearRevisionReviewResult
+    clearRevisionReviewResult,
+    // Calendar System
+    getCalendar,
+    rescheduleSlot,
+    clearRescheduleResult,
+    getTodaySchedule,
+    getWeekSchedule
   };
 }
 

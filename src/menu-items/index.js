@@ -1,12 +1,10 @@
 import dashboard from './dashboard';
-import founder from './founder';
-import knowledgeGraph from './knowledge-graph';
-import settings from './settings';
+import { learning, profile, workspace } from './founder';
 
 // ==============================|| MENU ITEMS ||============================== //
 
 const menuItems = {
-  items: [dashboard, founder, knowledgeGraph, settings]
+  items: [dashboard, learning, profile, workspace]
 };
 
 export default menuItems;

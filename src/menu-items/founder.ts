@@ -4,51 +4,47 @@ import type { MenuItem } from 'types';
 import { 
   IconBulb, 
   IconChecklist, 
-  IconRocket,
+  IconUser,
   IconBooks,
-  IconRobot,
-  IconBook2
+  IconBook2,
+  IconChartBar,
+  IconSettings,
+  IconDatabase
 } from '@tabler/icons-react';
 
 // constant
 const icons = { 
   IconBulb, 
   IconChecklist, 
-  IconRocket,
+  IconUser,
   IconBooks,
-  IconRobot,
-  IconBook2
+  IconBook2,
+  IconChartBar,
+  IconSettings,
+  IconDatabase
 };
 
-// ==============================|| FOUNDER OS MENU ITEMS ||============================== //
+// ==============================|| LEARNING MENU ITEMS ||============================== //
 
-const founder: MenuItem = {
-  id: 'founder',
-  title: 'Founder OS',
+const learning: MenuItem = {
+  id: 'learning',
+  title: 'Learning',
   type: 'group',
   children: [
-    {
-      id: 'founder-dashboard',
-      title: 'Dashboard',
-      type: 'item',
-      url: '/founder/dashboard',
-      icon: icons.IconRocket,
-      breadcrumbs: false
-    },
-    {
-      id: 'founder-agent',
-      title: 'AI Agent',
-      type: 'item',
-      url: '/founder/agent',
-      icon: icons.IconRobot,
-      breadcrumbs: false
-    },
     {
       id: 'founder-courses',
       title: 'Courses',
       type: 'item',
       url: '/founder/courses',
       icon: icons.IconBook2,
+      breadcrumbs: false
+    },
+    {
+      id: 'founder-tasks',
+      title: 'Daily Tasks',
+      type: 'item',
+      url: '/founder/today',
+      icon: icons.IconChecklist,
       breadcrumbs: false
     },
     {
@@ -60,47 +56,59 @@ const founder: MenuItem = {
       breadcrumbs: false
     },
     {
-      id: 'founder-library',
-      title: 'Library',
+      id: 'founder-insights',
+      title: 'Insights',
       type: 'item',
       url: '/founder/library',
-      icon: icons.IconBooks,
-      breadcrumbs: false
-    },
-    {
-      id: 'founder-tasks',
-      title: 'Daily Tasks',
-      type: 'item',
-      url: '/founder/today',
-      icon: icons.IconChecklist,
+      icon: icons.IconChartBar,
       breadcrumbs: false
     }
   ]
 };
 
-export default founder;
+// ==============================|| PROFILE MENU ITEMS ||============================== //
 
+const profile: MenuItem = {
+  id: 'profile',
+  title: 'Account',
+  type: 'group',
+  children: [
+    {
+      id: 'founder-profile',
+      title: 'Founder Profile',
+      type: 'item',
+      url: '/founder/dashboard',
+      icon: icons.IconUser,
+      breadcrumbs: false
+    },
+    {
+      id: 'settings',
+      title: 'Settings',
+      type: 'item',
+      url: '/settings',
+      icon: icons.IconSettings,
+      breadcrumbs: false
+    }
+  ]
+};
 
+// ==============================|| WORKSPACE MENU ITEMS ||============================== //
 
+const workspace: MenuItem = {
+  id: 'workspace',
+  title: '',
+  type: 'group',
+  children: [
+    {
+      id: 'workspaces',
+      title: 'Workspaces',
+      type: 'item',
+      url: '/knowledge-graph/workspaces',
+      icon: icons.IconDatabase,
+      breadcrumbs: false
+    }
+  ]
+};
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+export { learning, profile, workspace };
+export default learning;

@@ -729,6 +729,7 @@ export const CourseLessonSchema = z.object({
   title: z.string(),
   summary: z.string().optional().nullable(),
   content: z.string(),
+  canvas_content: z.string().optional().nullable(), // Canvas tldraw JSON snapshot
   key_concepts: z.array(z.string()).optional().nullable(),
   sequence_order: z.number().int(),
   estimated_minutes: z.number().int().optional().nullable(),

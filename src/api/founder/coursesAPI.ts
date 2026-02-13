@@ -9,6 +9,8 @@ import {
   CourseLessonDetailResponseSchema,
   CourseLessonSchema,
   CourseQuizSchema,
+  CourseSchema,
+  CourseStatusSchema,
   type CourseListResponse,
   type CourseDetailResponse,
   type CourseLessonDetailResponse,
@@ -19,6 +21,9 @@ import {
   type CourseStatus,
   parseApiResponse
 } from './schemas';
+
+// Valid course statuses - used to filter out courses with invalid statuses (e.g., from idea generation)
+const VALID_COURSE_STATUSES = CourseStatusSchema.options;
 
 // ============================================================================
 // Types
@@ -77,11 +82,44 @@ export async function getCourses(
   
   console.log('[coursesAPI] getCourses calling:', endpoint);
   
-  const response = await founderClient.get<CourseListResponse>(endpoint);
-  const validated = parseApiResponse(CourseListResponseSchema, response);
+  const response = await founderClient.get<{ courses: unknown[]; total: number }>(endpoint);
   
-  console.log('[coursesAPI] getCourses response:', validated.total, 'courses');
-  return validated;
+  // Filter out courses with invalid statuses (e.g., from idea generation) before validation
+  // This prevents Zod validation errors from breaking the entire courses view
+  const rawCourses = response.courses || [];
+  const validCourses: Course[] = [];
+  let filteredCount = 0;
+  
+  for (const rawCourse of rawCourses) {
+    try {
+      // Check if status is valid before full validation
+      const courseObj = rawCourse as { status?: string };
+      if (courseObj.status && !VALID_COURSE_STATUSES.includes(courseObj.status as CourseStatus)) {
+        console.warn('[coursesAPI] Filtering out course with invalid status:', courseObj.status);
+        filteredCount++;
+        continue;
+      }
+      
+      // Validate the course
+      const validCourse = CourseSchema.parse(rawCourse);
+      validCourses.push(validCourse);
+    } catch (err) {
+      console.warn('[coursesAPI] Filtering out invalid course:', err);
+      filteredCount++;
+    }
+  }
+  
+  if (filteredCount > 0) {
+    console.log('[coursesAPI] Filtered out', filteredCount, 'invalid courses');
+  }
+  
+  const result: CourseListResponse = {
+    courses: validCourses,
+    total: response.total - filteredCount // Adjust total to reflect filtered courses
+  };
+  
+  console.log('[coursesAPI] getCourses response:', result.total, 'courses');
+  return result;
 }
 
 /**
