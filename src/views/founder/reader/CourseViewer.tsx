@@ -48,7 +48,8 @@ import {
   IconPencil,
   IconNote,
   IconTrash,
-  IconRefresh
+  IconRefresh,
+  IconDatabaseExport
 } from '@tabler/icons-react';
 import Collapse from '@mui/material/Collapse';
 import Paper from '@mui/material/Paper';
@@ -76,6 +77,7 @@ import {
   createHTILModule, 
   createHTILLesson 
 } from '@/api/founder/htilAPI';
+import { syncSeeds } from '@/api/founder';
 
 // Hooks
 import useTutorAgent from '@/hooks/useTutorAgent';
@@ -646,6 +648,9 @@ export default function CourseViewer() {
   const [isAddingModule, setIsAddingModule] = useState(false);
   const [isAddingLesson, setIsAddingLesson] = useState(false);
 
+  // Sync to CSV state
+  const [isSyncingCsv, setIsSyncingCsv] = useState(false);
+
   // =========================================================================
   // Course/Lesson State
   // =========================================================================
@@ -663,6 +668,10 @@ export default function CourseViewer() {
   const [canvasSaveStatus, setCanvasSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [hasUnsavedCanvasChanges, setHasUnsavedCanvasChanges] = useState(false);
   const pendingCanvasSnapshot = useRef<TLSnapshot | null>(null);
+  
+  // OneNote unsaved state (defined early so handleBackToCourses can use it)
+  const [hasUnsavedOneNoteChanges, setHasUnsavedOneNoteChanges] = useState(false);
+  const pendingOneNoteContent = useRef<string | null>(null);
   
   // Active LLM model display
   const [activeLLMModel, setActiveLLMModel] = useState<string | null>(null);
@@ -989,6 +998,17 @@ export default function CourseViewer() {
   }, [selectedCourse]);
 
   const handleBackToCourses = useCallback(() => {
+    // Check for unsaved changes before leaving
+    const hasUnsavedChanges = hasUnsavedCanvasChanges || hasUnsavedOneNoteChanges;
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        'You have unsaved changes. Are you sure you want to leave? Your changes will be lost.'
+      );
+      if (!confirmed) {
+        return; // User cancelled, stay on page
+      }
+    }
+
     // End session first to clear all tutor state including AI context
     if (tutor.hasSession) {
       tutor.endSession();
@@ -1009,7 +1029,11 @@ export default function CourseViewer() {
     setViewMode('static');
     setIsFullScreen(false);
     setShowContextDebug(false);
-  }, [tutor]);
+    
+    // Reset unsaved state
+    setHasUnsavedCanvasChanges(false);
+    setHasUnsavedOneNoteChanges(false);
+  }, [tutor, hasUnsavedCanvasChanges, hasUnsavedOneNoteChanges]);
 
   const handleModeChange = useCallback((_: any, newMode: ViewMode | null) => {
     if (newMode) {
@@ -1383,6 +1407,27 @@ export default function CourseViewer() {
     handleCanvasSave();
   }, [handleCanvasSave]);
 
+  // Handle sync to CSV (exports database to CSV seed files)
+  const handleSyncToCsv = useCallback(async () => {
+    setIsSyncingCsv(true);
+    try {
+      const result = await syncSeeds();
+      const tableCount = result.results?.length || 0;
+      setNotification({
+        type: 'success',
+        message: `✅ Synced ${tableCount} tables to CSV in ${result.total_time || 'N/A'}`
+      });
+    } catch (error) {
+      console.error('[CourseViewer] Sync to CSV failed:', error);
+      setNotification({
+        type: 'error',
+        message: 'Failed to sync data. Check console for details.'
+      });
+    } finally {
+      setIsSyncingCsv(false);
+    }
+  }, []);
+
   // =========================================================================
   // Handlers - Interactive Mode
   // =========================================================================
@@ -1450,9 +1495,25 @@ export default function CourseViewer() {
   // Handlers - OneNote Editor (TipTap-based document editor)
   // =========================================================================
 
-  // Track OneNote content changes for unsaved indicator
-  const [hasUnsavedOneNoteChanges, setHasUnsavedOneNoteChanges] = useState(false);
-  const pendingOneNoteContent = useRef<string | null>(null);
+  // Warn user about unsaved changes when leaving the page (browser close/reload)
+  useEffect(() => {
+    const hasUnsavedChanges = hasUnsavedCanvasChanges || hasUnsavedOneNoteChanges;
+    
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        // Chrome requires returnValue to be set
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasUnsavedCanvasChanges, hasUnsavedOneNoteChanges]);
 
   const handleOneNoteChange = useCallback((html: string) => {
     pendingOneNoteContent.current = html;
@@ -1862,6 +1923,30 @@ export default function CourseViewer() {
             </span>
           </Tooltip>
 
+          {/* Sync to CSV Button - exports database to CSV seed files */}
+          <Tooltip title={isSyncingCsv ? 'Syncing...' : 'Sync to CSV'}>
+            <span>
+              <IconButton
+                onClick={handleSyncToCsv}
+                disabled={isSyncingCsv}
+                size="small"
+                sx={{
+                  color: theme.palette.text.secondary,
+                  '&:hover': {
+                    bgcolor: alpha(theme.palette.secondary.main, 0.1),
+                    color: theme.palette.secondary.main
+                  }
+                }}
+              >
+                {isSyncingCsv ? (
+                  <CircularProgress size={16} color="inherit" />
+                ) : (
+                  <IconDatabaseExport size={18} />
+                )}
+              </IconButton>
+            </span>
+          </Tooltip>
+
           {/* Style Panel Toggle - only for Canvas mode (tldraw) */}
           {editorMode === 'canvas' && (
             <Tooltip title={showStylePanel ? 'Hide colors & sizes' : 'Show colors & sizes'}>
@@ -1975,7 +2060,7 @@ export default function CourseViewer() {
                   ref={canvasRef}
                   key={selectedLesson.uuid}
                   initialData={canvasData}
-                  initialText={!canvasData?.snapshot ? selectedLesson.content : undefined}
+                  initialText={undefined} // Canvas uses canvas_content only, never falls back to content
                   onChange={handleCanvasChange}
                   readOnly={false}
                   minHeight="100%"

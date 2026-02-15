@@ -633,12 +633,15 @@ const OneNoteEditor = forwardRef<OneNoteEditorRef, OneNoteEditorProps>(
           </Box>
         )}
 
-        {/* Editor Content Area - Document-style scrolling */}
+        {/* Editor Content Area - Document-style scrolling with OneNote-like infinite scroll */}
         <Box
           sx={{
             flex: 1,
             overflow: 'auto', // Document-style scroll
             p: 3,
+            // OneNote-style infinite scroll: add large bottom padding so users
+            // always have plenty of empty space to continue writing when at bottom
+            pb: '65vh', // >60% of viewport as empty space when at bottom
             width: '100%',
             maxWidth: '100%',
             boxSizing: 'border-box',

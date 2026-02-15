@@ -799,6 +799,226 @@ export type CourseDetailResponse = z.infer<typeof CourseDetailResponseSchema>;
 export type CourseLessonDetailResponse = z.infer<typeof CourseLessonDetailResponseSchema>;
 
 // ============================================================================
+// Memory Matrix Schemas
+// ============================================================================
+
+// Mastery state enum — shared across memory matrix responses
+export const MasteryStateSchema = z.enum(['new', 'learning', 'mastered', 'graduated']);
+
+// Relationship type enum for concept links
+export const ConceptRelationshipSchema = z.enum(['prerequisite', 'builds_on', 'related', 'contrasts']);
+
+// Link source enum
+export const LinkSourceSchema = z.enum(['llm', 'quiz', 'user', 'enrichment']);
+
+// --- Full Memory Matrix (concept graph + retention + relationships) ---
+
+export const MemoryMatrixConceptSchema = z.object({
+  uuid: z.string().uuid(),
+  item_title: z.string(),
+  concept_text: z.string().optional(),
+  mastery_state: MasteryStateSchema,
+  retention: z.number().min(0).max(1),
+  ease_factor: z.number().optional(),
+  interval_days: z.number().int().optional(),
+  total_reviews: z.number().int().optional(),
+  next_review_at: z.string().optional(),
+  last_reviewed_at: z.string().optional()
+});
+
+export const MemoryMatrixRelationshipSchema = z.object({
+  uuid: z.string().uuid(),
+  from_item_uuid: z.string().uuid(),
+  to_item_uuid: z.string().uuid(),
+  relationship: ConceptRelationshipSchema,
+  strength: z.number().min(0).max(1),
+  source: LinkSourceSchema.optional()
+});
+
+export const RetentionSummarySchema = z.object({
+  coefficient: z.number(),
+  total_reviews: z.number().int(),
+  success_rate: z.number()
+});
+
+export const MemoryMatrixResponseSchema = z.object({
+  course_uuid: z.string().uuid(),
+  user_id: z.number().int(),
+  total_concepts: z.number().int(),
+  concepts_due: z.number().int(),
+  avg_retention: z.number(),
+  concepts: z.array(MemoryMatrixConceptSchema),
+  relationships: z.array(MemoryMatrixRelationshipSchema),
+  retention_summary: RetentionSummarySchema,
+  computed_at: z.string()
+});
+
+// --- Concepts sorted by urgency ---
+
+export const UrgentConceptSchema = z.object({
+  uuid: z.string().uuid(),
+  item_title: z.string(),
+  concept_text: z.string().optional(),
+  mastery_state: MasteryStateSchema,
+  retention: z.number(),
+  urgency_score: z.number(),
+  next_review_at: z.string().optional(),
+  days_overdue: z.number().optional(),
+  total_reviews: z.number().int().optional(),
+  difficulty_rating: z.number().optional()
+});
+
+export const MemoryMatrixConceptsResponseSchema = z.object({
+  course_uuid: z.string().uuid(),
+  concepts: z.array(UrgentConceptSchema)
+});
+
+// --- Retention Curve (forgetting curves per concept) ---
+
+export const RetentionPointSchema = z.object({
+  days_from_review: z.number().int(),
+  retention: z.number()
+});
+
+export const RetentionCurveItemSchema = z.object({
+  item_uuid: z.string().uuid(),
+  item_title: z.string(),
+  current_retention: z.number(),
+  ease_factor: z.number().optional(),
+  interval_days: z.number().int().optional(),
+  last_reviewed_at: z.string().optional(),
+  points: z.array(RetentionPointSchema)
+});
+
+export const RetentionCurveResponseSchema = z.object({
+  course_uuid: z.string().uuid(),
+  curves: z.array(RetentionCurveItemSchema)
+});
+
+// --- Strength Matrix (module × concept heatmap) ---
+
+export const StrengthMatrixModuleSchema = z.object({
+  module_uuid: z.string().uuid(),
+  module_title: z.string(),
+  module_order: z.number().int().optional()
+});
+
+export const StrengthMatrixConceptSchema = z.object({
+  item_uuid: z.string().uuid(),
+  item_title: z.string()
+});
+
+export const StrengthMatrixCellSchema = z.object({
+  module_uuid: z.string().uuid(),
+  item_uuid: z.string().uuid(),
+  strength: z.number().min(0).max(1),
+  mastery_state: MasteryStateSchema.optional(),
+  retention: z.number().optional()
+});
+
+export const StrengthMatrixResponseSchema = z.object({
+  course_uuid: z.string().uuid(),
+  modules: z.array(StrengthMatrixModuleSchema),
+  concepts: z.array(StrengthMatrixConceptSchema),
+  cells: z.array(StrengthMatrixCellSchema)
+});
+
+// --- Practice Impact (review history per concept) ---
+
+export const PracticeSessionSchema = z.object({
+  session_uuid: z.string().uuid(),
+  started_at: z.string(),
+  quality_rating: z.number().int().optional(),
+  time_to_reveal_ms: z.number().int().optional(),
+  confidence_before: z.number().optional(),
+  confidence_after: z.number().optional(),
+  hint_requested: z.boolean().optional(),
+  gave_up: z.boolean().optional()
+});
+
+export const ConfidenceTrendPointSchema = z.object({
+  date: z.string().optional(),
+  avg_confidence: z.number().optional(),
+  session_count: z.number().int().optional()
+});
+
+export const PracticeImpactResponseSchema = z.object({
+  item_uuid: z.string().uuid(),
+  item_title: z.string(),
+  total_sessions: z.number().int(),
+  current_mastery_state: MasteryStateSchema,
+  current_retention: z.number(),
+  sessions: z.array(PracticeSessionSchema),
+  confidence_trend: z.array(ConfidenceTrendPointSchema).optional()
+});
+
+// --- Learner Profile ---
+
+export const LearnerProfileMasterySchema = z.object({
+  total_items: z.number().int(),
+  items_due: z.number().int(),
+  avg_ease_factor: z.number()
+});
+
+export const LearnerProfileRetentionSchema = z.object({
+  coefficient: z.number(),
+  total_reviews: z.number().int(),
+  success_rate: z.number()
+});
+
+export const LearnerProfileEngagementSchema = z.object({
+  avg_engagement: z.number(),
+  total_intents: z.number().int()
+});
+
+export const LearnerProfilePerformanceSchema = z.object({
+  total_sessions: z.number().int(),
+  avg_quality: z.number(),
+  avg_duration_seconds: z.number()
+});
+
+export const LearnerProfileActivitySchema = z.object({
+  last_active: z.string().optional().nullable(),
+  days_since_active: z.number().int().optional().nullable()
+});
+
+export const LearnerProfileResponseSchema = z.object({
+  user_id: z.number().int(),
+  mastery: LearnerProfileMasterySchema,
+  retention: LearnerProfileRetentionSchema,
+  engagement: LearnerProfileEngagementSchema,
+  performance: LearnerProfilePerformanceSchema,
+  activity: LearnerProfileActivitySchema
+});
+
+// Memory Matrix type exports
+export type MasteryState = z.infer<typeof MasteryStateSchema>;
+export type ConceptRelationship = z.infer<typeof ConceptRelationshipSchema>;
+export type LinkSource = z.infer<typeof LinkSourceSchema>;
+export type MemoryMatrixConcept = z.infer<typeof MemoryMatrixConceptSchema>;
+export type MemoryMatrixRelationship = z.infer<typeof MemoryMatrixRelationshipSchema>;
+export type RetentionSummary = z.infer<typeof RetentionSummarySchema>;
+export type MemoryMatrixResponse = z.infer<typeof MemoryMatrixResponseSchema>;
+export type UrgentConcept = z.infer<typeof UrgentConceptSchema>;
+export type MemoryMatrixConceptsResponse = z.infer<typeof MemoryMatrixConceptsResponseSchema>;
+export type RetentionPoint = z.infer<typeof RetentionPointSchema>;
+export type RetentionCurveItem = z.infer<typeof RetentionCurveItemSchema>;
+export type RetentionCurveResponse = z.infer<typeof RetentionCurveResponseSchema>;
+export type StrengthMatrixModule = z.infer<typeof StrengthMatrixModuleSchema>;
+export type StrengthMatrixConcept = z.infer<typeof StrengthMatrixConceptSchema>;
+export type StrengthMatrixCell = z.infer<typeof StrengthMatrixCellSchema>;
+export type StrengthMatrixResponse = z.infer<typeof StrengthMatrixResponseSchema>;
+export type PracticeSession = z.infer<typeof PracticeSessionSchema>;
+export type ConfidenceTrendPoint = z.infer<typeof ConfidenceTrendPointSchema>;
+export type PracticeImpactResponse = z.infer<typeof PracticeImpactResponseSchema>;
+export type LearnerProfileMastery = z.infer<typeof LearnerProfileMasterySchema>;
+export type LearnerProfileRetention = z.infer<typeof LearnerProfileRetentionSchema>;
+export type LearnerProfileEngagement = z.infer<typeof LearnerProfileEngagementSchema>;
+export type LearnerProfilePerformance = z.infer<typeof LearnerProfilePerformanceSchema>;
+export type LearnerProfileActivity = z.infer<typeof LearnerProfileActivitySchema>;
+export type LearnerProfileResponse = z.infer<typeof LearnerProfileResponseSchema>;
+
+// ============================================================================
 // Validation Helpers
 // ============================================================================
 

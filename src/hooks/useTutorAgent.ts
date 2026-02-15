@@ -141,6 +141,15 @@ export interface TutorState {
   activeReviewSession: ActiveReviewSession | null;
   currentReviewItem: RevisionQueueItem | null;
   
+  // Learning Items Management
+  learningItems: LearningItemWithContext[];
+  learningItemsCourses: CourseFilterOption[];
+  learningItemsTotal: number;
+  learningItemsLoading: boolean;
+  learningItemDeleteResult: LearningItemDeleteResultPayload | null;
+  learningItemDetail: LearningItemDetailResponsePayload | null;
+  learningItemDetailLoading: boolean;
+  
   // Calendar System
   calendarDays: CalendarDay[];
   calendarLoading: boolean;
@@ -170,6 +179,17 @@ export interface RevisionQueueItem {
   reviewQuestion?: string;   // Active recall question
   reviewAnswer?: string;     // Expected answer
   keyInsight?: string;       // Core "aha!" moment
+
+  // MCQ question (Phase 1.4)
+  mcqQuestion?: string;
+  mcqOptions?: string[];
+  mcqCorrectIdx?: number;
+  mcqExplanation?: string;
+
+  // Application question (Phase 1.4)
+  applicationQuestion?: string;
+  applicationAnswer?: string;
+  applicationHint?: string;
 
   // LLM-generated content for confusion points
   clarificationAnswer?: string;  // LLM explanation
@@ -254,6 +274,10 @@ const MSG_TYPES = {
   REVISION_REVIEW: 'revision.review',
   REVISION_STATS_REQUEST: 'revision.stats.request',
   REVISION_VET_REQUEST: 'revision.vet.request',
+  // Learning Items Management
+  LEARNING_ITEMS_LIST: 'revision.items.list',
+  LEARNING_ITEM_DELETE: 'revision.item.delete',
+  LEARNING_ITEM_DETAIL: 'revision.item.detail',
   // Calendar System
   CALENDAR_REQUEST: 'calendar.request',
   SLOT_RESCHEDULE: 'calendar.reschedule',
@@ -285,6 +309,10 @@ const MSG_TYPES = {
   REVISION_REVIEW_RESULT: 'revision.review.result',
   REVISION_STATS_RESPONSE: 'revision.stats.response',
   REVISION_VET_RESULT: 'revision.vet.result',
+  // Learning Items Management responses
+  LEARNING_ITEMS_LIST_RESPONSE: 'revision.items.response',
+  LEARNING_ITEM_DELETE_RESULT: 'revision.item.deleted',
+  LEARNING_ITEM_DETAIL_RESPONSE: 'revision.item.detail.response',
   // Calendar System responses
   CALENDAR_RESPONSE: 'calendar.response',
   ACK: 'ack',
@@ -385,6 +413,117 @@ export interface LessonScorePayload {
   concepts_captured: number;
   confusion_points: number;
   time_spent_minutes: number;
+}
+
+// ============================================================================
+// Learning Items Management Types (Daily Tasks Dashboard)
+// ============================================================================
+
+/** A learning item with full course/lesson/module context */
+export interface LearningItemWithContext {
+  item_uuid: string;
+  item_type: string;
+  item_title?: string;
+  concept_text: string;
+  annotation?: string;
+  source_type?: string;
+  status: string;
+  mastery_state: string;
+  ease_factor: number;
+  interval_days: number;
+  repetition_count: number;
+  total_reviews: number;
+  difficulty_rating: number;
+  next_review_at?: string;
+  last_reviewed_at?: string;
+  created_at: string;
+  lesson_title?: string;
+  module_title?: string;
+  course_title?: string;
+  course_uuid?: string;
+  lesson_uuid?: string;
+}
+
+/** Course option for the filter dropdown */
+export interface CourseFilterOption {
+  course_uuid: string;
+  course_title: string;
+}
+
+/** Response from server when listing learning items */
+export interface LearningItemsListResponsePayload {
+  items: LearningItemWithContext[];
+  courses: CourseFilterOption[];
+  total: number;
+}
+
+/** Response after deleting a learning item */
+export interface LearningItemDeleteResultPayload {
+  success: boolean;
+  item_uuid: string;
+  message: string;
+}
+
+/** Scheduling info from SM-2 algorithm */
+export interface SchedulingInfo {
+  ease_factor: number;
+  interval_days: number;
+  repetition_count: number;
+  mastery_state: string;
+  next_review_at?: string;
+  last_reviewed_at?: string;
+  total_reviews: number;
+  difficulty_rating: number;
+}
+
+/** Summary of a past review session */
+export interface ReviewSessionSummary {
+  session_uuid: string;
+  session_number: number;
+  started_at: string;
+  ended_at?: string;
+  quality_rating: number;
+  founder_answer?: string;
+  confidence_before: number;
+  confidence_after: number;
+  time_to_reveal_ms: number;
+  hint_requested: boolean;
+  gave_up: boolean;
+}
+
+/** Exercise linked to a learning item */
+export interface ExerciseSummary {
+  exercise_id: string;
+  exercise_type: string;
+  statement: string;
+  solution?: string;
+  explanation?: string;
+  difficulty: string;
+}
+
+/** Quiz linked to a learning item */
+export interface QuizSummary {
+  quiz_title: string;
+  question_count: number;
+  difficulty: string;
+  questions?: string;
+}
+
+/** Full detail response for a learning item */
+export interface LearningItemDetailResponsePayload {
+  item_uuid: string;
+  item_type: string;
+  item_title?: string;
+  concept_text: string;
+  annotation?: string;
+  course_title?: string;
+  module_title?: string;
+  lesson_title?: string;
+  created_at: string;
+  scheduling: SchedulingInfo;
+  reviews: ReviewSessionSummary[];
+  exercises: ExerciseSummary[];
+  quizzes: QuizSummary[];
 }
 
 // ============================================================================
@@ -514,6 +653,14 @@ export function useTutorAgent({
     // Active Review Session
     activeReviewSession: null,
     currentReviewItem: null,
+    // Learning Items Management
+    learningItems: [],
+    learningItemsCourses: [],
+    learningItemsTotal: 0,
+    learningItemsLoading: false,
+    learningItemDeleteResult: null,
+    learningItemDetail: null,
+    learningItemDetailLoading: false,
     // Calendar System
     calendarDays: [],
     calendarLoading: false,
@@ -778,12 +925,6 @@ export function useTutorAgent({
         case MSG_TYPES.REVISION_QUEUE_RESPONSE:
           {
             const queuePayload = message.payload;
-            // DEBUG: Log raw payload from backend
-            console.log('%c[Revision] 🔍 RAW payload from backend:', 'color: #ff5722; font-weight: bold', JSON.stringify(queuePayload, null, 2));
-            console.log('%c[Revision] 🔍 RAW items array:', 'color: #ff5722; font-weight: bold', queuePayload.items);
-            if (queuePayload.items && queuePayload.items.length > 0) {
-              console.log('%c[Revision] 🔍 First item raw:', 'color: #ff5722; font-weight: bold', queuePayload.items[0]);
-            }
             // Convert snake_case to camelCase, including LLM-generated content
             const items: RevisionQueueItem[] = (queuePayload.items || []).map((item: any) => ({
               itemUUID: item.item_uuid,
@@ -799,33 +940,25 @@ export function useTutorAgent({
               reviewQuestion: item.review_question,
               reviewAnswer: item.review_answer,
               keyInsight: item.key_insight,
+              // MCQ question
+              mcqQuestion: item.mcq_question,
+              mcqOptions: item.mcq_options,
+              mcqCorrectIdx: item.mcq_correct_idx,
+              mcqExplanation: item.mcq_explanation,
+              // Application question
+              applicationQuestion: item.application_question,
+              applicationAnswer: item.application_answer,
+              applicationHint: item.application_hint,
               // LLM-generated content for confusion points
               clarificationAnswer: item.clarification_answer,
               followUpCheck: item.follow_up_check,
               relatedConcepts: item.related_concepts
             }));
-            console.log('%c[Revision] 📋 Queue received', 'color: #673ab7; font-weight: bold', {
-              items: items.length,
-              totalDue: queuePayload.total_due,
-              hasLLMContent: items.some(i => i.reviewQuestion || i.clarificationAnswer)
-            });
-            // DEBUG: Log parsed items
-            if (items.length > 0) {
-              console.log('%c[Revision] 📋 First parsed item:', 'color: #4caf50; font-weight: bold', items[0]);
-            } else {
-              console.log('%c[Revision] ⚠️ NO ITEMS after parsing!', 'color: #f44336; font-weight: bold');
-            }
-            setState(prev => {
-              console.log('%c[Revision] 🔄 Setting revisionQueue state:', 'color: #2196f3; font-weight: bold', {
-                prevLength: prev.revisionQueue.length,
-                newLength: items.length
-              });
-              return {
-                ...prev,
-                revisionQueue: items,
-                isLoadingRevision: false
-              };
-            });
+            setState(prev => ({
+              ...prev,
+              revisionQueue: items,
+              isLoadingRevision: false
+            }));
           }
           break;
         
@@ -913,6 +1046,62 @@ export function useTutorAgent({
             });
             // After vetting, refresh stats
             setState(prev => ({ ...prev, isLoadingRevision: false }));
+          }
+          break;
+        
+        // Learning Items Management
+        case MSG_TYPES.LEARNING_ITEMS_LIST_RESPONSE:
+          {
+            const listPayload = message.payload as LearningItemsListResponsePayload;
+            console.log('%c[Items] 📋 Items list received', 'color: #00bcd4; font-weight: bold', {
+              total: listPayload.total,
+              courses: listPayload.courses?.length || 0
+            });
+            setState(prev => ({
+              ...prev,
+              learningItems: listPayload.items || [],
+              learningItemsCourses: listPayload.courses || [],
+              learningItemsTotal: listPayload.total || 0,
+              learningItemsLoading: false
+            }));
+          }
+          break;
+        
+        case MSG_TYPES.LEARNING_ITEM_DELETE_RESULT:
+          {
+            const deletePayload = message.payload as LearningItemDeleteResultPayload;
+            console.log('%c[Items] 🗑️ Item deleted', 'color: #f44336; font-weight: bold', {
+              success: deletePayload.success,
+              itemUUID: deletePayload.item_uuid
+            });
+            if (deletePayload.success) {
+              // Remove the item from the local list
+              setState(prev => ({
+                ...prev,
+                learningItems: prev.learningItems.filter(i => i.item_uuid !== deletePayload.item_uuid),
+                learningItemsTotal: Math.max(0, prev.learningItemsTotal - 1),
+                learningItemDeleteResult: deletePayload
+              }));
+            } else {
+              setState(prev => ({ ...prev, learningItemDeleteResult: deletePayload }));
+            }
+          }
+          break;
+
+        case MSG_TYPES.LEARNING_ITEM_DETAIL_RESPONSE:
+          {
+            const detailPayload = message.payload as LearningItemDetailResponsePayload;
+            console.log('%c[Items] 📖 Item detail received', 'color: #9c27b0; font-weight: bold', {
+              itemUUID: detailPayload.item_uuid,
+              reviews: detailPayload.reviews?.length || 0,
+              exercises: detailPayload.exercises?.length || 0,
+              quizzes: detailPayload.quizzes?.length || 0
+            });
+            setState(prev => ({
+              ...prev,
+              learningItemDetail: detailPayload,
+              learningItemDetailLoading: false
+            }));
           }
           break;
         
@@ -1456,6 +1645,58 @@ export function useTutorAgent({
     setState(prev => ({ ...prev, revisionReviewResult: null }));
   }, []);
 
+  // ==========================================================================
+  // Learning Items Management Methods
+  // ==========================================================================
+
+  /** Request all learning items with optional course/lesson filter */
+  const getLearningItems = useCallback((filters?: { courseUUID?: string; lessonUUID?: string }) => {
+    if (!state.isConnected) {
+      console.warn('[Items] Cannot list items - not connected');
+      return;
+    }
+
+    console.log('%c[Items] → Requesting items', 'color: #00bcd4; font-weight: bold', filters);
+    setState(prev => ({ ...prev, learningItemsLoading: true }));
+    sendMessage(MSG_TYPES.LEARNING_ITEMS_LIST, {
+      course_uuid: filters?.courseUUID || '',
+      lesson_uuid: filters?.lessonUUID || ''
+    });
+  }, [sendMessage, state.isConnected]);
+
+  /** Delete a learning item by UUID */
+  const deleteLearningItem = useCallback((itemUUID: string) => {
+    if (!state.isConnected) {
+      console.warn('[Items] Cannot delete item - not connected');
+      return;
+    }
+
+    console.log('%c[Items] → Deleting item', 'color: #f44336; font-weight: bold', { itemUUID });
+    sendMessage(MSG_TYPES.LEARNING_ITEM_DELETE, { item_uuid: itemUUID });
+  }, [sendMessage, state.isConnected]);
+
+  /** Clear delete result */
+  const clearLearningItemDeleteResult = useCallback(() => {
+    setState(prev => ({ ...prev, learningItemDeleteResult: null }));
+  }, []);
+
+  /** Request full detail for a learning item (scheduling, reviews, exercises, quizzes) */
+  const getLearningItemDetail = useCallback((itemUUID: string) => {
+    if (!state.isConnected) {
+      console.warn('[Items] Cannot get item detail - not connected');
+      return;
+    }
+
+    console.log('%c[Items] → Requesting item detail', 'color: #9c27b0; font-weight: bold', { itemUUID });
+    setState(prev => ({ ...prev, learningItemDetailLoading: true, learningItemDetail: null }));
+    sendMessage(MSG_TYPES.LEARNING_ITEM_DETAIL, { item_uuid: itemUUID });
+  }, [sendMessage, state.isConnected]);
+
+  /** Clear item detail */
+  const clearLearningItemDetail = useCallback(() => {
+    setState(prev => ({ ...prev, learningItemDetail: null, learningItemDetailLoading: false }));
+  }, []);
+
   // ============================================================================
   // Calendar System Methods
   // ============================================================================
@@ -1567,6 +1808,12 @@ export function useTutorAgent({
     getRevisionStats,
     requestRevisionVetting,
     clearRevisionReviewResult,
+    // Learning Items Management
+    getLearningItems,
+    deleteLearningItem,
+    clearLearningItemDeleteResult,
+    getLearningItemDetail,
+    clearLearningItemDetail,
     // Calendar System
     getCalendar,
     rescheduleSlot,

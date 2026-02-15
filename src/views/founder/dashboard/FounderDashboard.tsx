@@ -199,9 +199,9 @@ export default function FounderDashboard() {
             <Button 
               variant="contained" 
               startIcon={<LightbulbIcon />}
-              onClick={() => navigate('/founder/ideas')}
+              onClick={() => navigate('/founder/radar')}
             >
-              Review Ideas
+              Check Radar
             </Button>
             <Button 
               variant="outlined" 

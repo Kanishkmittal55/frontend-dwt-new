@@ -236,6 +236,26 @@ export * from './htilSchemas';
 import * as htilSchemas from './htilSchemas';
 export { htilSchemas };
 
+// Knowledge / Memory Matrix API
+export {
+  knowledgeAPI,
+  getMemoryMatrix,
+  getMemoryMatrixConcepts,
+  getRetentionCurve,
+  getStrengthMatrix,
+  getPracticeImpact,
+  getLearnerProfile
+} from './knowledgeAPI';
+
+export type {
+  MemoryMatrixResponse,
+  MemoryMatrixConceptsResponse,
+  RetentionCurveResponse,
+  StrengthMatrixResponse,
+  PracticeImpactResponse,
+  LearnerProfileResponse
+} from './knowledgeAPI';
+
 // Schemas & Types
 export * from './schemas';
 

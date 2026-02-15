@@ -705,6 +705,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/founder/{userID}/learner-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get full learner profile
+         * @description Returns the complete learner profile aggregated from all founder tables:
+         *     concept mastery, retention metrics, engagement signals, performance data,
+         *     and activity patterns. Partial failures are tolerated — sections that
+         *     fail to load will return zero values rather than failing the whole call.
+         */
+        get: operations["V1GetFounderLearnerProfile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/founder/agent/ws": {
         parameters: {
             query?: never;
@@ -1057,6 +1080,114 @@ export interface paths {
          *     9. Disconnect
          */
         get: operations["V1GetTutorWS"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/courses/{courseUUID}/memory-matrix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get full memory matrix for a course
+         * @description Returns the complete concept graph with retention estimates, relationships,
+         *     and aggregated retention metrics for all learning items linked to a course.
+         *     Uses the forgetting curve R(t) = e^(-t/S) for live retention computation.
+         */
+        get: operations["V1GetCourseMemoryMatrix"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/courses/{courseUUID}/memory-matrix/concepts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get concepts sorted by review urgency
+         * @description Returns all learning items for a course sorted by urgency.
+         *     Urgency is computed as (1 - current_retention) so concepts
+         *     closest to being forgotten appear first.
+         */
+        get: operations["V1GetCourseMemoryMatrixConcepts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/courses/{courseUUID}/memory-matrix/retention-curve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get retention curves for course concepts
+         * @description Returns per-concept forgetting curves projected over time using
+         *     the formula R(t) = e^(-t/S) where S = interval × (ease / 2.5).
+         *     Each curve shows predicted retention for the next 30 days.
+         */
+        get: operations["V1GetCourseMemoryMatrixRetentionCurve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/courses/{courseUUID}/memory-matrix/strength": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get module × concept strength heatmap
+         * @description Returns a sparse matrix of concept strengths per module for heatmap visualization.
+         *     Each cell contains the concept's mastery state and retention within a module context.
+         */
+        get: operations["V1GetCourseMemoryMatrixStrength"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/courses/{courseUUID}/memory-matrix/practice-impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get review history and confidence trends for a concept
+         * @description Returns the full practice history for a specific learning item within a course,
+         *     including every review session and aggregated confidence trends over time.
+         */
+        get: operations["V1GetCourseMemoryMatrixPracticeImpact"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2991,6 +3122,206 @@ export interface components {
              */
             last_active_date?: string;
         };
+        /** @description Full learner profile aggregated from all founder tables */
+        LearnerProfileResponse: {
+            /**
+             * Format: int32
+             * @description The founder's user ID
+             * @example 42
+             */
+            user_id: number;
+            /** @description Concept mastery summary (from founder_learning_items) */
+            mastery: {
+                /**
+                 * Format: int64
+                 * @description Total learning items tracked
+                 * @example 52
+                 */
+                total_items: number;
+                /**
+                 * Format: int64
+                 * @description Items currently due for review
+                 * @example 8
+                 */
+                items_due: number;
+                /**
+                 * Format: double
+                 * @description Average ease factor across all items
+                 * @example 2.35
+                 */
+                avg_ease_factor: number;
+            };
+            /** @description Retention metrics (computed via forgetting curve) */
+            retention: {
+                /**
+                 * Format: double
+                 * @description Personal retention coefficient (0.7-1.3)
+                 * @example 1.05
+                 */
+                coefficient: number;
+                /**
+                 * Format: int64
+                 * @description Total review attempts
+                 * @example 120
+                 */
+                total_reviews: number;
+                /**
+                 * Format: double
+                 * @description Ratio of successful reviews
+                 * @example 0.82
+                 */
+                success_rate: number;
+            };
+            /** @description Engagement signals (from founder_learning_intent + ARCS) */
+            engagement: {
+                /**
+                 * Format: double
+                 * @description Average engagement score across learning intents
+                 * @example 4.1
+                 */
+                avg_engagement: number;
+                /**
+                 * Format: int64
+                 * @description Total learning intents created
+                 * @example 15
+                 */
+                total_intents: number;
+                /**
+                 * Format: int64
+                 * @description Learning intents completed
+                 * @example 12
+                 */
+                completed_intents: number;
+            };
+            /** @description Performance signals (from founder_review_sessions) */
+            performance: {
+                /**
+                 * Format: int64
+                 * @description Total review sessions
+                 * @example 95
+                 */
+                total_sessions: number;
+                /**
+                 * Format: double
+                 * @description Average quality rating across sessions
+                 * @example 3.8
+                 */
+                avg_quality: number;
+                /**
+                 * Format: double
+                 * @description Average time to reveal answer in milliseconds
+                 * @example 4200
+                 */
+                avg_time_to_reveal_ms?: number;
+                /**
+                 * Format: int64
+                 * @description Sessions with quality >= 3
+                 * @example 78
+                 */
+                success_count: number;
+                /**
+                 * Format: int64
+                 * @description Sessions with quality < 3
+                 * @example 17
+                 */
+                fail_count: number;
+                /**
+                 * Format: int64
+                 * @description Total hints requested across all sessions
+                 * @example 12
+                 */
+                total_hints_requested?: number;
+                /**
+                 * Format: int64
+                 * @description Total times founder gave up
+                 * @example 3
+                 */
+                total_gave_up?: number;
+                /**
+                 * Format: double
+                 * @description Average change in confidence (after - before)
+                 * @example 0.8
+                 */
+                avg_confidence_change?: number;
+            };
+            /** @description Activity signals (from founder_persona) */
+            activity: {
+                /**
+                 * Format: double
+                 * @description Persona-level retention coefficient
+                 * @example 1.02
+                 */
+                retention_coefficient?: number;
+                /**
+                 * Format: double
+                 * @description Average retention score
+                 * @example 0.78
+                 */
+                avg_retention_score?: number;
+                /**
+                 * Format: int32
+                 * @description Total items learned
+                 * @example 38
+                 */
+                total_items_learned?: number;
+                /**
+                 * Format: int32
+                 * @description Items due for review
+                 * @example 5
+                 */
+                items_due_count?: number;
+                /**
+                 * Format: double
+                 * @description Average review session duration in minutes
+                 * @example 8.5
+                 */
+                avg_session_duration_min?: number;
+                /**
+                 * @description Best time of day for reviews
+                 * @example morning
+                 */
+                optimal_time_of_day?: string;
+                /**
+                 * @description Topics the founder struggles with
+                 * @example [
+                 *       "pricing strategy",
+                 *       "unit economics"
+                 *     ]
+                 */
+                struggle_topics?: string[];
+                /**
+                 * @description Topics the founder excels at
+                 * @example [
+                 *       "customer discovery",
+                 *       "lean methodology"
+                 *     ]
+                 */
+                strength_topics?: string[];
+                /**
+                 * Format: double
+                 * @description How consistently the founder reviews (0-1)
+                 * @example 0.72
+                 */
+                consistency_score?: number;
+                /**
+                 * Format: double
+                 * @description How persistent the founder is with difficult items (0-1)
+                 * @example 0.85
+                 */
+                persistence_score?: number;
+                /**
+                 * Format: double
+                 * @description Rate of knowledge acquisition
+                 * @example 1.15
+                 */
+                progress_velocity?: number;
+            };
+            /**
+             * Format: date-time
+             * @description When this profile snapshot was assembled
+             */
+            computed_at: string;
+        };
         /** @description Fit score for a specific dimension */
         EnrichmentFitScore: {
             /** @description The fit dimension (founder, market, legal, technical, financial) */
@@ -3464,6 +3795,433 @@ export interface components {
             lesson: components["schemas"]["CourseLesson"];
             /** @description Quiz for this lesson (if available) */
             quiz?: components["schemas"]["CourseQuiz"];
+        };
+        /** @description Full memory matrix for a course — concept graph + retention + relationships */
+        MemoryMatrixResponse: {
+            /**
+             * Format: uuid
+             * @description The course this matrix belongs to
+             */
+            course_uuid: string;
+            /**
+             * Format: int32
+             * @description The founder's user ID
+             */
+            user_id: number;
+            /**
+             * Format: int32
+             * @description Total learning items linked to this course
+             * @example 42
+             */
+            total_concepts: number;
+            /**
+             * Format: int32
+             * @description Number of concepts currently due for review
+             * @example 7
+             */
+            concepts_due: number;
+            /**
+             * Format: float
+             * @description Average estimated retention across all concepts (0-1)
+             * @example 0.74
+             */
+            avg_retention: number;
+            /** @description All learning items with their retention data */
+            concepts: {
+                /**
+                 * Format: uuid
+                 * @description Learning item UUID
+                 */
+                uuid: string;
+                /**
+                 * @description Short title of the concept
+                 * @example Supply and Demand Basics
+                 */
+                item_title: string;
+                /** @description Full concept text */
+                concept_text?: string;
+                /**
+                 * @description Current mastery level
+                 * @example learning
+                 * @enum {string}
+                 */
+                mastery_state: "new" | "learning" | "mastered" | "graduated";
+                /**
+                 * Format: float
+                 * @description Current estimated retention via forgetting curve R(t) = e^(-t/S)
+                 * @example 0.82
+                 */
+                retention: number;
+                /**
+                 * Format: float
+                 * @description SM-2 ease factor
+                 * @example 2.5
+                 */
+                ease_factor?: number;
+                /**
+                 * Format: int32
+                 * @description Current review interval in days
+                 * @example 7
+                 */
+                interval_days?: number;
+                /**
+                 * Format: int32
+                 * @description Total number of reviews completed
+                 * @example 5
+                 */
+                total_reviews?: number;
+                /**
+                 * Format: date-time
+                 * @description When the next review is scheduled
+                 */
+                next_review_at?: string;
+                /**
+                 * Format: date-time
+                 * @description When the last review occurred
+                 */
+                last_reviewed_at?: string;
+            }[];
+            /** @description Concept graph edges (from founder_concept_links) */
+            relationships: {
+                /**
+                 * Format: uuid
+                 * @description Concept link UUID
+                 */
+                uuid: string;
+                /** Format: uuid */
+                from_item_uuid: string;
+                /** Format: uuid */
+                to_item_uuid: string;
+                /**
+                 * @description Type of relationship
+                 * @example prerequisite
+                 * @enum {string}
+                 */
+                relationship: "prerequisite" | "builds_on" | "related" | "contrasts";
+                /**
+                 * Format: float
+                 * @description Edge strength (0-1)
+                 * @example 0.85
+                 */
+                strength: number;
+                /**
+                 * @description How this link was created
+                 * @enum {string}
+                 */
+                source?: "llm" | "quiz" | "user" | "enrichment";
+            }[];
+            /** @description Aggregated retention metrics for the founder */
+            retention_summary: {
+                /**
+                 * Format: float
+                 * @description Personal retention coefficient (0.7-1.3)
+                 * @example 1.05
+                 */
+                coefficient: number;
+                /**
+                 * Format: int64
+                 * @description Total review count used to compute the coefficient
+                 * @example 48
+                 */
+                total_reviews: number;
+                /**
+                 * Format: float
+                 * @description Overall review success rate
+                 * @example 0.81
+                 */
+                success_rate: number;
+            };
+            /**
+             * Format: date-time
+             * @description When this matrix was assembled
+             */
+            computed_at: string;
+        };
+        /** @description Concepts sorted by review urgency — most urgent first */
+        MemoryMatrixConceptsResponse: {
+            /**
+             * Format: uuid
+             * @description The course these concepts belong to
+             */
+            course_uuid: string;
+            /** @description Learning items ordered by urgency (lowest retention first) */
+            concepts: {
+                /**
+                 * Format: uuid
+                 * @description Learning item UUID
+                 */
+                uuid: string;
+                /**
+                 * @description Short title of the concept
+                 * @example Market Sizing Techniques
+                 */
+                item_title: string;
+                /** @description Full concept text */
+                concept_text?: string;
+                /**
+                 * @description Current mastery level
+                 * @example learning
+                 * @enum {string}
+                 */
+                mastery_state: "new" | "learning" | "mastered" | "graduated";
+                /**
+                 * Format: float
+                 * @description Current estimated retention (0-1)
+                 * @example 0.42
+                 */
+                retention: number;
+                /**
+                 * Format: float
+                 * @description Urgency score (1 - retention); higher = more urgent
+                 * @example 0.58
+                 */
+                urgency_score: number;
+                /**
+                 * Format: date-time
+                 * @description Scheduled review time
+                 */
+                next_review_at?: string;
+                /**
+                 * Format: float
+                 * @description Days past due (negative = not yet due)
+                 * @example 2.5
+                 */
+                days_overdue?: number;
+                /**
+                 * Format: int32
+                 * @description Total reviews completed
+                 * @example 3
+                 */
+                total_reviews?: number;
+                /**
+                 * Format: float
+                 * @description Difficulty rating from LLM enrichment
+                 * @example 3.5
+                 */
+                difficulty_rating?: number;
+            }[];
+        };
+        /** @description Time-series forgetting curves per concept — R(t) = e^(-t/S) */
+        RetentionCurveResponse: {
+            /**
+             * Format: uuid
+             * @description The course these curves belong to
+             */
+            course_uuid: string;
+            /** @description Per-concept forgetting curves projected over time */
+            curves: {
+                /**
+                 * Format: uuid
+                 * @description Learning item UUID
+                 */
+                item_uuid: string;
+                /**
+                 * @description Concept title
+                 * @example Unit Economics
+                 */
+                item_title: string;
+                /**
+                 * Format: float
+                 * @description Retention right now
+                 * @example 0.72
+                 */
+                current_retention: number;
+                /**
+                 * Format: float
+                 * @description SM-2 ease factor used for the stability calculation
+                 * @example 2.5
+                 */
+                ease_factor?: number;
+                /**
+                 * Format: int32
+                 * @description Current interval in days
+                 * @example 7
+                 */
+                interval_days?: number;
+                /**
+                 * Format: date-time
+                 * @description When the last review was completed
+                 */
+                last_reviewed_at?: string;
+                /** @description Projected retention over the next N days */
+                points: {
+                    /**
+                     * Format: int32
+                     * @description Days elapsed since last review
+                     * @example 3
+                     */
+                    days_from_review: number;
+                    /**
+                     * Format: float
+                     * @description Predicted retention at this point
+                     * @example 0.65
+                     */
+                    retention: number;
+                }[];
+            }[];
+        };
+        /** @description Module × concept strength heatmap for a course */
+        StrengthMatrixResponse: {
+            /**
+             * Format: uuid
+             * @description The course this heatmap belongs to
+             */
+            course_uuid: string;
+            /** @description Course modules (heatmap columns) */
+            modules: {
+                /**
+                 * Format: uuid
+                 * @description Module UUID
+                 */
+                module_uuid: string;
+                /**
+                 * @description Module title
+                 * @example Module 1 — Foundations
+                 */
+                module_title: string;
+                /**
+                 * Format: int32
+                 * @description Display order
+                 * @example 1
+                 */
+                module_order?: number;
+            }[];
+            /** @description Learning items (heatmap rows) */
+            concepts: {
+                /**
+                 * Format: uuid
+                 * @description Learning item UUID
+                 */
+                item_uuid: string;
+                /**
+                 * @description Concept title
+                 * @example Customer Discovery
+                 */
+                item_title: string;
+            }[];
+            /** @description Sparse matrix cells — only populated where a concept originated from a module */
+            cells: {
+                /** Format: uuid */
+                module_uuid: string;
+                /** Format: uuid */
+                item_uuid: string;
+                /**
+                 * Format: float
+                 * @description Concept strength within this module context (0-1)
+                 * @example 0.78
+                 */
+                strength: number;
+                /**
+                 * @description Mastery state of this concept
+                 * @example mastered
+                 * @enum {string}
+                 */
+                mastery_state?: "new" | "learning" | "mastered" | "graduated";
+                /**
+                 * Format: float
+                 * @description Current estimated retention
+                 * @example 0.91
+                 */
+                retention?: number;
+            }[];
+        };
+        /** @description Review history and confidence trends for a specific learning item */
+        PracticeImpactResponse: {
+            /**
+             * Format: uuid
+             * @description The learning item being analyzed
+             */
+            item_uuid: string;
+            /**
+             * @description Concept title
+             * @example Lean Startup Methodology
+             */
+            item_title: string;
+            /**
+             * Format: int32
+             * @description Total review sessions for this item
+             * @example 8
+             */
+            total_sessions: number;
+            /**
+             * @description Current mastery level
+             * @example mastered
+             * @enum {string}
+             */
+            current_mastery_state: "new" | "learning" | "mastered" | "graduated";
+            /**
+             * Format: float
+             * @description Current estimated retention
+             * @example 0.88
+             */
+            current_retention: number;
+            /** @description Chronological review sessions */
+            sessions: {
+                /**
+                 * Format: uuid
+                 * @description Review session UUID
+                 */
+                session_uuid: string;
+                /**
+                 * Format: date-time
+                 * @description When the session started
+                 */
+                started_at: string;
+                /**
+                 * Format: int32
+                 * @description SM-2 quality rating
+                 * @example 4
+                 */
+                quality_rating?: number;
+                /**
+                 * Format: int32
+                 * @description Time to reveal the answer in milliseconds
+                 * @example 3200
+                 */
+                time_to_reveal_ms?: number;
+                /**
+                 * Format: float
+                 * @description Self-assessed confidence before review (0-5)
+                 * @example 3
+                 */
+                confidence_before?: number;
+                /**
+                 * Format: float
+                 * @description Self-assessed confidence after review (0-5)
+                 * @example 4.2
+                 */
+                confidence_after?: number;
+                /**
+                 * @description Whether a hint was requested
+                 * @example false
+                 */
+                hint_requested?: boolean;
+                /**
+                 * @description Whether the founder gave up
+                 * @example false
+                 */
+                gave_up?: boolean;
+            }[];
+            /** @description Aggregated confidence trend over time */
+            confidence_trend?: {
+                /**
+                 * Format: date
+                 * @description Date of the session(s)
+                 */
+                date?: string;
+                /**
+                 * Format: float
+                 * @description Average confidence_after on this date
+                 * @example 3.8
+                 */
+                avg_confidence?: number;
+                /**
+                 * Format: int32
+                 * @description Number of sessions on this date
+                 * @example 2
+                 */
+                session_count?: number;
+            }[];
         };
         /** @description Request to create a new HTIL course (minimal) */
         CreateHTILCourseRequest: {
@@ -6025,6 +6783,52 @@ export interface operations {
             };
         };
     };
+    V1GetFounderLearnerProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Full learner profile */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerProfileResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description User not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     V1GetFounderAgentWS: {
         parameters: {
             query: {
@@ -6597,6 +7401,248 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
+            };
+        };
+    };
+    V1GetCourseMemoryMatrix: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The course UUID */
+                courseUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Full memory matrix */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryMatrixResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Course not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1GetCourseMemoryMatrixConcepts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The course UUID */
+                courseUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Concepts sorted by urgency */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryMatrixConceptsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Course not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1GetCourseMemoryMatrixRetentionCurve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The course UUID */
+                courseUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Time-series forgetting curves */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetentionCurveResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Course not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1GetCourseMemoryMatrixStrength: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The course UUID */
+                courseUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Module × concept strength heatmap */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StrengthMatrixResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Course not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1GetCourseMemoryMatrixPracticeImpact: {
+        parameters: {
+            query: {
+                /** @description The learning item UUID to get practice impact for */
+                itemUUID: string;
+            };
+            header?: never;
+            path: {
+                /** @description The course UUID */
+                courseUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Review history and confidence trends */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PracticeImpactResponse"];
+                };
+            };
+            /** @description Missing or invalid itemUUID query parameter */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Course or learning item not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

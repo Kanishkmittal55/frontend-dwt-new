@@ -1,10 +1,11 @@
 import dashboard from './dashboard';
-import { learning, profile, workspace } from './founder';
+import { founderCore, action, preferences } from './founder';
 
 // ==============================|| MENU ITEMS ||============================== //
 
+// Order: Dashboard → Persona/CoFounder/Memory/Mission → Learn/Train/Radar/Intel/Playbook/Shipped → Preferences
 const menuItems = {
-  items: [dashboard, learning, profile, workspace]
+  items: [dashboard, founderCore, action, preferences]
 };
 
 export default menuItems;
