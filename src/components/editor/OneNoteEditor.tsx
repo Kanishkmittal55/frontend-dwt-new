@@ -350,7 +350,7 @@ const OneNoteEditor = forwardRef<OneNoteEditorRef, OneNoteEditorProps>(
       const { from, to } = editor.state.selection;
       const text = editor.state.doc.textBetween(from, to);
       
-      if (text.length < 3) return; // Minimum selection length
+      if (text.length < 10) return; // Minimum selection length (matches backend vetting threshold)
       
       // Apply the concept mark
       editor.chain().focus().setMark('concept').run();
@@ -366,7 +366,7 @@ const OneNoteEditor = forwardRef<OneNoteEditorRef, OneNoteEditorProps>(
       const { from, to } = editor.state.selection;
       const text = editor.state.doc.textBetween(from, to);
       
-      if (text.length < 3) return;
+      if (text.length < 10) return; // Minimum selection length (matches backend vetting threshold)
       
       // Apply the confusion mark
       editor.chain().focus().setMark('confusion').run();

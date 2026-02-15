@@ -19,7 +19,6 @@ import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
-import LinearProgress from '@mui/material/LinearProgress';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import IconButton from '@mui/material/IconButton';
@@ -35,8 +34,6 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
 
 // Icons
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -48,7 +45,6 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ListAltIcon from '@mui/icons-material/ListAlt';
-import FilterListIcon from '@mui/icons-material/FilterList';
 
 // MUI Dialog
 import Dialog from '@mui/material/Dialog';
@@ -59,6 +55,8 @@ import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
+import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
 import HistoryIcon from '@mui/icons-material/History';
 import QuizIcon from '@mui/icons-material/Quiz';
 import AssignmentIcon from '@mui/icons-material/Assignment';
@@ -73,6 +71,7 @@ import ReviewCalendar from './components/ReviewCalendar';
 import useTutorAgent, {
   type LearningItemWithContext,
   type LearningItemDetailResponsePayload,
+  type RevisionQueueItem,
   type ScheduledReview,
 } from '@/hooks/useTutorAgent';
 
@@ -89,6 +88,10 @@ function formatNextReview(dateStr?: string): string {
   if (!dateStr) return 'Not scheduled';
   const date = new Date(dateStr);
   const now = new Date();
+
+  // Check same calendar day first (handles items due later today correctly)
+  if (date.toDateString() === now.toDateString()) return 'Due today';
+
   const diffMs = date.getTime() - now.getTime();
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
@@ -98,6 +101,18 @@ function formatNextReview(dateStr?: string): string {
   if (diffDays < 7) return `In ${diffDays} days`;
   if (diffDays < 30) return `In ${Math.ceil(diffDays / 7)} weeks`;
   return `In ${Math.ceil(diffDays / 30)} months`;
+}
+
+/** Format time in 12-hour AM/PM */
+function formatTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+/** Format date + time in 12-hour AM/PM */
+function formatDateTime(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: 'numeric' })
+    + ', ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 /** Get chip color for mastery state */
@@ -135,6 +150,108 @@ function isDueOrOverdue(nextReviewAt?: string): boolean {
   return reviewDate <= now || reviewDate.toDateString() === now.toDateString();
 }
 
+/** Format a slot date + time string (e.g. "2026-02-16" + "17:30") into display format */
+function formatSlotDateTime(dateStr: string, timeStr: string): string {
+  const [h, m] = timeStr.split(':').map(Number);
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setHours(h || 0, m || 0, 0, 0);
+  return d.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: 'numeric' })
+    + ', ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+/** Format slot time only (e.g. "17:30" → "5:30 PM") */
+function formatSlotTime(timeStr: string): string {
+  const [h, m] = timeStr.split(':').map(Number);
+  const d = new Date();
+  d.setHours(h || 0, m || 0, 0, 0);
+  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+/** Format date string to friendly format */
+function formatFriendlyDate(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (d.getTime() === today.getTime()) return 'Today';
+  if (d.getTime() === tomorrow.getTime()) return 'Tomorrow';
+  return d.toLocaleDateString([], { weekday: 'short', day: '2-digit', month: 'short' });
+}
+
+// ============================================================================
+// Review Queue Grouping (Course → Module → Lesson)
+// ============================================================================
+
+interface EnrichedQueueItem extends RevisionQueueItem {
+  courseTitle: string;
+  moduleTitle: string;
+  lessonTitle: string;
+  queueIndex: number;
+}
+
+interface LessonGroup {
+  lessonTitle: string;
+  items: EnrichedQueueItem[];
+}
+
+interface ModuleGroup {
+  moduleTitle: string;
+  lessons: LessonGroup[];
+}
+
+interface CourseGroup {
+  courseTitle: string;
+  modules: ModuleGroup[];
+}
+
+function buildReviewGroups(
+  queue: RevisionQueueItem[],
+  allItems: LearningItemWithContext[],
+): CourseGroup[] {
+  // Build a lookup from item_uuid → LearningItemWithContext
+  const itemMap = new Map<string, LearningItemWithContext>();
+  allItems.forEach(i => itemMap.set(i.item_uuid, i));
+
+  const courseMap = new Map<string, CourseGroup>();
+
+  queue.forEach((qItem, idx) => {
+    const ctx = itemMap.get(qItem.itemUUID);
+    const courseTitle = ctx?.course_title || 'Uncategorized';
+    const moduleTitle = ctx?.module_title || 'General';
+    const lessonTitle = ctx?.lesson_title || 'General';
+
+    const courseKey = ctx?.course_uuid || 'uncategorized';
+
+    if (!courseMap.has(courseKey)) {
+      courseMap.set(courseKey, { courseTitle, modules: [] });
+    }
+    const course = courseMap.get(courseKey)!;
+
+    let mod = course.modules.find(m => m.moduleTitle === moduleTitle);
+    if (!mod) {
+      mod = { moduleTitle, lessons: [] };
+      course.modules.push(mod);
+    }
+
+    let lesson = mod.lessons.find(l => l.lessonTitle === lessonTitle);
+    if (!lesson) {
+      lesson = { lessonTitle, items: [] };
+      mod.lessons.push(lesson);
+    }
+
+    lesson.items.push({
+      ...qItem,
+      courseTitle,
+      moduleTitle,
+      lessonTitle,
+      queueIndex: idx,
+    });
+  });
+
+  return Array.from(courseMap.values());
+}
+
 // ============================================================================
 // Quality Rating Label
 // ============================================================================
@@ -156,9 +273,11 @@ function qualityLabel(rating: number): { text: string; color: string } {
 function ItemDetailContent({
   detail,
   onClose,
+  slotInfo,
 }: {
   detail: LearningItemDetailResponsePayload;
   onClose: () => void;
+  slotInfo?: { date: string; slotStart: string; slotEnd: string };
 }) {
   const sched = detail.scheduling;
 
@@ -207,9 +326,9 @@ function ItemDetailContent({
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 2 }}>
               <Box>
                 <Typography variant="caption" color="text.secondary">Mastery State</Typography>
-                <Typography variant="body2" fontWeight={600}>
+                <Box sx={{ mt: 0.5 }}>
                   <Chip label={sched.mastery_state || 'new'} color={masteryColor(sched.mastery_state)} size="small" />
-                </Typography>
+                </Box>
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary">Ease Factor</Typography>
@@ -233,19 +352,32 @@ function ItemDetailContent({
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary">Next Review</Typography>
-                <Typography variant="body2" fontWeight={600} color={isDueOrOverdue(sched.next_review_at) ? 'error.main' : 'text.primary'}>
-                  {sched.next_review_at ? formatNextReview(sched.next_review_at) : 'Not scheduled'}
-                </Typography>
-                {sched.next_review_at && (
-                  <Typography variant="caption" color="text.disabled">
-                    {new Date(sched.next_review_at).toLocaleString()}
-                  </Typography>
+                {slotInfo ? (
+                  <>
+                    <Typography variant="body2" fontWeight={600} color={isDueOrOverdue(sched.next_review_at) ? 'error.main' : 'text.primary'}>
+                      {formatFriendlyDate(slotInfo.date)}
+                    </Typography>
+                    <Typography variant="caption" color="text.disabled">
+                      {formatSlotDateTime(slotInfo.date, slotInfo.slotStart)}
+                    </Typography>
+                  </>
+                ) : (
+                  <>
+                    <Typography variant="body2" fontWeight={600} color={isDueOrOverdue(sched.next_review_at) ? 'error.main' : 'text.primary'}>
+                      {sched.next_review_at ? formatNextReview(sched.next_review_at) : 'Not scheduled'}
+                    </Typography>
+                    {sched.next_review_at && (
+                      <Typography variant="caption" color="text.disabled">
+                        {formatDateTime(sched.next_review_at)}
+                      </Typography>
+                    )}
+                  </>
                 )}
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary">Last Reviewed</Typography>
                 <Typography variant="body2" fontWeight={600}>
-                  {sched.last_reviewed_at ? new Date(sched.last_reviewed_at).toLocaleString() : 'Never'}
+                  {sched.last_reviewed_at ? formatDateTime(sched.last_reviewed_at) : 'Never'}
                 </Typography>
               </Box>
             </Box>
@@ -284,10 +416,10 @@ function ItemDetailContent({
                         <TableCell>{rev.session_number || idx + 1}</TableCell>
                         <TableCell>
                           <Typography variant="body2">
-                            {new Date(rev.started_at).toLocaleDateString()}
+                            {new Date(rev.started_at).toLocaleDateString([], { day: '2-digit', month: '2-digit', year: 'numeric' })}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {new Date(rev.started_at).toLocaleTimeString()}
+                            {formatTime(rev.started_at)}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -385,30 +517,22 @@ function ItemDetailContent({
                       <Chip label={`${qz.question_count} questions`} size="small" variant="outlined" />
                       <Chip label={qz.difficulty} size="small" variant="outlined" />
                     </Stack>
-                    {qz.questions && (() => {
-                      try {
-                        const questions = JSON.parse(qz.questions);
-                        if (Array.isArray(questions)) {
-                          return questions.map((q: any, qIdx: number) => (
-                            <Box key={qIdx} sx={{ mt: 1, pl: 2, borderLeft: 2, borderColor: 'divider' }}>
-                              <Typography variant="body2" fontWeight={600}>
-                                Q{qIdx + 1}: {q.question || q.mcq_question || ''}
+                    {Array.isArray(qz.questions) && qz.questions.length > 0 && qz.questions.map((q: any, qIdx: number) => (
+                      <Box key={qIdx} sx={{ mt: 1, pl: 2, borderLeft: 2, borderColor: 'divider' }}>
+                        <Typography variant="body2" fontWeight={600}>
+                          Q{qIdx + 1}: {q.question_text || q.question || ''}
+                        </Typography>
+                        {q.options && Array.isArray(q.options) && (
+                          <Box sx={{ ml: 2, mt: 0.5 }}>
+                            {q.options.map((opt: string, oIdx: number) => (
+                              <Typography key={oIdx} variant="body2" color={oIdx === q.correct_idx ? 'success.main' : 'text.secondary'}>
+                                {oIdx === q.correct_idx ? '✓ ' : '  '}{String.fromCharCode(65 + oIdx)}. {opt}
                               </Typography>
-                              {q.options && Array.isArray(q.options) && (
-                                <Box sx={{ ml: 2, mt: 0.5 }}>
-                                  {q.options.map((opt: string, oIdx: number) => (
-                                    <Typography key={oIdx} variant="body2" color={oIdx === q.correct_idx ? 'success.main' : 'text.secondary'}>
-                                      {oIdx === q.correct_idx ? '✓ ' : '  '}{String.fromCharCode(65 + oIdx)}. {opt}
-                                    </Typography>
-                                  ))}
-                                </Box>
-                              )}
-                            </Box>
-                          ));
-                        }
-                      } catch { /* ignore parse errors */ }
-                      return null;
-                    })()}
+                            ))}
+                          </Box>
+                        )}
+                      </Box>
+                    ))}
                   </Paper>
                 ))}
               </Stack>
@@ -445,22 +569,73 @@ export default function DailyTasksDashboard() {
   // Review session state
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isReviewing, setIsReviewing] = useState(false);
-  const [reviewStartTime, setReviewStartTime] = useState<number | null>(null);
-  const [completedCount, setCompletedCount] = useState(0);
+  const [expandedCourses, setExpandedCourses] = useState<Set<string>>(new Set());
 
   // Current card
   const currentCard = tutor.revisionQueue[currentCardIndex] || null;
   const totalCards = tutor.revisionQueue.length;
 
   // ---- Derived data ----
-  const dueItems = useMemo(() => {
-    return tutor.learningItems.filter(i => isDueOrOverdue(i.next_review_at));
-  }, [tutor.learningItems]);
-
   const filteredItems = useMemo(() => {
     if (courseFilter === 'all') return tutor.learningItems;
     return tutor.learningItems.filter(i => i.course_uuid === courseFilter);
   }, [tutor.learningItems, courseFilter]);
+
+  // Group revision queue items by Course → Module → Lesson
+  const reviewGroups = useMemo(() => {
+    return buildReviewGroups(tutor.revisionQueue, tutor.learningItems);
+  }, [tutor.revisionQueue, tutor.learningItems]);
+
+  // Build next-slot map from calendar data: itemUUID → { date, slotStart, slotEnd }
+  const nextSlotMap = useMemo(() => {
+    const map = new Map<string, { date: string; slotStart: string; slotEnd: string }>();
+    const now = new Date();
+    for (const day of tutor.calendarDays) {
+      for (const review of day.scheduledReviews) {
+        if (review.status !== 'scheduled') continue;
+        // Parse full datetime from day.date + slotStart
+        const [h, m] = (review.slotStart || '').split(':').map(Number);
+        const slotDate = new Date(day.date + 'T00:00:00');
+        slotDate.setHours(h || 0, m || 0, 0, 0);
+        if (slotDate < now) continue; // skip past slots
+        const existing = map.get(review.itemUUID);
+        if (!existing) {
+          map.set(review.itemUUID, { date: day.date, slotStart: review.slotStart, slotEnd: review.slotEnd });
+        } else {
+          // Keep the earliest slot
+          const [eh, em] = existing.slotStart.split(':').map(Number);
+          const existingDate = new Date(existing.date + 'T00:00:00');
+          existingDate.setHours(eh || 0, em || 0, 0, 0);
+          if (slotDate < existingDate) {
+            map.set(review.itemUUID, { date: day.date, slotStart: review.slotStart, slotEnd: review.slotEnd });
+          }
+        }
+      }
+    }
+    return map;
+  }, [tutor.calendarDays]);
+
+  // Today's date string
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const tomorrowStr = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  }, []);
+
+  // Completed reviews done today (from calendar data)
+  const completedToday = useMemo(() => {
+    const todayDay = tutor.calendarDays.find(d => d.date === todayStr);
+    if (!todayDay) return [];
+    return todayDay.scheduledReviews.filter(r => r.status === 'completed');
+  }, [tutor.calendarDays, todayStr]);
+
+  // Reviews scheduled for tomorrow (from calendar data)
+  const tomorrowSchedule = useMemo(() => {
+    const tmrDay = tutor.calendarDays.find(d => d.date === tomorrowStr);
+    if (!tmrDay) return [];
+    return tmrDay.scheduledReviews.filter(r => r.status === 'scheduled');
+  }, [tutor.calendarDays, tomorrowStr]);
 
   // ---- Effects ----
   useEffect(() => {
@@ -468,24 +643,23 @@ export default function DailyTasksDashboard() {
       tutor.getLearningItems();
       tutor.getRevisionStats();
       tutor.getRevisionQueue(20);
+      tutor.getWeekSchedule(); // Fetch calendar for slot-based next review times
     }
   }, [tutor.isConnected]);
 
-  // Handle review result
+  // Handle review result — single-concept flow: return to queue after each submission
   useEffect(() => {
     if (tutor.revisionReviewResult) {
-      setCompletedCount(prev => prev + 1);
       setNotification({
         type: 'success',
         message: tutor.revisionReviewResult.message || `Next review in ${tutor.revisionReviewResult.newInterval} days`
       });
-      if (currentCardIndex >= tutor.revisionQueue.length) {
-        setCurrentCardIndex(0);
-        setIsReviewing(false);
-      }
+      setIsReviewing(false);
       tutor.clearRevisionReviewResult();
+      // Refresh queue to reflect the just-reviewed item
+      tutor.getRevisionQueue(20);
     }
-  }, [tutor.revisionReviewResult, currentCardIndex, tutor.revisionQueue.length]);
+  }, [tutor.revisionReviewResult]);
 
   // Handle delete result
   useEffect(() => {
@@ -504,6 +678,7 @@ export default function DailyTasksDashboard() {
     tutor.getLearningItems(courseFilter !== 'all' ? { courseUUID: courseFilter } : undefined);
     tutor.getRevisionStats();
     tutor.getRevisionQueue(20);
+    tutor.getWeekSchedule(); // Always refresh calendar for slot-based data
   }, [tutor, courseFilter]);
 
   const handleCourseFilterChange = useCallback((value: string) => {
@@ -531,13 +706,13 @@ export default function DailyTasksDashboard() {
     tutor.clearLearningItemDetail();
   }, [tutor]);
 
-  const handleStartReview = useCallback(() => {
-    setActiveTab(1);
-    setIsReviewing(true);
-    setCurrentCardIndex(0);
-    setReviewStartTime(Date.now());
-    setCompletedCount(0);
-  }, []);
+  const handleStartSingleReview = useCallback((itemUUID: string) => {
+    const idx = tutor.revisionQueue.findIndex(item => item.itemUUID === itemUUID);
+    if (idx >= 0) {
+      setCurrentCardIndex(idx);
+      setIsReviewing(true);
+    }
+  }, [tutor.revisionQueue]);
 
   const handleSubmitReview = useCallback((params: ReviewSubmitParams) => {
     if (!currentCard) return;
@@ -553,18 +728,27 @@ export default function DailyTasksDashboard() {
       hintRequested: params.hintRequested,
       gaveUp: params.gaveUp
     });
-    setReviewStartTime(Date.now());
   }, [currentCard, tutor]);
 
-  const handleEndSession = useCallback(() => {
+  const handleCancelReview = useCallback(() => {
     setIsReviewing(false);
-    setActiveTab(0);
-    setNotification({
-      type: 'info',
-      message: `Session complete! Reviewed ${completedCount} cards.`
+  }, []);
+
+  const handleToggleCourse = useCallback((courseKey: string) => {
+    setExpandedCourses(prev => {
+      const next = new Set(prev);
+      if (next.has(courseKey)) next.delete(courseKey);
+      else next.add(courseKey);
+      return next;
     });
-    handleRefresh();
-  }, [completedCount, handleRefresh]);
+  }, []);
+
+  const handleToggleAllCourses = useCallback(() => {
+    setExpandedCourses(prev => {
+      if (prev.size === reviewGroups.length) return new Set(); // collapse all
+      return new Set(reviewGroups.map(c => c.courseTitle)); // expand all
+    });
+  }, [reviewGroups]);
 
   const handleCalendarDateChange = useCallback((startDate: string, endDate: string) => {
     tutor.getCalendar(startDate, endDate);
@@ -575,51 +759,59 @@ export default function DailyTasksDashboard() {
   }, [tutor]);
 
   const handleScheduledReviewClick = useCallback((review: ScheduledReview) => {
-    const queueItem = tutor.revisionQueue.find(item => item.itemUUID === review.itemUUID);
-    if (queueItem) {
-      const index = tutor.revisionQueue.indexOf(queueItem);
-      setCurrentCardIndex(index);
-      setActiveTab(1);
-      setIsReviewing(true);
-      setReviewStartTime(Date.now());
-    }
-  }, [tutor.revisionQueue]);
+    setActiveTab(1);
+    handleStartSingleReview(review.itemUUID);
+  }, [handleStartSingleReview]);
 
   // ---- Loading ----
   if (!tutor.isConnected) {
     return (
-      <Box sx={{ width: '100%', maxWidth: 1400, mx: 'auto', px: 3, py: 2 }}>
+      <Box sx={{ width: '100%', height: 'calc(100vh - 136px)', display: 'flex', flexDirection: 'column' }}>
         <Typography variant="h4" gutterBottom>Daily Review</Typography>
         <Skeleton variant="rounded" height={200} sx={{ mb: 2 }} />
-        <Skeleton variant="rounded" height={400} />
+        <Skeleton variant="rounded" height={400} sx={{ flex: 1 }} />
       </Box>
     );
   }
 
   // ---- Render ----
   return (
-    <Box sx={{ width: '100%', maxWidth: 1400, mx: 'auto', px: 3, py: 2 }}>
+    <Box
+      sx={{
+        width: '100%',
+        height: { xs: 'calc(100vh - 120px)', sm: 'calc(100vh - 136px)' },
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1, flexShrink: 0 }}>
         <Box>
-          <Typography variant="h4" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="h5" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <SchoolIcon color="primary" />
             Learning Items
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {tutor.learningItemsTotal} items · {dueItems.length} due today
+            {tutor.learningItemsTotal} items · {totalCards} due for review
           </Typography>
         </Box>
         <Stack direction="row" spacing={1} alignItems="center">
-          {dueItems.length > 0 && activeTab !== 1 && (
-            <Button
-              variant="contained"
-              startIcon={<PlayArrowIcon />}
-              onClick={handleStartReview}
+          {activeTab === 0 && (
+            <Select
               size="small"
+              value={courseFilter}
+              onChange={e => handleCourseFilterChange(e.target.value)}
+              displayEmpty
+              sx={{ minWidth: 160, fontSize: 14 }}
             >
-              Start Review ({dueItems.length} due)
-            </Button>
+              <MenuItem value="all">All Courses</MenuItem>
+              {tutor.learningItemsCourses.map(c => (
+                <MenuItem key={c.course_uuid} value={c.course_uuid}>
+                  {c.course_title}
+                </MenuItem>
+              ))}
+            </Select>
           )}
           <IconButton onClick={handleRefresh} disabled={tutor.learningItemsLoading}>
             <RefreshIcon />
@@ -632,9 +824,9 @@ export default function DailyTasksDashboard() {
         value={activeTab}
         onChange={(_, v) => {
           setActiveTab(v);
-          if (v === 2) tutor.getWeekSchedule();
+          if (v === 1 || v === 2) tutor.getWeekSchedule(); // Refresh calendar for Reviews & Calendar tabs
         }}
-        sx={{ mt: 2, mb: 2, borderBottom: 1, borderColor: 'divider' }}
+        sx={{ mb: 1, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}
       >
         <Tab label="All Items" icon={<ListAltIcon />} iconPosition="start" />
         <Tab
@@ -649,25 +841,9 @@ export default function DailyTasksDashboard() {
       {/* TAB 0: All Learning Items */}
       {/* ================================================================== */}
       {activeTab === 0 && (
-        <>
-          {/* Filter Bar */}
-          <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
-            <FilterListIcon color="action" />
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Course</InputLabel>
-              <Select
-                value={courseFilter}
-                label="Course"
-                onChange={e => handleCourseFilterChange(e.target.value)}
-              >
-                <MenuItem value="all">All Courses</MenuItem>
-                {tutor.learningItemsCourses.map(c => (
-                  <MenuItem key={c.course_uuid} value={c.course_uuid}>
-                    {c.course_title}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+        <Box sx={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+          {/* Item count */}
+          <Box sx={{ display: 'flex', gap: 2, mb: 1, alignItems: 'center' }}>
             <Typography variant="body2" color="text.secondary">
               Showing {filteredItems.length} items
             </Typography>
@@ -762,20 +938,43 @@ export default function DailyTasksDashboard() {
                           <Chip label={item.mastery_state || 'new'} size="small" color={masteryColor(item.mastery_state)} />
                         </TableCell>
 
-                        {/* Next Review */}
+                        {/* Next Review — from slot if available, else from next_review_at */}
                         <TableCell>
-                          <Typography
-                            variant="body2"
-                            color={due ? 'error.main' : 'text.secondary'}
-                            fontWeight={due ? 600 : 400}
-                          >
-                            {formatNextReview(item.next_review_at)}
-                          </Typography>
-                          {item.next_review_at && (
-                            <Typography variant="caption" color="text.disabled">
-                              {new Date(item.next_review_at).toLocaleDateString()}
-                            </Typography>
-                          )}
+                          {(() => {
+                            const slot = nextSlotMap.get(item.item_uuid);
+                            if (slot) {
+                              return (
+                                <>
+                                  <Typography
+                                    variant="body2"
+                                    color={due ? 'error.main' : 'text.secondary'}
+                                    fontWeight={due ? 600 : 400}
+                                  >
+                                    {formatFriendlyDate(slot.date)}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.disabled">
+                                    {formatSlotDateTime(slot.date, slot.slotStart)}
+                                  </Typography>
+                                </>
+                              );
+                            }
+                            return (
+                              <>
+                                <Typography
+                                  variant="body2"
+                                  color={due ? 'error.main' : 'text.secondary'}
+                                  fontWeight={due ? 600 : 400}
+                                >
+                                  {formatNextReview(item.next_review_at)}
+                                </Typography>
+                                {item.next_review_at && (
+                                  <Typography variant="caption" color="text.disabled">
+                                    {formatDateTime(item.next_review_at)}
+                                  </Typography>
+                                )}
+                              </>
+                            );
+                          })()}
                         </TableCell>
 
                         {/* Reviews */}
@@ -809,114 +1008,374 @@ export default function DailyTasksDashboard() {
               </Table>
             </TableContainer>
           )}
-        </>
+        </Box>
       )}
 
       {/* ================================================================== */}
       {/* TAB 1: Review Session */}
       {/* ================================================================== */}
       {activeTab === 1 && (
-        <Box>
-          {isReviewing && totalCards > 0 ? (
+        <Box sx={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+          {isReviewing && currentCard ? (
+            /* ─── Single-concept review card ─── */
             <Box>
-              {/* Progress */}
-              <Box sx={{ mb: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Card {currentCardIndex + 1} of {totalCards}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Completed: {completedCount}
-                  </Typography>
-                </Box>
-                <LinearProgress
-                  variant="determinate"
-                  value={(completedCount / Math.max(totalCards, 1)) * 100}
-                  sx={{ height: 8, borderRadius: 4 }}
-                />
+              <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  Practicing: {currentCard.itemTitle || truncate(currentCard.conceptText, 60)}
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={handleCancelReview}
+                >
+                  Back to Queue
+                </Button>
               </Box>
+              <ReviewCard
+                item={currentCard}
+                onSubmit={handleSubmitReview}
+                loading={tutor.isLoadingRevision}
+              />
+            </Box>
+          ) : tutor.isLoadingRevision ? (
+            /* ─── Loading state ─── */
+            <Box>
+              {[...Array(4)].map((_, i) => (
+                <Skeleton key={i} variant="rounded" height={56} sx={{ mb: 1 }} />
+              ))}
+            </Box>
+          ) : (
+            <Stack spacing={3}>
 
-              {/* Current Card */}
-              {currentCard ? (
-                <ReviewCard
-                  item={currentCard}
-                  onSubmit={handleSubmitReview}
-                  loading={tutor.isLoadingRevision}
-                />
-              ) : (
-                <Card sx={{ textAlign: 'center', py: 6 }}>
-                  <CardContent>
-                    <CheckCircleIcon sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
-                    <Typography variant="h5" gutterBottom>All done! 🎉</Typography>
-                    <Typography color="text.secondary" sx={{ mb: 3 }}>
-                      You've reviewed all {completedCount} cards.
-                    </Typography>
-                    <Button variant="contained" onClick={handleEndSession}>
-                      Finish Session
+              {/* ─── Section 1: Due for Review Now ─── */}
+              {totalCards > 0 ? (
+                <Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                    <Box>
+                      <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <AccessTimeIcon color="warning" fontSize="small" />
+                        Due for Review ({totalCards})
+                      </Typography>
+                      <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
+                        {tutor.revisionStats?.firstReviews ? (
+                          <Chip icon={<AccessTimeIcon />} label={`${tutor.revisionStats.firstReviews} first reviews`} size="small" sx={{ borderColor: 'text.primary', color: 'text.primary' }} variant="outlined" />
+                        ) : null}
+                        {tutor.revisionStats?.masteredItems ? (
+                          <Chip icon={<TrendingUpIcon />} label={`${tutor.revisionStats.masteredItems} mastered`} color="success" size="small" />
+                        ) : null}
+                      </Stack>
+                    </Box>
+                    <Button
+                      size="small"
+                      startIcon={expandedCourses.size === reviewGroups.length ? <UnfoldLessIcon /> : <UnfoldMoreIcon />}
+                      onClick={handleToggleAllCourses}
+                      sx={{ textTransform: 'none' }}
+                    >
+                      {expandedCourses.size === reviewGroups.length ? 'Collapse All' : 'Expand All'}
                     </Button>
+                  </Box>
+
+                  {/* Grouped by Course → Module → Lesson */}
+                  <Stack spacing={1.5}>
+                    {reviewGroups.map((course) => (
+                      <Accordion
+                        key={course.courseTitle}
+                        expanded={expandedCourses.has(course.courseTitle)}
+                        onChange={() => handleToggleCourse(course.courseTitle)}
+                        disableGutters
+                        sx={{
+                          overflow: 'hidden',
+                          '&:before': { display: 'none' },
+                          border: 1,
+                          borderColor: 'divider',
+                          borderRadius: 1,
+                        }}
+                      >
+                        {/* Course Header */}
+                        <AccordionSummary
+                          expandIcon={<ExpandMoreIcon sx={{ color: 'primary.contrastText' }} />}
+                          sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', minHeight: 48 }}
+                        >
+                          <Typography variant="subtitle1" fontWeight={700}>
+                            <SchoolIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} />
+                            {course.courseTitle}
+                          </Typography>
+                        </AccordionSummary>
+                        <AccordionDetails sx={{ p: 0 }}>
+                          {course.modules.map((mod) => (
+                            <Box key={mod.moduleTitle}>
+                              {/* Module Header */}
+                              <Box sx={{ px: 2, py: 1, bgcolor: 'grey.100', borderBottom: 1, borderColor: 'divider' }}>
+                                <Typography variant="body2" fontWeight={600} color="text.secondary">
+                                  Module: {mod.moduleTitle}
+                                </Typography>
+                              </Box>
+
+                              {mod.lessons.map((lesson) => (
+                                <Box key={lesson.lessonTitle}>
+                                  {/* Lesson Header */}
+                                  <Box sx={{ px: 2, py: 0.75, pl: 4, bgcolor: 'grey.50', borderBottom: 1, borderColor: 'divider' }}>
+                                    <Typography variant="caption" fontWeight={600} color="text.secondary">
+                                      Lesson: {lesson.lessonTitle}
+                                    </Typography>
+                                  </Box>
+
+                                  {/* Items Table */}
+                                  <Table size="small">
+                                    <TableBody>
+                                      {lesson.items.map((item) => {
+                                        const slot = nextSlotMap.get(item.itemUUID);
+                                        return (
+                                          <TableRow
+                                            key={item.itemUUID}
+                                            hover
+                                            sx={{ '&:last-child td': { borderBottom: 0 } }}
+                                          >
+                                            <TableCell sx={{ maxWidth: 300, pl: 4 }}>
+                                              <Tooltip title={item.conceptText} arrow>
+                                                <Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>
+                                                  {item.itemTitle || truncate(item.conceptText, 70)}
+                                                </Typography>
+                                              </Tooltip>
+                                            </TableCell>
+                                            <TableCell sx={{ width: 100 }}>
+                                              <Chip
+                                                label={item.masteryState || 'new'}
+                                                size="small"
+                                                color={masteryColor(item.masteryState)}
+                                              />
+                                            </TableCell>
+                                            <TableCell sx={{ width: 80 }} align="center">
+                                              <Typography variant="body2">{item.totalReviews}</Typography>
+                                            </TableCell>
+                                            <TableCell sx={{ width: 130 }}>
+                                              <Chip
+                                                label={
+                                                  item.priority === 1 ? 'First Review' :
+                                                  item.priority === 2 ? 'Confusion' :
+                                                  item.priority === 3 ? 'Regular' :
+                                                  item.priority === 4 ? 'Mastered' : `P${item.priority}`
+                                                }
+                                                size="small"
+                                                variant="outlined"
+                                                sx={
+                                                  item.priority === 1
+                                                    ? { borderColor: 'text.primary', color: 'text.primary', fontWeight: 600 }
+                                                    : item.priority === 2
+                                                    ? { borderColor: 'error.main', color: 'error.main' }
+                                                    : item.priority === 4
+                                                    ? { borderColor: 'success.main', color: 'success.main' }
+                                                    : {}
+                                                }
+                                              />
+                                            </TableCell>
+                                            {/* Scheduled Time from slot */}
+                                            <TableCell sx={{ width: 130 }}>
+                                              {slot ? (
+                                                <Typography variant="caption" color="text.secondary">
+                                                  {formatFriendlyDate(slot.date)}, {formatSlotTime(slot.slotStart)}
+                                                </Typography>
+                                              ) : (
+                                                <Typography variant="caption" color="text.disabled">—</Typography>
+                                              )}
+                                            </TableCell>
+                                            <TableCell sx={{ width: 100 }} align="right">
+                                              <Button
+                                                variant="contained"
+                                                size="small"
+                                                startIcon={<PlayArrowIcon />}
+                                                onClick={() => handleStartSingleReview(item.itemUUID)}
+                                                sx={{ textTransform: 'none' }}
+                                              >
+                                                Practice
+                                              </Button>
+                                            </TableCell>
+                                          </TableRow>
+                                        );
+                                      })}
+                                    </TableBody>
+                                  </Table>
+                                </Box>
+                              ))}
+                            </Box>
+                          ))}
+                        </AccordionDetails>
+                      </Accordion>
+                    ))}
+                  </Stack>
+                </Box>
+              ) : (
+                /* ─── No items due ─── */
+                <Card variant="outlined" sx={{ textAlign: 'center', py: 3 }}>
+                  <CardContent sx={{ pb: '16px !important' }}>
+                    <CheckCircleIcon sx={{ fontSize: 48, color: 'success.main', mb: 1 }} />
+                    <Typography variant="h6" gutterBottom>All caught up! 🎉</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      No concepts due for review right now.
+                    </Typography>
                   </CardContent>
                 </Card>
               )}
 
-              {/* Session Controls */}
-              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  onClick={handleEndSession}
-                  disabled={tutor.isLoadingRevision}
-                >
-                  End Session Early
-                </Button>
-              </Box>
-            </Box>
-          ) : (
-            <Card sx={{ textAlign: 'center', py: 4 }}>
-              <CardContent>
-                {totalCards > 0 ? (
-                  <>
-                    <Typography variant="h5" gutterBottom>Ready to Review?</Typography>
-                    <Typography color="text.secondary" sx={{ mb: 3 }}>
-                      You have {totalCards} concepts due for review
-                    </Typography>
-                    <Stack direction="row" spacing={1} justifyContent="center" sx={{ mb: 3 }}>
-                      {tutor.revisionStats?.firstReviews ? (
-                        <Chip icon={<AccessTimeIcon />} label={`${tutor.revisionStats.firstReviews} first reviews`} color="warning" size="small" />
-                      ) : null}
-                      {tutor.revisionStats?.masteredItems ? (
-                        <Chip icon={<TrendingUpIcon />} label={`${tutor.revisionStats.masteredItems} mastered`} color="success" size="small" />
-                      ) : null}
-                    </Stack>
-                    <Button
-                      variant="contained"
-                      size="large"
-                      startIcon={<SchoolIcon />}
-                      onClick={handleStartReview}
-                      disabled={tutor.isLoadingRevision}
-                    >
-                      Start Review Session
-                    </Button>
-                  </>
-                ) : tutor.isLoadingRevision ? (
-                  <Box>
-                    <Skeleton variant="text" width={200} sx={{ mx: 'auto', mb: 1 }} />
-                    <Skeleton variant="text" width={300} sx={{ mx: 'auto', mb: 2 }} />
-                    <Skeleton variant="rounded" width={200} height={40} sx={{ mx: 'auto' }} />
-                  </Box>
-                ) : (
-                  <>
-                    <CheckCircleIcon sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
-                    <Typography variant="h5" gutterBottom>All caught up! 🎉</Typography>
-                    <Typography color="text.secondary" sx={{ mb: 2 }}>
-                      No concepts due for review right now.
+              {/* ─── Section 2: Completed Today ─── */}
+              {completedToday.length > 0 && (
+                <Box>
+                  <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                    <CheckCircleIcon color="success" fontSize="small" />
+                    Completed Today ({completedToday.length})
+                  </Typography>
+                  <TableContainer component={Paper} variant="outlined">
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 600 }}>Concept</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Course / Lesson</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Time</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Mastery</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }} align="center">Review #</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {completedToday.map((review) => (
+                          <TableRow key={review.slotUUID} hover>
+                            <TableCell sx={{ maxWidth: 300 }}>
+                              <Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>
+                                {review.itemTitle || 'Untitled'}
+                              </Typography>
+                            </TableCell>
+                            <TableCell sx={{ maxWidth: 200 }}>
+                              {review.courseTitle ? (
+                                <Box>
+                                  <Typography variant="caption" color="primary.main" noWrap sx={{ display: 'block' }}>
+                                    {review.courseTitle}
+                                  </Typography>
+                                  {review.lessonTitle && (
+                                    <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
+                                      {review.moduleTitle ? `${review.moduleTitle} › ` : ''}{review.lessonTitle}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              ) : (
+                                <Typography variant="caption" color="text.disabled">—</Typography>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">
+                                {formatSlotTime(review.slotStart)} – {formatSlotTime(review.slotEnd)}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip label={review.masteryState || 'new'} size="small" color={masteryColor(review.masteryState)} />
+                            </TableCell>
+                            <TableCell align="center">
+                              <Typography variant="body2">{review.reviewNumber}</Typography>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+              )}
+
+              {/* ─── Section 3: Tomorrow's Schedule ─── */}
+              {tomorrowSchedule.length > 0 && (
+                <Box>
+                  <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                    <CalendarMonthIcon color="info" fontSize="small" />
+                    Tomorrow's Schedule ({tomorrowSchedule.length})
+                  </Typography>
+                  <TableContainer component={Paper} variant="outlined">
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 600 }}>Concept</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Course / Lesson</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Scheduled Time</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Mastery</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }} align="center">Review #</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Priority</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {tomorrowSchedule.map((review) => (
+                          <TableRow key={review.slotUUID} hover>
+                            <TableCell sx={{ maxWidth: 300 }}>
+                              <Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>
+                                {review.itemTitle || 'Untitled'}
+                              </Typography>
+                            </TableCell>
+                            <TableCell sx={{ maxWidth: 200 }}>
+                              {review.courseTitle ? (
+                                <Box>
+                                  <Typography variant="caption" color="primary.main" noWrap sx={{ display: 'block' }}>
+                                    {review.courseTitle}
+                                  </Typography>
+                                  {review.lessonTitle && (
+                                    <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
+                                      {review.moduleTitle ? `${review.moduleTitle} › ` : ''}{review.lessonTitle}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              ) : (
+                                <Typography variant="caption" color="text.disabled">—</Typography>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">
+                                {formatSlotTime(review.slotStart)} – {formatSlotTime(review.slotEnd)}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip label={review.masteryState || 'new'} size="small" color={masteryColor(review.masteryState)} />
+                            </TableCell>
+                            <TableCell align="center">
+                              <Typography variant="body2">{review.reviewNumber}</Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={
+                                  review.priority === 1 ? 'First Review' :
+                                  review.priority === 2 ? 'Confusion' :
+                                  review.priority === 3 ? 'Regular' :
+                                  review.priority === 4 ? 'Mastered' : `P${review.priority}`
+                                }
+                                size="small"
+                                variant="outlined"
+                                sx={
+                                  review.priority === 1
+                                    ? { borderColor: 'text.primary', color: 'text.primary', fontWeight: 600 }
+                                    : review.priority === 2
+                                    ? { borderColor: 'error.main', color: 'error.main' }
+                                    : review.priority === 4
+                                    ? { borderColor: 'success.main', color: 'success.main' }
+                                    : {}
+                                }
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+              )}
+
+              {/* ─── Empty state when nothing at all ─── */}
+              {totalCards === 0 && completedToday.length === 0 && tomorrowSchedule.length === 0 && (
+                <Card variant="outlined" sx={{ textAlign: 'center', py: 4 }}>
+                  <CardContent>
+                    <SchoolIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+                    <Typography variant="h6" color="text.secondary" gutterBottom>
+                      No review activity
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Check the Items tab to see all your learning items and their next review dates.
+                      Save concepts from your courses to build your review schedule.
                     </Typography>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              )}
+            </Stack>
           )}
         </Box>
       )}
@@ -925,13 +1384,24 @@ export default function DailyTasksDashboard() {
       {/* TAB 2: Calendar */}
       {/* ================================================================== */}
       {activeTab === 2 && (
-        <Box>
+        <Box sx={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
           <ReviewCalendar
             days={tutor.calendarDays}
             loading={tutor.calendarLoading}
+            zones={tutor.calendarZones}
+            livingTimeStats={tutor.livingTimeStats}
             onDateRangeChange={handleCalendarDateChange}
             onReschedule={handleReschedule}
             onReviewClick={handleScheduledReviewClick}
+            onUpdateSchedule={(params) => {
+              const payload: Record<string, string | string[]> = {};
+              if (params.workStart) payload.workStart = params.workStart;
+              if (params.workEnd) payload.workEnd = params.workEnd;
+              if (params.sleepStart) payload.sleepStart = params.sleepStart;
+              if (params.sleepEnd) payload.sleepEnd = params.sleepEnd;
+              if (params.workDays) payload.workDays = params.workDays;
+              tutor.updateSchedule(payload as any);
+            }}
           />
         </Box>
       )}
@@ -951,7 +1421,11 @@ export default function DailyTasksDashboard() {
             <CircularProgress />
           </Box>
         ) : (
-          <ItemDetailContent detail={tutor.learningItemDetail} onClose={handleDetailClose} />
+          <ItemDetailContent
+            detail={tutor.learningItemDetail}
+            onClose={handleDetailClose}
+            {...(nextSlotMap.has(tutor.learningItemDetail.item_uuid) ? { slotInfo: nextSlotMap.get(tutor.learningItemDetail.item_uuid)! } : {})}
+          />
         )}
       </Dialog>
 

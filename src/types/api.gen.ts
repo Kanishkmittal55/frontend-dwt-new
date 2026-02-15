@@ -3766,13 +3766,13 @@ export interface components {
              * @description UUID of the lesson this quiz belongs to
              */
             lesson_uuid?: string;
-            /** @description Quiz questions */
-            questions: components["schemas"]["QuizQuestion"][];
+            /** @description Quiz questions (populated from normalized tables, may be null) */
+            questions?: components["schemas"]["QuizQuestion"][] | null;
             /**
              * Format: int32
-             * @description Number of questions
+             * @description Number of questions (derived from normalized quiz_questions table)
              */
-            question_count?: number;
+            question_count?: number | null;
             /**
              * Format: float
              * @description Required score to pass (0-1)
@@ -4364,8 +4364,8 @@ export interface components {
             exercise_id: string;
             /** @description Exercise question/problem statement */
             statement: string;
-            /** @description Array of hints */
-            hints?: string[];
+            /** @description Exercise hints (populated from normalized table, may be null) */
+            hints?: string[] | null;
             /** @description Solution text (may be hidden from student) */
             solution?: string;
             /** @description Detailed explanation of the solution */

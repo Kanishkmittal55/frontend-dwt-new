@@ -30,7 +30,7 @@ const icons = {
   IconRocket
 };
 
-// ==============================|| FOUNDER CORE ||============================== //
+// ==============================|| SECTION 1: FOUNDER CORE ||============================== //
 
 const founderCore: MenuItem = {
   id: 'founder-core',
@@ -60,22 +60,14 @@ const founderCore: MenuItem = {
       url: '/memory',
       icon: icons.IconBrain,
       breadcrumbs: false
-    },
-    {
-      id: 'mission',
-      title: 'Mission',
-      type: 'item',
-      url: '/founder/mission',
-      icon: icons.IconTarget,
-      breadcrumbs: false
     }
   ]
 };
 
-// ==============================|| LEARN & EXECUTE ||============================== //
+// ==============================|| SECTION 2: LEARN & TRAIN ||============================== //
 
-const action: MenuItem = {
-  id: 'action',
+const learnTrain: MenuItem = {
+  id: 'learn-train',
   title: '',
   type: 'group',
   children: [
@@ -93,6 +85,24 @@ const action: MenuItem = {
       type: 'item',
       url: '/founder/today',
       icon: icons.IconChecklist,
+      breadcrumbs: false
+    }
+  ]
+};
+
+// ==============================|| SECTION 3: MISSION & EXECUTION ||============================== //
+
+const missionExecution: MenuItem = {
+  id: 'mission-execution',
+  title: '',
+  type: 'group',
+  children: [
+    {
+      id: 'mission',
+      title: 'Mission',
+      type: 'item',
+      url: '/founder/mission',
+      icon: icons.IconTarget,
       breadcrumbs: false
     },
     {
@@ -148,5 +158,5 @@ const preferences: MenuItem = {
   ]
 };
 
-export { founderCore, action, preferences };
-export default action;
+export { founderCore, learnTrain, missionExecution, preferences };
+export default learnTrain;

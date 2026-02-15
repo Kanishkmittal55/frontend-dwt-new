@@ -207,7 +207,7 @@ export async function getQuizByLesson(
     const response = await founderClient.get<CourseQuiz>(endpoint);
     const validated = parseApiResponse(CourseQuizSchema, response);
     
-    console.log('[coursesAPI] getQuizByLesson response:', validated.questions.length, 'questions');
+    console.log('[coursesAPI] getQuizByLesson response:', validated.questions?.length ?? 0, 'questions');
     return validated;
   } catch (error) {
     const apiError = error as { status?: number };

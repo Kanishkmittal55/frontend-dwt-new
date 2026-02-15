@@ -71,10 +71,11 @@ export default function QuizView({
   const [results, setResults] = useState<QuestionResult[]>([]);
   const [quizCompleted, setQuizCompleted] = useState(false);
 
-  // Current question
-  const currentQuestion = quiz.questions[currentQuestionIdx];
-  const totalQuestions = quiz.questions.length;
-  const progressPercent = ((currentQuestionIdx + 1) / totalQuestions) * 100;
+  // Current question - questions may be null/undefined from normalized tables
+  const questions = quiz.questions ?? [];
+  const currentQuestion = questions[currentQuestionIdx];
+  const totalQuestions = questions.length;
+  const progressPercent = totalQuestions > 0 ? ((currentQuestionIdx + 1) / totalQuestions) * 100 : 0;
 
   // Calculate score
   const score = useMemo(() => {

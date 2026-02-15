@@ -152,8 +152,17 @@ export interface TutorState {
   
   // Calendar System
   calendarDays: CalendarDay[];
+  calendarZones: CalendarZone[];
   calendarLoading: boolean;
   rescheduleResult: RescheduleResultPayload | null;
+  livingTimeStats: LivingTimeStats | null;
+  
+  // Agent Console (concept vetting)
+  vetMessages: VetMessage[];
+  isVetConsoleOpen: boolean;
+  vetConceptText: string | null;
+  isAgentThinking: boolean;
+  vetVerdict: VetVerdict | null;
   
   // Errors
   error: string | null;
@@ -281,6 +290,11 @@ const MSG_TYPES = {
   // Calendar System
   CALENDAR_REQUEST: 'calendar.request',
   SLOT_RESCHEDULE: 'calendar.reschedule',
+  // Agent Loop Control (client → server)
+  LOOP_INJECT: 'tutor.loop.inject',
+  LOOP_STOP: 'tutor.loop.stop',
+  // Profile Schedule
+  PROFILE_SCHEDULE_UPDATE: 'profile.schedule.update',
   PING: 'ping',
   
   // Outbound (server → client)
@@ -315,6 +329,11 @@ const MSG_TYPES = {
   LEARNING_ITEM_DETAIL_RESPONSE: 'revision.item.detail.response',
   // Calendar System responses
   CALENDAR_RESPONSE: 'calendar.response',
+  PROFILE_SCHEDULE_UPDATED: 'profile.schedule.updated',
+  // Agent Console / Loop events (server → client)
+  VET_MESSAGE: 'tutor.vet.message',
+  TUTOR_THINKING: 'tutor.thinking',
+  LOOP_DONE: 'tutor.loop.done',
   ACK: 'ack',
   ERROR: 'error',
   PONG: 'pong'
@@ -384,6 +403,7 @@ export interface CanvasSelectionPayload {
   source_type?: 'lesson' | 'notes' | 'ai_response';
   lesson_uuid?: string;
   position?: { x: number; y: number };
+  view_mode?: 'static' | 'interactive';
 }
 
 /** Response from server after selection is saved */
@@ -394,6 +414,40 @@ export interface SelectionResultPayload {
   item_type?: string;
   next_review_at?: string;
   message?: string;
+}
+
+// ============================================================================
+// Agent Console Types (concept vetting)
+// ============================================================================
+
+/** A single message in the Agent Console conversation */
+export interface VetMessage {
+  id: string;
+  text: string;
+  role: 'agent' | 'system' | 'user';
+  iteration: number;
+  timestamp: Date;
+}
+
+/** Final verdict after concept vetting loop concludes */
+export interface VetVerdict {
+  reason: string;       // 'finished' | 'stopped' | 'max_iterations' | 'timeout' | 'error'
+  iterations: number;
+  finalContent: string; // Raw JSON from finish tool
+}
+
+/** Payload for tutor.vet.message from backend */
+interface VetMessagePayload {
+  text: string;
+  iteration: number;
+  role: 'agent' | 'system';
+}
+
+/** Payload for tutor.loop.done from backend */
+interface LoopDonePayload {
+  reason: string;
+  iterations: number;
+  final_content: string;
 }
 
 /** Payload for ending a lesson session */
@@ -501,12 +555,21 @@ export interface ExerciseSummary {
   difficulty: string;
 }
 
+/** Quiz question info from normalized tables */
+export interface QuizQuestionInfo {
+  question_text: string;
+  options: string[];
+  correct_idx: number;
+  explanation?: string;
+}
+
 /** Quiz linked to a learning item */
 export interface QuizSummary {
+  quiz_uuid: string;
   quiz_title: string;
   question_count: number;
   difficulty: string;
-  questions?: string;
+  questions?: QuizQuestionInfo[];
 }
 
 /** Full detail response for a learning item */
@@ -549,6 +612,13 @@ export interface ScheduledReview {
   masteryState: string;
   reviewNumber: number;
   priority: number;
+  // Context for calendar grouping/color-coding
+  lessonUUID?: string;
+  lessonTitle?: string;
+  moduleUUID?: string;
+  moduleTitle?: string;
+  courseUUID?: string;
+  courseTitle?: string;
 }
 
 /** Calendar day representation */
@@ -561,13 +631,40 @@ export interface CalendarDay {
   bookedMinutes: number;  // Already scheduled
 }
 
+/** Calendar zone from founder's profile */
+export interface CalendarZone {
+  type: 'sleep' | 'work' | 'free';
+  label: string;   // "Sleep", "Morning", "Work", "Evening"
+  start: string;   // "HH:MM"
+  end: string;     // "HH:MM"
+}
+
+/** Living time stats */
+export interface LivingTimeStats {
+  sleepMins: number;
+  workMins: number;
+  reviewMins: number;
+  freeMins: number;
+  freeDisplay: string; // "4h 20m"
+}
+
 /** Calendar response from server */
 export interface CalendarResponsePayload {
   days: CalendarDay[];
+  zones?: CalendarZone[];
   totalDays: number;
   totalReviews: number;
   totalMinutes: number;
   bookedMinutes: number;
+  living_time_stats?: LivingTimeStats;
+}
+
+/** Profile schedule updated response */
+export interface ProfileScheduleUpdatedPayload {
+  success: boolean;
+  message: string;
+  zones: CalendarZone[];
+  work_days: string[];
 }
 
 /** Reschedule result from server */
@@ -663,8 +760,16 @@ export function useTutorAgent({
     learningItemDetailLoading: false,
     // Calendar System
     calendarDays: [],
+    calendarZones: [],
     calendarLoading: false,
     rescheduleResult: null,
+    livingTimeStats: null,
+    // Agent Console (concept vetting)
+    vetMessages: [],
+    isVetConsoleOpen: false,
+    vetConceptText: null,
+    isAgentThinking: false,
+    vetVerdict: null,
     error: null
   });
 
@@ -1142,21 +1247,130 @@ export function useTutorAgent({
                   status: review.status,
                   masteryState: review.mastery_state || review.masteryState,
                   reviewNumber: review.review_number || review.reviewNumber,
-                  priority: review.priority
+                  priority: review.priority,
+                  lessonUUID: review.lesson_uuid || review.lessonUUID || '',
+                  lessonTitle: review.lesson_title || review.lessonTitle || '',
+                  moduleUUID: review.module_uuid || review.moduleUUID || '',
+                  moduleTitle: review.module_title || review.moduleTitle || '',
+                  courseUUID: review.course_uuid || review.courseUUID || '',
+                  courseTitle: review.course_title || review.courseTitle || '',
                 })),
                 totalMinutes: day.total_minutes || day.totalMinutes || 0,
                 bookedMinutes: day.booked_minutes || day.bookedMinutes || 0
               }));
+
+              // Parse zones from the response
+              const zones: CalendarZone[] = (calPayload.zones || []).map((z: any) => ({
+                type: z.type,
+                label: z.label,
+                start: z.start,
+                end: z.end,
+              }));
+
+              // Parse living time stats
+              const lts = calPayload.living_time_stats;
+              const livingTimeStats: LivingTimeStats | null = lts ? {
+                sleepMins: lts.sleep_mins ?? lts.sleepMins ?? 0,
+                workMins: lts.work_mins ?? lts.workMins ?? 0,
+                reviewMins: lts.review_mins ?? lts.reviewMins ?? 0,
+                freeMins: lts.free_mins ?? lts.freeMins ?? 0,
+                freeDisplay: lts.free_display ?? lts.freeDisplay ?? '',
+              } : null;
               
               setState(prev => ({
                 ...prev,
                 calendarDays: days,
-                calendarLoading: false
+                calendarZones: zones.length > 0 ? zones : prev.calendarZones,
+                calendarLoading: false,
+                livingTimeStats,
               }));
             }
           }
           break;
           
+        case MSG_TYPES.PROFILE_SCHEDULE_UPDATED:
+          {
+            const schedPayload = message.payload as ProfileScheduleUpdatedPayload;
+            console.log('%c[Profile] Schedule updated', 'color: #4caf50; font-weight: bold', schedPayload);
+            if (schedPayload.success && schedPayload.zones) {
+              const newZones: CalendarZone[] = schedPayload.zones.map((z: any) => ({
+                type: z.type,
+                label: z.label,
+                start: z.start,
+                end: z.end,
+              }));
+              setState(prev => ({
+                ...prev,
+                calendarZones: newZones,
+              }));
+              // Refresh calendar to recalculate living time stats with new zones
+              const todayStr = new Date().toISOString().split('T')[0] as string;
+              const endStr = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] as string;
+              sendMessage(MSG_TYPES.CALENDAR_REQUEST, { start_date: todayStr, end_date: endStr });
+            }
+          }
+          break;
+          
+        // =======================================================================
+        // Agent Console / Loop Events
+        // =======================================================================
+        case MSG_TYPES.VET_MESSAGE:
+          {
+            const vetPayload = message.payload as VetMessagePayload;
+            const vetMsg: VetMessage = {
+              id: message.id || crypto.randomUUID(),
+              text: vetPayload.text,
+              role: vetPayload.role,
+              iteration: vetPayload.iteration,
+              timestamp: new Date()
+            };
+            console.log(
+              `%c[VetMode] ${vetPayload.role === 'agent' ? '🤖' : '⚙️'} ${vetPayload.role}`,
+              `color: ${vetPayload.role === 'agent' ? '#7c4dff' : '#78909c'}; font-weight: bold`,
+              { text: vetPayload.text.substring(0, 80), iteration: vetPayload.iteration }
+            );
+            setState(prev => ({
+              ...prev,
+              vetMessages: [...prev.vetMessages, vetMsg],
+              isAgentThinking: false, // Agent just spoke, no longer "thinking"
+              isVetConsoleOpen: true   // Ensure console is open when messages arrive
+            }));
+          }
+          break;
+
+        case MSG_TYPES.TUTOR_THINKING:
+          {
+            const thinkPayload = message.payload as { message: string; iteration: number; max_steps: number };
+            console.log(
+              '%c[VetMode] 🧠 Thinking',
+              'color: #ff9800; font-weight: bold',
+              { message: thinkPayload.message, iteration: thinkPayload.iteration }
+            );
+            setState(prev => ({ ...prev, isAgentThinking: true }));
+          }
+          break;
+
+        case MSG_TYPES.LOOP_DONE:
+          {
+            const donePayload = message.payload as LoopDonePayload;
+            const verdict: VetVerdict = {
+              reason: donePayload.reason,
+              iterations: donePayload.iterations,
+              finalContent: donePayload.final_content
+            };
+            console.log(
+              '%c[VetMode] 🏁 Loop done',
+              'color: #4caf50; font-weight: bold',
+              { reason: donePayload.reason, iterations: donePayload.iterations, finalContent: donePayload.final_content?.substring(0, 100) }
+            );
+            setState(prev => ({
+              ...prev,
+              vetVerdict: verdict,
+              isAgentThinking: false
+            }));
+          }
+          break;
+
         case MSG_TYPES.ERROR:
           setState(prev => ({ ...prev, error: message.payload.message }));
           break;
@@ -1478,10 +1692,85 @@ export function useTutorAgent({
   }, []);
 
   // ==========================================================================
+  // Agent Console Methods (concept vetting)
+  // ==========================================================================
+
+  /** Open the Agent Console when a concept selection triggers vetting */
+  const openVetConsole = useCallback((conceptText: string) => {
+    console.log('%c[VetMode] 📂 Opening console', 'color: #7c4dff; font-weight: bold', {
+      text: conceptText.substring(0, 60)
+    });
+    setState(prev => ({
+      ...prev,
+      isVetConsoleOpen: true,
+      vetConceptText: conceptText,
+      vetMessages: [],
+      vetVerdict: null,
+      isAgentThinking: true // Will be thinking until first message arrives
+    }));
+  }, []);
+
+  /** Close the Agent Console and optionally stop the running loop */
+  const closeVetConsole = useCallback((stopLoop = true) => {
+    console.log('%c[VetMode] 📕 Closing console', 'color: #78909c; font-weight: bold', { stopLoop });
+    if (stopLoop && state.isConnected && !state.vetVerdict) {
+      // Send stop signal to backend if loop is still running
+      sendMessage(MSG_TYPES.LOOP_STOP, { reason: 'founder_closed_console' });
+    }
+    setState(prev => ({
+      ...prev,
+      isVetConsoleOpen: false,
+      vetConceptText: null,
+      vetMessages: [],
+      vetVerdict: null,
+      isAgentThinking: false
+    }));
+  }, [sendMessage, state.isConnected, state.vetVerdict]);
+
+  /** Send a founder message into the running agent loop */
+  const injectVetMessage = useCallback((text: string) => {
+    if (!state.isConnected) {
+      console.warn('[VetMode] Cannot inject - not connected');
+      return;
+    }
+    if (!text.trim()) return;
+
+    console.log('%c[VetMode] 💬 Founder →', 'color: #2196f3; font-weight: bold', {
+      text: text.substring(0, 60)
+    });
+
+    // Add founder message to local console immediately
+    const founderMsg: VetMessage = {
+      id: crypto.randomUUID(),
+      text: text.trim(),
+      role: 'user',
+      iteration: 0,
+      timestamp: new Date()
+    };
+    setState(prev => ({
+      ...prev,
+      vetMessages: [...prev.vetMessages, founderMsg],
+      isAgentThinking: true // Agent will process the injected message
+    }));
+
+    // Send to backend
+    sendMessage(MSG_TYPES.LOOP_INJECT, { message: text.trim() });
+  }, [sendMessage, state.isConnected]);
+
+  /** Stop the running agent loop (e.g., cancel button) */
+  const stopVetLoop = useCallback((reason = 'founder_cancelled') => {
+    if (!state.isConnected) return;
+    console.log('%c[VetMode] 🛑 Stopping loop', 'color: #f44336; font-weight: bold', { reason });
+    sendMessage(MSG_TYPES.LOOP_STOP, { reason });
+  }, [sendMessage, state.isConnected]);
+
+  // ==========================================================================
   // Canvas Selection Methods (save concepts/confusion points)
   // ==========================================================================
 
   // Send canvas selection (user wants to save selected text)
+  // In interactive mode + save_concept → opens vetting mode in TutorChat
+  // In static mode or other actions → direct save, no vetting
   const sendCanvasSelection = useCallback((params: CanvasSelectionPayload) => {
     if (!state.isConnected) {
       console.warn('[Canvas] Cannot send selection - not connected');
@@ -1490,10 +1779,17 @@ export function useTutorAgent({
     
     console.log('%c[Canvas] → Saving selection', 'color: #4caf50; font-weight: bold', {
       action: params.action,
+      view_mode: params.view_mode,
       text: params.text.substring(0, 50) + (params.text.length > 50 ? '...' : '')
     });
+
+    // Only trigger vetting mode for interactive + save_concept
+    if (params.action === 'save_concept' && params.view_mode === 'interactive') {
+      openVetConsole(params.text);
+    }
+
     sendMessage(MSG_TYPES.CANVAS_SELECTION, params);
-  }, [sendMessage, state.isConnected]);
+  }, [sendMessage, state.isConnected, openVetConsole]);
 
   // Send lesson end (user ends the lesson session)
   const sendLessonEnd = useCallback((params: LessonEndPayload) => {
@@ -1750,6 +2046,28 @@ export function useTutorAgent({
     getCalendar(startDate, endDate);
   }, [getCalendar]);
 
+  // Update founder schedule (sleep/work times)
+  const updateSchedule = useCallback((params: {
+    workStart?: string;
+    workEnd?: string;
+    sleepStart?: string;
+    sleepEnd?: string;
+    workDays?: string[];
+  }) => {
+    if (!state.isConnected) {
+      console.warn('[Profile] Cannot update schedule - not connected');
+      return;
+    }
+    console.log('%c[Profile] → Updating schedule', 'color: #4caf50; font-weight: bold', params);
+    sendMessage(MSG_TYPES.PROFILE_SCHEDULE_UPDATE, {
+      work_start: params.workStart,
+      work_end: params.workEnd,
+      sleep_start: params.sleepStart,
+      sleep_end: params.sleepEnd,
+      work_days: params.workDays,
+    });
+  }, [sendMessage, state.isConnected]);
+
   // Auto-connect
   useEffect(() => {
     if (autoConnect && userId && apiKey) {
@@ -1819,7 +2137,14 @@ export function useTutorAgent({
     rescheduleSlot,
     clearRescheduleResult,
     getTodaySchedule,
-    getWeekSchedule
+    getWeekSchedule,
+    // Schedule Configuration
+    updateSchedule,
+    // Agent Console (concept vetting)
+    openVetConsole,
+    closeVetConsole,
+    injectVetMessage,
+    stopVetLoop
   };
 }
 

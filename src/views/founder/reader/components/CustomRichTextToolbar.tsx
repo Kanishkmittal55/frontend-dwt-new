@@ -466,7 +466,7 @@ function ToolbarInner({
     
     console.log('[RichTextToolbar] Selected text:', selectedText?.substring(0, 50));
     
-    if (selectedText && selectedText.length >= 3) {
+    if (selectedText && selectedText.length >= 10) {
       // Get button position for popup
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       setPopupPosition({ x: rect.left + rect.width / 2, y: rect.bottom });
@@ -475,7 +475,7 @@ function ToolbarInner({
       setPopupOpen(true);
       console.log('[RichTextToolbar] Popup opened for concept');
     } else {
-      console.warn('[RichTextToolbar] No valid selection for concept');
+      console.warn('[RichTextToolbar] Selection too short (need ≥10 chars):', selectedText?.length);
     }
   }, []);
 
@@ -487,7 +487,7 @@ function ToolbarInner({
     
     console.log('[RichTextToolbar] Selected text:', selectedText?.substring(0, 50));
     
-    if (selectedText && selectedText.length >= 3) {
+    if (selectedText && selectedText.length >= 10) {
       // Get button position for popup
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       setPopupPosition({ x: rect.left + rect.width / 2, y: rect.bottom });
@@ -496,7 +496,7 @@ function ToolbarInner({
       setPopupOpen(true);
       console.log('[RichTextToolbar] Popup opened for confusion');
     } else {
-      console.warn('[RichTextToolbar] No valid selection for confusion');
+      console.warn('[RichTextToolbar] Selection too short (need ≥10 chars):', selectedText?.length);
     }
   }, []);
 
@@ -539,7 +539,7 @@ function ToolbarInner({
   const hasValidSelection = useMemo(() => {
     const selection = window.getSelection();
     const text = selection?.toString().trim();
-    return text && text.length >= 3;
+    return text && text.length >= 10;
   }, [currentSelection]);
 
 

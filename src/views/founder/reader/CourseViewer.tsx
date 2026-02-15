@@ -90,6 +90,7 @@ import ModuleNav from './components/ModuleNav';
 import TutorChat from './components/TutorChat';
 import IntakeForm from './components/IntakeForm';
 import LessonEndDialog from './components/LessonEndDialog';
+// Vetting mode is handled inline inside TutorChat
 import { CustomRichTextToolbar, type SourceType, type SelectionData } from './components/CustomRichTextToolbar';
 import { 
   UnifiedCanvas, 
@@ -937,6 +938,22 @@ export default function CourseViewer() {
     }
   }, [tutor.error, isSavingSelection]);
 
+  // In interactive mode, reset saving state as soon as the vet console opens
+  // (the saving interaction has moved to the chat panel, buttons should be re-enabled
+  // so the founder can continue selecting text while the conversation is ongoing)
+  useEffect(() => {
+    if (tutor.isVetConsoleOpen && isSavingSelection) {
+      setIsSavingSelection(false);
+    }
+  }, [tutor.isVetConsoleOpen, isSavingSelection]);
+
+  // Also reset saving state when the vet verdict arrives (safety net for edge cases)
+  useEffect(() => {
+    if (tutor.vetVerdict && isSavingSelection) {
+      setIsSavingSelection(false);
+    }
+  }, [tutor.vetVerdict, isSavingSelection]);
+
   // Handle lesson score from server (after ending lesson)
   useEffect(() => {
     if (tutor.lessonScore) {
@@ -1469,14 +1486,21 @@ export default function CourseViewer() {
     if (!data.text || !selectedLesson?.uuid) return;
     
     setIsSavingSelection(true);
+
+    // In interactive mode, auto-open chat panel so vetting conversation is visible
+    if (viewMode === 'interactive') {
+      setShowChatPanel(true);
+    }
+
     tutor.sendCanvasSelection({
       text: data.text,
       action: 'save_concept',
       source_type: data.sourceType,
       lesson_uuid: selectedLesson.uuid,
+      view_mode: viewMode,
       ...(data.annotation ? { annotation: data.annotation } : {})
     });
-  }, [selectedLesson?.uuid, tutor]);
+  }, [selectedLesson?.uuid, tutor, viewMode]);
 
   const handleMarkConfusion = useCallback((data: SelectionData) => {
     if (!data.text || !selectedLesson?.uuid) return;
@@ -1557,13 +1581,19 @@ export default function CourseViewer() {
     if (!data.text || !selectedLesson?.uuid) return;
     
     setIsSavingSelection(true);
+
+    if (viewMode === 'interactive') {
+      setShowChatPanel(true);
+    }
+
     tutor.sendCanvasSelection({
       text: data.text,
       action: 'save_concept',
       source_type: 'note' as SourceType,
-      lesson_uuid: selectedLesson.uuid
+      lesson_uuid: selectedLesson.uuid,
+      view_mode: viewMode
     });
-  }, [selectedLesson?.uuid, tutor]);
+  }, [selectedLesson?.uuid, tutor, viewMode]);
 
   const handleOneNoteMarkConfusion = useCallback((data: OneNoteSelectionData) => {
     if (!data.text || !selectedLesson?.uuid) return;
@@ -2156,6 +2186,15 @@ export default function CourseViewer() {
                   onSkipToNext={(lessonUUID, nextChunkIdx) => {
                     tutor.requestNextLesson(lessonUUID, nextChunkIdx);
                   }}
+                  // Concept Vetting Mode (inline in chat panel)
+                  isVettingMode={tutor.isVetConsoleOpen}
+                  vetMessages={tutor.vetMessages}
+                  vetConceptText={tutor.vetConceptText}
+                  isAgentThinking={tutor.isAgentThinking}
+                  vetVerdict={tutor.vetVerdict}
+                  onInjectVetMessage={tutor.injectVetMessage}
+                  onStopVetLoop={tutor.stopVetLoop}
+                  onExitVetting={tutor.closeVetConsole}
                 />
               )}
             </Box>
@@ -2514,6 +2553,7 @@ export default function CourseViewer() {
           )}
         </Paper>
       </Collapse>
+
     </Box>
   );
 }

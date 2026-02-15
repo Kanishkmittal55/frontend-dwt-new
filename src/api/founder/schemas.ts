@@ -709,11 +709,14 @@ export const QuizQuestionSchema = z.object({
 });
 
 // Course Quiz schema
+// Note: questions and question_count are now in normalized tables
+// (course_quiz_questions / course_quiz_question_options).
+// The API may return them populated or omitted depending on the endpoint.
 export const CourseQuizSchema = z.object({
   uuid: z.string().uuid(),
   module_uuid: z.string().uuid().optional().nullable(),
   lesson_uuid: z.string().uuid().optional().nullable(),
-  questions: z.array(QuizQuestionSchema),
+  questions: z.array(QuizQuestionSchema).optional().nullable(),
   question_count: z.number().int().optional().nullable(),
   passing_score: z.number().min(0).max(1).optional().nullable(),
   difficulty: CourseQuizDifficultySchema.optional().nullable(),
