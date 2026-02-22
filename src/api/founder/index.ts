@@ -159,6 +159,39 @@ export type {
   EntityTrendHistoryResponse
 } from './trendsAPI';
 
+// Pursuits API (Phase 2 - Founder Goals)
+export {
+  pursuitsAPI,
+  getPursuits,
+  getActivePursuit,
+  createPursuit,
+  getPursuit,
+  getTracksByPursuit,
+  getTrackAssets,
+  getDiscoveriesByPursuit,
+  createTrack,
+  getMilestonesByTrack,
+  createMilestone,
+  updatePursuitPhase,
+  completePursuit,
+  completeMilestone,
+  deletePursuit,
+  deleteTrack,
+  deleteMilestone
+} from './pursuitsAPI';
+
+export type {
+  Pursuit,
+  Track,
+  Milestone,
+  PursuitTrackAssetResponse,
+  RadarDiscoveryItem,
+  PursuitListResponse,
+  CreatePursuitRequest,
+  CreateTrackRequest,
+  CreateMilestoneRequest
+} from './pursuitsAPI';
+
 // Agent API (WebSocket)
 export {
   founderAgentClient,

@@ -802,6 +802,151 @@ export type CourseDetailResponse = z.infer<typeof CourseDetailResponseSchema>;
 export type CourseLessonDetailResponse = z.infer<typeof CourseLessonDetailResponseSchema>;
 
 // ============================================================================
+// Pursuit Schemas (Founder Goals - Phase 2)
+// ============================================================================
+
+// Goal types, track types, status enums - must match backend OpenAPI spec
+export const GoalTypeSchema = z.enum([
+  'job_search',
+  'company_launch',
+  'stock_investing',
+  'personal_brand',
+  'job_management',
+  'resume_management'
+]);
+export const TrackTypeSchema = z.enum(['learn', 'execute', 'discover']);
+export const PursuitStatusSchema = z.enum(['active', 'paused', 'completed', 'abandoned']);
+export const MilestoneStatusSchema = z.enum(['pending', 'in_progress', 'completed', 'skipped']);
+
+// Pursuit (founder goal)
+export const PursuitSchema = z.object({
+  uuid: z.string().uuid(),
+  user_id: z.number().int(),
+  goal_type: GoalTypeSchema,
+  title: z.string(),
+  description: z.string().optional().nullable(),
+  status: PursuitStatusSchema,
+  phase: z.string(),
+  phase_entered_at: z.string().optional().nullable(),
+  resume_text: z.string().optional().nullable(),
+  target_industry: z.string().optional().nullable(),
+  desired_outcome: z.string().optional().nullable(),
+  target_roles: z.array(z.string()).optional().nullable(),
+  skill_gaps: z.array(z.string()).optional().nullable(),
+  completed_at: z.string().optional().nullable(),
+  created_at: z.string(),
+  updated_at: z.string()
+});
+
+// Track (execution plan within a pursuit)
+export const TrackSchema = z.object({
+  uuid: z.string().uuid(),
+  pursuit_uuid: z.string().uuid(),
+  user_id: z.number().int(),
+  track_type: TrackTypeSchema,
+  title: z.string(),
+  description: z.string().optional().nullable(),
+  status: PursuitStatusSchema,
+  started_at: z.string().optional().nullable(),
+  completed_at: z.string().optional().nullable(),
+  created_at: z.string(),
+  updated_at: z.string()
+});
+
+// Milestone (within a track)
+export const MilestoneSchema = z.object({
+  uuid: z.string().uuid(),
+  track_uuid: z.string().uuid(),
+  user_id: z.number().int(),
+  title: z.string(),
+  description: z.string().optional().nullable(),
+  milestone_type: z.string().optional().nullable(),
+  status: MilestoneStatusSchema,
+  sequence_order: z.number().int(),
+  due_at: z.string().optional().nullable(),
+  started_at: z.string().optional().nullable(),
+  completed_at: z.string().optional().nullable(),
+  created_at: z.string(),
+  updated_at: z.string()
+});
+
+// List responses
+export const PursuitListResponseSchema = z.object({
+  items: z.array(PursuitSchema),
+  count: z.number().int()
+});
+export const PursuitTrackListResponseSchema = z.object({
+  items: z.array(TrackSchema),
+  count: z.number().int()
+});
+export const PursuitMilestoneListResponseSchema = z.object({
+  items: z.array(MilestoneSchema),
+  count: z.number().int()
+});
+
+// Radar discovery (job listings, etc. from crawl)
+export const RadarDiscoveryItemSchema = z.object({
+  uuid: z.string().uuid().optional(),
+  discovery_type: z.string().optional(),
+  source_site: z.string().optional(),
+  source_url: z.string().nullable().optional(),
+  title: z.string().optional(),
+  summary: z.string().nullable().optional(),
+  match_score: z.number().nullable().optional(),
+  status: z.string().optional(),
+  created_at: z.string().optional()
+});
+export const RadarDiscoveryListResponseSchema = z.object({
+  items: z.array(RadarDiscoveryItemSchema),
+  count: z.number().int()
+});
+
+// Create/update request schemas
+export const CreatePursuitRequestSchema = z.object({
+  goal_type: GoalTypeSchema,
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  resume_text: z.string().optional(),
+  target_industry: z.string().optional(),
+  desired_outcome: z.string().optional(),
+  target_roles: z.array(z.string()).optional(),
+  skill_gaps: z.array(z.string()).optional()
+});
+export const CreateTrackRequestSchema = z.object({
+  track_type: TrackTypeSchema,
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional()
+});
+export const CreateMilestoneRequestSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  milestone_type: z.string().optional(),
+  sequence_order: z.number().int().optional(),
+  due_at: z.string().optional()
+});
+export const UpdatePursuitPhaseRequestSchema = z.object({
+  phase: z.string().min(1, 'Phase is required')
+});
+
+// Pursuit type exports
+export type GoalType = z.infer<typeof GoalTypeSchema>;
+export type TrackType = z.infer<typeof TrackTypeSchema>;
+export type PursuitStatus = z.infer<typeof PursuitStatusSchema>;
+export type MilestoneStatus = z.infer<typeof MilestoneStatusSchema>;
+export type Pursuit = z.infer<typeof PursuitSchema>;
+export type Track = z.infer<typeof TrackSchema>;
+export type Milestone = z.infer<typeof MilestoneSchema>;
+export type PursuitListResponse = z.infer<typeof PursuitListResponseSchema>;
+export type PursuitTrackListResponse = z.infer<typeof PursuitTrackListResponseSchema>;
+export type PursuitMilestoneListResponse = z.infer<typeof PursuitMilestoneListResponseSchema>;
+export type CreatePursuitRequest = z.infer<typeof CreatePursuitRequestSchema>;
+export type CreateTrackRequest = z.infer<typeof CreateTrackRequestSchema>;
+export type CreateMilestoneRequest = z.infer<typeof CreateMilestoneRequestSchema>;
+export type UpdatePursuitPhaseRequest = z.infer<typeof UpdatePursuitPhaseRequestSchema>;
+export type RadarDiscoveryItem = z.infer<typeof RadarDiscoveryItemSchema>;
+export type RadarDiscoveryListResponse = z.infer<typeof RadarDiscoveryListResponseSchema>;
+
+// ============================================================================
 // Memory Matrix Schemas
 // ============================================================================
 

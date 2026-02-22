@@ -50,6 +50,39 @@ export interface AgentSession {
   goalId?: string | undefined;
 }
 
+// Phase 4: Streaming event payloads
+export interface AgentThinkingPayload {
+  message: string;
+  iteration?: number;
+}
+export interface AgentToolCallPayload {
+  tool_call_id?: string;
+  name: string;
+  arguments?: Record<string, unknown>;
+  iteration?: number;
+}
+export interface AgentToolResultPayload {
+  name: string;
+  result?: string;
+  error?: string;
+  iteration?: number;
+}
+export interface RadarDiscoveryItemPayload {
+  uuid?: string;
+  title?: string;
+  summary?: string;
+  source_site?: string;
+  source_url?: string;
+  match_score?: number;
+  status?: string;
+  discovery_type?: string;
+}
+export interface AgentDiscoveriesPayload {
+  pursuit_uuid: string;
+  items: RadarDiscoveryItemPayload[];
+  count: number;
+}
+
 export interface AgentEventHandlers {
   onConnect?: (payload: ConnectedPayload) => void;
   onDisconnect?: (reason: string) => void;
@@ -61,6 +94,11 @@ export interface AgentEventHandlers {
   onAck?: (payload: AckPayload) => void;
   onError?: (payload: ErrorPayload) => void;
   onConnectionStateChange?: (state: ConnectionState) => void;
+  /** Phase 4: Streaming agent activity */
+  onAgentThinking?: (payload: AgentThinkingPayload) => void;
+  onAgentToolCall?: (payload: AgentToolCallPayload) => void;
+  onAgentToolResult?: (payload: AgentToolResultPayload) => void;
+  onAgentDiscoveries?: (payload: AgentDiscoveriesPayload) => void;
 }
 
 // ============================================================================
@@ -71,6 +109,7 @@ class FounderAgentClient {
   private ws: WebSocket | null = null;
   private handlers: AgentEventHandlers = {};
   private connectionState: ConnectionState = 'disconnected';
+  private lastConnectedPayload: ConnectedPayload = { user_id: 0, connection_id: '' };
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
@@ -82,10 +121,18 @@ class FounderAgentClient {
    */
   connect(handlers: AgentEventHandlers = {}): Promise<ConnectedPayload> {
     return new Promise((resolve, reject) => {
-      // Already connected or connecting - don't create new connection
+      // Already connected or connecting - sync state to new component and return
       if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
-        console.log('[AgentWS] Already connected/connecting, skipping');
-        resolve({ user_id: 0, session_id: '' }); // Return placeholder
+        console.log('[AgentWS] Already connected/connecting, syncing state to new component');
+        this.handlers = handlers;
+        if (this.ws.readyState === WebSocket.OPEN) {
+          this.setConnectionState('connected');
+          this.handlers.onConnect?.(this.lastConnectedPayload);
+          resolve(this.lastConnectedPayload);
+        } else {
+          // Still connecting - resolve when connected (handlers will get onConnect)
+          resolve(this.lastConnectedPayload);
+        }
         return;
       }
 
@@ -141,6 +188,7 @@ class FounderAgentClient {
       this.ws.onclose = (event) => {
         console.log('[AgentWS] Disconnected:', event.code, event.reason);
         this.stopPingInterval();
+        this.ws = null;
         this.setConnectionState('disconnected');
         this.handlers.onDisconnect?.(event.reason || 'Connection closed');
 
@@ -280,6 +328,7 @@ class FounderAgentClient {
       case 'connected':
         this.setConnectionState('connected');
         const connectedPayload = payload as ConnectedPayload;
+        this.lastConnectedPayload = connectedPayload;
         this.handlers.onConnect?.(connectedPayload);
         onConnectResolve?.(connectedPayload);
         break;
@@ -319,6 +368,22 @@ class FounderAgentClient {
 
       case 'pong':
         // Keep-alive response, no action needed
+        break;
+
+      case 'founder.agent.thinking':
+        this.handlers.onAgentThinking?.(payload as AgentThinkingPayload);
+        break;
+
+      case 'founder.agent.tool_call':
+        this.handlers.onAgentToolCall?.(payload as AgentToolCallPayload);
+        break;
+
+      case 'founder.agent.tool_result':
+        this.handlers.onAgentToolResult?.(payload as AgentToolResultPayload);
+        break;
+
+      case 'founder.agent.discoveries':
+        this.handlers.onAgentDiscoveries?.(payload as AgentDiscoveriesPayload);
         break;
 
       default:

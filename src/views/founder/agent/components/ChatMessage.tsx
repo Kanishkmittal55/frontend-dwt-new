@@ -32,7 +32,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
       {/* Avatar */}
       <Avatar
         sx={{
-          bgcolor: isUser ? theme.palette.primary.main : theme.palette.secondary.main,
+          bgcolor: isUser ? theme.palette.primary.main : theme.palette.grey[600],
           width: 36,
           height: 36
         }}
@@ -58,8 +58,8 @@ export default function ChatMessage({ message }: ChatMessageProps) {
           sx={{
             p: 2,
             borderRadius: 2,
-            bgcolor: isUser ? theme.palette.primary.light : theme.palette.background.paper,
-            color: isUser ? theme.palette.primary.contrastText : theme.palette.text.primary,
+            bgcolor: isUser ? theme.palette.primary.main : theme.palette.background.paper,
+            color: isUser ? '#fff' : theme.palette.text.primary,
             borderTopLeftRadius: isUser ? 16 : 4,
             borderTopRightRadius: isUser ? 4 : 16
           }}
@@ -70,7 +70,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
               '& code': {
-                bgcolor: 'rgba(0,0,0,0.1)',
+                bgcolor: isUser ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)',
                 px: 0.5,
                 borderRadius: 0.5,
                 fontFamily: 'monospace'
@@ -89,7 +89,13 @@ export default function ChatMessage({ message }: ChatMessageProps) {
                   label={action.type}
                   size="small"
                   variant="outlined"
-                  sx={{ fontSize: '0.7rem' }}
+                  sx={{
+                    fontSize: '0.7rem',
+                    ...(isUser && {
+                      borderColor: 'rgba(255,255,255,0.7)',
+                      color: '#fff'
+                    })
+                  }}
                 />
               ))}
             </Box>

@@ -14,6 +14,12 @@ import type {
   MilestonePayload,
   ErrorPayload
 } from '@/api/founder/schemas';
+import type {
+  AgentThinkingPayload,
+  AgentToolCallPayload,
+  AgentToolResultPayload,
+  AgentDiscoveriesPayload
+} from '@/api/founder/agentAPI';
 
 // ============================================================================
 // Types
@@ -28,9 +34,20 @@ export interface ChatMessage {
   actions?: Array<{ type: string; data?: Record<string, unknown> }>;
 }
 
+/** Phase 4: Streaming agent activity events */
+export type StreamingEventType = 'thinking' | 'tool_call' | 'tool_result' | 'discoveries';
+export interface StreamingEvent {
+  id: string;
+  type: StreamingEventType;
+  payload: AgentThinkingPayload | AgentToolCallPayload | AgentToolResultPayload | AgentDiscoveriesPayload;
+  timestamp: Date;
+}
+
 export interface UseFounderAgentOptions {
   autoConnect?: boolean;
   onError?: (error: ErrorPayload) => void;
+  /** Called when agent creates/updates a pursuit or track — use to refetch pursuits */
+  onPursuitUpdated?: () => void;
 }
 
 export interface UseFounderAgentReturn {
@@ -44,6 +61,8 @@ export interface UseFounderAgentReturn {
   // Chat state
   messages: ChatMessage[];
   isTyping: boolean;
+  /** Phase 4: Real-time streaming events (thinking, tool calls, discoveries) */
+  streamingEvents: StreamingEvent[];
   
   // Persona state
   personaMetrics: Record<string, unknown>;
@@ -66,10 +85,12 @@ export interface UseFounderAgentReturn {
 // ============================================================================
 
 export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounderAgentReturn {
-  const { autoConnect = false, onError } = options;
+  const { autoConnect = false, onError, onPursuitUpdated } = options;
 
-  // Connection state
-  const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
+  // Connection state - sync from client on mount (handles return-to-page when already connected)
+  const [connectionState, setConnectionState] = useState<ConnectionState>(
+    () => founderAgentClient.getConnectionState()
+  );
   
   // Session state
   const [session, setSession] = useState<AgentSession | null>(null);
@@ -77,6 +98,7 @@ export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounde
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [streamingEvents, setStreamingEvents] = useState<StreamingEvent[]>([]);
   
   // Persona metrics
   const [personaMetrics, setPersonaMetrics] = useState<Record<string, unknown>>({});
@@ -111,21 +133,65 @@ export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounde
     } : null);
   }, []);
 
-  const handleAgentResponse = useCallback((payload: AgentResponsePayload) => {
+  const handleAgentResponse = useCallback(
+    (payload: AgentResponsePayload) => {
+      if (!isMounted.current) return;
+
+      const newMessage: ChatMessage = {
+        id: payload.response_id,
+        role: 'agent',
+        content: payload.text,
+        timestamp: new Date(),
+        agentName: payload.agent_name,
+        actions: payload.actions as ChatMessage['actions']
+      };
+
+      setMessages((prev) => [...prev, newMessage]);
+      setIsTyping(false);
+      setStreamingEvents([]); // Phase 4: clear streaming events when full response arrives
+
+      if (onPursuitUpdated && payload.actions?.some((a) => a.type === 'pursuit_updated')) {
+        onPursuitUpdated();
+      }
+    },
+    [onPursuitUpdated]
+  );
+
+  const handleAgentThinking = useCallback((payload: AgentThinkingPayload) => {
     if (!isMounted.current) return;
-    
-    const newMessage: ChatMessage = {
-      id: payload.response_id,
-      role: 'agent',
-      content: payload.text,
-      timestamp: new Date(),
-      agentName: payload.agent_name,
-      actions: payload.actions as ChatMessage['actions']
-    };
-    
-    setMessages((prev) => [...prev, newMessage]);
-    setIsTyping(false);
+    setStreamingEvents((prev) => [
+      ...prev,
+      { id: `thinking-${Date.now()}`, type: 'thinking', payload, timestamp: new Date() }
+    ]);
   }, []);
+
+  const handleAgentToolCall = useCallback((payload: AgentToolCallPayload) => {
+    if (!isMounted.current) return;
+    setStreamingEvents((prev) => [
+      ...prev,
+      { id: `tool-${Date.now()}`, type: 'tool_call', payload, timestamp: new Date() }
+    ]);
+  }, []);
+
+  const handleAgentToolResult = useCallback((payload: AgentToolResultPayload) => {
+    if (!isMounted.current) return;
+    setStreamingEvents((prev) => [
+      ...prev,
+      { id: `result-${Date.now()}`, type: 'tool_result', payload, timestamp: new Date() }
+    ]);
+  }, []);
+
+  const handleAgentDiscoveries = useCallback(
+    (payload: AgentDiscoveriesPayload) => {
+      if (!isMounted.current) return;
+      setStreamingEvents((prev) => [
+        ...prev,
+        { id: `discoveries-${Date.now()}`, type: 'discoveries', payload, timestamp: new Date() }
+      ]);
+      onPursuitUpdated?.(); // Refetch pursuits so discoveries appear in pursuit cards
+    },
+    [onPursuitUpdated]
+  );
 
   const handleAgentTyping = useCallback((payload: AgentTypingPayload) => {
     if (!isMounted.current) return;
@@ -171,7 +237,11 @@ export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounde
         onPersonaUpdate: handlePersonaUpdate,
         onMilestone: handleMilestone,
         onError: handleError,
-        onConnectionStateChange: handleConnectionStateChange
+        onConnectionStateChange: handleConnectionStateChange,
+        onAgentThinking: handleAgentThinking,
+        onAgentToolCall: handleAgentToolCall,
+        onAgentToolResult: handleAgentToolResult,
+        onAgentDiscoveries: handleAgentDiscoveries
       });
     } catch (error) {
       console.error('[useFounderAgent] Connect failed:', error);
@@ -186,7 +256,11 @@ export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounde
     handlePersonaUpdate,
     handleMilestone,
     handleError,
-    handleConnectionStateChange
+    handleConnectionStateChange,
+    handleAgentThinking,
+    handleAgentToolCall,
+    handleAgentToolResult,
+    handleAgentDiscoveries
   ]);
 
   const disconnect = useCallback(() => {
@@ -280,6 +354,7 @@ export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounde
     // Chat state
     messages,
     isTyping,
+    streamingEvents,
     
     // Persona state
     personaMetrics,

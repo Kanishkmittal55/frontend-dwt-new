@@ -330,6 +330,8 @@ const MSG_TYPES = {
   // Calendar System responses
   CALENDAR_RESPONSE: 'calendar.response',
   PROFILE_SCHEDULE_UPDATED: 'profile.schedule.updated',
+  // Session Welcome (server → client)
+  TUTOR_WELCOME: 'tutor.welcome',
   // Agent Console / Loop events (server → client)
   VET_MESSAGE: 'tutor.vet.message',
   TUTOR_THINKING: 'tutor.thinking',
@@ -831,6 +833,25 @@ export function useTutorAgent({
           });
           break;
           
+        case MSG_TYPES.TUTOR_WELCOME:
+          console.log('%c[TutorAgent] Welcome received', 'color: #4caf50; font-weight: bold', message.payload);
+          setState(prev => ({
+            ...prev,
+            messages: [...prev.messages, {
+              id: message.id,
+              role: 'tutor',
+              content: message.payload.text,
+              timestamp: new Date(),
+              metadata: {
+                type: 'welcome',
+                is_first_time: message.payload.is_first_time,
+                due_items: message.payload.due_items,
+                suggestions: message.payload.suggestions
+              }
+            }]
+          }));
+          break;
+
         case MSG_TYPES.INTAKE_QUESTION:
           setState(prev => ({
             ...prev,

@@ -790,6 +790,162 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/founder/{userID}/pursuits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List pursuits for founder
+         * @description Returns all pursuits for the given user.
+         */
+        get: operations["V1GetFounderPursuits"];
+        put?: never;
+        /**
+         * Create pursuit
+         * @description Creates a new pursuit for the founder.
+         */
+        post: operations["V1PostFounderPursuit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/{userID}/pursuits/{uuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get pursuit by UUID
+         * @description Returns a single pursuit by its UUID.
+         */
+        get: operations["V1GetFounderPursuit"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete pursuit
+         * @description Deletes a pursuit and its tracks/milestones.
+         */
+        delete: operations["V1DeleteFounderPursuit"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/{userID}/pursuits/{uuid}/phase": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update pursuit phase
+         * @description Updates the phase of a pursuit.
+         */
+        put: operations["V1PutFounderPursuitPhase"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/{userID}/pursuits/{uuid}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete pursuit
+         * @description Marks a pursuit as completed.
+         */
+        post: operations["V1PostFounderPursuitComplete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/{userID}/pursuits/{pursuitUUID}/tracks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List tracks for a pursuit
+         * @description Returns all tracks for the given pursuit.
+         */
+        get: operations["V1GetFounderPursuitTracks"];
+        put?: never;
+        /**
+         * Create pursuit track
+         * @description Creates a new track for the given pursuit.
+         */
+        post: operations["V1PostFounderPursuitTrack"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/{userID}/pursuits/{pursuitUUID}/tracks/{trackUUID}/milestones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List milestones for a track
+         * @description Returns all milestones for the given track.
+         */
+        get: operations["V1GetFounderPursuitTrackMilestones"];
+        put?: never;
+        /**
+         * Create pursuit track milestone
+         * @description Creates a new milestone for the given track.
+         */
+        post: operations["V1PostFounderPursuitTrackMilestone"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/{userID}/pursuits/{pursuitUUID}/tracks/{trackUUID}/milestones/{milestoneUUID}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete pursuit milestone
+         * @description Marks a milestone as completed.
+         */
+        post: operations["V1PostFounderPursuitMilestoneComplete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/founder/ideas/{ideaUUID}/enrichment": {
         parameters: {
             query?: never;
@@ -3322,6 +3478,246 @@ export interface components {
              */
             computed_at: string;
         };
+        /** @description A founder pursuit (abstract goal) */
+        PursuitResponse: {
+            /**
+             * Format: uuid
+             * @description Pursuit unique identifier
+             */
+            uuid: string;
+            /**
+             * Format: int32
+             * @description Owner user ID
+             */
+            user_id: number;
+            /**
+             * @description Type of pursuit goal
+             * @enum {string}
+             */
+            goal_type: "job_search" | "company_launch" | "stock_investing" | "personal_brand" | "job_management" | "resume_management";
+            /** @description Pursuit title */
+            title: string;
+            /** @description Detailed description */
+            description?: string;
+            /**
+             * @description Current status
+             * @enum {string}
+             */
+            status: "active" | "paused" | "completed" | "abandoned";
+            /** @description FSM phase within goal type */
+            phase: string;
+            /**
+             * Format: date-time
+             * @description When current phase was entered
+             */
+            phase_entered_at?: string;
+            /** @description Resume content for job-related pursuits */
+            resume_text?: string;
+            /** @description Target industry */
+            target_industry?: string;
+            /** @description Desired outcome */
+            desired_outcome?: string;
+            /** @description Target roles */
+            target_roles?: string[];
+            /** @description Identified skill gaps */
+            skill_gaps?: string[];
+            /**
+             * Format: date-time
+             * @description When pursuit was completed
+             */
+            completed_at?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        /** @description List of pursuits */
+        PursuitListResponse: {
+            /** @description List of pursuits */
+            items: components["schemas"]["PursuitResponse"][];
+            /**
+             * Format: int32
+             * @description Total count
+             */
+            count: number;
+        };
+        /** @description Request to create a new pursuit */
+        CreatePursuitRequest: {
+            /**
+             * @description Type of pursuit goal
+             * @enum {string}
+             */
+            goal_type: "job_search" | "company_launch" | "stock_investing" | "personal_brand" | "job_management" | "resume_management";
+            /** @description Pursuit title */
+            title: string;
+            /** @description Detailed description */
+            description?: string;
+            /** @description Resume content for job-related pursuits */
+            resume_text?: string;
+            /** @description Target industry */
+            target_industry?: string;
+            /** @description Desired outcome */
+            desired_outcome?: string;
+            /** @description Target roles */
+            target_roles?: string[];
+            /** @description Identified skill gaps */
+            skill_gaps?: string[];
+        };
+        /** @description Request to update pursuit phase */
+        UpdatePursuitPhaseRequest: {
+            /** @description New phase value */
+            phase: string;
+        };
+        /** @description A pursuit track (concrete execution plan) */
+        PursuitTrackResponse: {
+            /**
+             * Format: uuid
+             * @description Track unique identifier
+             */
+            uuid: string;
+            /**
+             * Format: uuid
+             * @description Parent pursuit UUID
+             */
+            pursuit_uuid: string;
+            /**
+             * Format: int32
+             * @description Owner user ID
+             */
+            user_id: number;
+            /**
+             * @description Type of track
+             * @enum {string}
+             */
+            track_type: "learn" | "execute" | "discover";
+            /** @description Track title */
+            title: string;
+            /** @description Detailed description */
+            description?: string;
+            /**
+             * @description Current status
+             * @enum {string}
+             */
+            status: "active" | "paused" | "completed" | "abandoned";
+            /**
+             * Format: date-time
+             * @description When track was started
+             */
+            started_at?: string;
+            /**
+             * Format: date-time
+             * @description When track was completed
+             */
+            completed_at?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        /** @description List of pursuit tracks */
+        PursuitTrackListResponse: {
+            /** @description List of tracks */
+            items: components["schemas"]["PursuitTrackResponse"][];
+            /**
+             * Format: int32
+             * @description Total count
+             */
+            count: number;
+        };
+        /** @description Request to create a pursuit track */
+        CreatePursuitTrackRequest: {
+            /**
+             * @description Type of track
+             * @enum {string}
+             */
+            track_type: "learn" | "execute" | "discover";
+            /** @description Track title */
+            title: string;
+            /** @description Detailed description */
+            description?: string;
+        };
+        /** @description A pursuit track milestone */
+        PursuitMilestoneResponse: {
+            /**
+             * Format: uuid
+             * @description Milestone unique identifier
+             */
+            uuid: string;
+            /**
+             * Format: uuid
+             * @description Parent track UUID
+             */
+            track_uuid: string;
+            /**
+             * Format: int32
+             * @description Owner user ID
+             */
+            user_id: number;
+            /** @description Milestone title */
+            title: string;
+            /** @description Detailed description */
+            description?: string;
+            /** @description Type of milestone */
+            milestone_type?: string;
+            /**
+             * @description Current status
+             * @enum {string}
+             */
+            status: "pending" | "in_progress" | "completed" | "skipped";
+            /**
+             * Format: int32
+             * @description Order within track
+             */
+            sequence_order: number;
+            /**
+             * Format: date-time
+             * @description Due date
+             */
+            due_at?: string;
+            /**
+             * Format: date-time
+             * @description When milestone was started
+             */
+            started_at?: string;
+            /**
+             * Format: date-time
+             * @description When milestone was completed
+             */
+            completed_at?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        /** @description List of pursuit track milestones */
+        PursuitMilestoneListResponse: {
+            /** @description List of milestones */
+            items: components["schemas"]["PursuitMilestoneResponse"][];
+            /**
+             * Format: int32
+             * @description Total count
+             */
+            count: number;
+        };
+        /** @description Request to create a pursuit track milestone */
+        CreatePursuitMilestoneRequest: {
+            /** @description Milestone title */
+            title: string;
+            /** @description Detailed description */
+            description?: string;
+            /** @description Type of milestone */
+            milestone_type?: string;
+            /**
+             * Format: int32
+             * @description Order within track
+             */
+            sequence_order?: number;
+            /**
+             * Format: date-time
+             * @description Due date
+             */
+            due_at?: string;
+        };
         /** @description Fit score for a specific dimension */
         EnrichmentFitScore: {
             /** @description The fit dimension (founder, market, legal, technical, financial) */
@@ -3766,7 +4162,7 @@ export interface components {
              * @description UUID of the lesson this quiz belongs to
              */
             lesson_uuid?: string;
-            /** @description Quiz questions (populated from normalized tables, may be null) */
+            /** @description Quiz questions (populated from normalized tables, may be null)w */
             questions?: components["schemas"]["QuizQuestion"][] | null;
             /**
              * Format: int32
@@ -6876,6 +7272,570 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
+            };
+        };
+    };
+    V1GetFounderPursuits: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of pursuits */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PursuitListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1PostFounderPursuit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePursuitRequest"];
+            };
+        };
+        responses: {
+            /** @description Pursuit created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PursuitResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1GetFounderPursuit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+                /** @description Pursuit UUID */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pursuit details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PursuitResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Pursuit not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1DeleteFounderPursuit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+                /** @description Pursuit UUID */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pursuit deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Pursuit not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1PutFounderPursuitPhase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+                /** @description Pursuit UUID */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePursuitPhaseRequest"];
+            };
+        };
+        responses: {
+            /** @description Pursuit updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PursuitResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Pursuit not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1PostFounderPursuitComplete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+                /** @description Pursuit UUID */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pursuit completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PursuitResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Pursuit not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1GetFounderPursuitTracks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+                /** @description Pursuit UUID */
+                pursuitUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of tracks */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PursuitTrackListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Pursuit not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1PostFounderPursuitTrack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+                /** @description Pursuit UUID */
+                pursuitUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePursuitTrackRequest"];
+            };
+        };
+        responses: {
+            /** @description Track created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PursuitTrackResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Pursuit not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1GetFounderPursuitTrackMilestones: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+                /** @description Pursuit UUID */
+                pursuitUUID: string;
+                /** @description Track UUID */
+                trackUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of milestones */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PursuitMilestoneListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Track not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1PostFounderPursuitTrackMilestone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+                /** @description Pursuit UUID */
+                pursuitUUID: string;
+                /** @description Track UUID */
+                trackUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePursuitMilestoneRequest"];
+            };
+        };
+        responses: {
+            /** @description Milestone created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PursuitMilestoneResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Track not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1PostFounderPursuitMilestoneComplete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+                /** @description Pursuit UUID */
+                pursuitUUID: string;
+                /** @description Track UUID */
+                trackUUID: string;
+                /** @description Milestone UUID */
+                milestoneUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Milestone completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PursuitMilestoneResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Milestone not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -45,11 +45,8 @@ import {
   IconX,
   IconPlayerStop,
   IconPalette,
-  IconPencil,
-  IconNote,
   IconTrash,
-  IconRefresh,
-  IconDatabaseExport
+  IconRefresh
 } from '@tabler/icons-react';
 import Collapse from '@mui/material/Collapse';
 import Paper from '@mui/material/Paper';
@@ -82,7 +79,6 @@ import { syncSeeds } from '@/api/founder';
 // Hooks
 import useTutorAgent from '@/hooks/useTutorAgent';
 import { useCanvasActivityTracker } from '@/hooks/useCanvasActivityTracker';
-import { useOneNoteActivityTracker } from '@/hooks/useOneNoteActivityTracker';
 
 // Components
 import CourseSelector from './components/CourseSelector';
@@ -94,12 +90,9 @@ import LessonEndDialog from './components/LessonEndDialog';
 import { CustomRichTextToolbar, type SourceType, type SelectionData } from './components/CustomRichTextToolbar';
 import { 
   UnifiedCanvas, 
-  OneNoteEditor,
   type CanvasData, 
   type TLSnapshot,
   type UnifiedCanvasRef,
-  type OneNoteEditorRef,
-  type OneNoteSelectionData,
   typeAIResponse,
   findEmptySpaceNear
 } from '@/components/editor';
@@ -109,7 +102,9 @@ import {
 // ============================================================================
 
 const NAV_WIDTH = 320;
-const CHAT_WIDTH = 360;
+const CHAT_MIN_WIDTH = 280;
+const CHAT_MAX_WIDTH = 600;
+const CHAT_DEFAULT_WIDTH = 360;
 
 // Get API key from env - in production use proper auth
 const API_KEY = import.meta.env.VITE_API_KEY || 'test-all-access-key';
@@ -120,7 +115,6 @@ const USER_ID = 1; // TODO: Get from auth context
 // ============================================================================
 
 type ViewMode = 'static' | 'interactive';
-type EditorMode = 'canvas' | 'onenote';
 
 // ============================================================================
 // Helper: Parse canvas data from lesson content
@@ -138,7 +132,7 @@ function parseCanvasData(content: string | null | undefined): CanvasData | null 
 }
 
 // ============================================================================
-// Phase 5: Data Sync Helpers (Canvas <-> OneNote)
+// Phase 5: Data Sync Helpers
 // ============================================================================
 
 /**
@@ -259,7 +253,7 @@ interface TLShape {
 let hasWarnedCorruptedMarkdown = false;
 
 /**
- * Extract text content from canvas data for OneNote editor
+ * Extract text content from canvas data
  * Converts tldraw richText shapes to HTML for TipTap
  * Falls back to markdown content or lesson content
  */
@@ -504,119 +498,6 @@ function processInlineMarkdown(text: string): string {
   return result;
 }
 
-/**
- * Format AI response as styled HTML for OneNote/TipTap editor
- * Creates a purple blockquote with AI indicator styling
- */
-function formatAIResponseForOneNote(text: string): string {
-  // Clean up text: normalize line breaks and remove excessive whitespace
-  const cleanText = text.trim().replace(/\n{3,}/g, '\n\n');
-  
-  // Process the text: convert newlines to paragraphs, handle markdown
-  const paragraphs = cleanText.split(/\n\n/).filter(p => p.trim());
-  
-  if (paragraphs.length === 0) {
-    return '';
-  }
-
-  // Format each paragraph
-  const formattedParagraphs = paragraphs.map(para => {
-    // Check if it's a heading (starts with #)
-    const headingMatch = para.match(/^(#{1,3})\s+(.+)/);
-    if (headingMatch && headingMatch[1] && headingMatch[2]) {
-      const level = headingMatch[1].length;
-      return `<h${level}>${escapeHtml(headingMatch[2])}</h${level}>`;
-    }
-
-    // Check for list items
-    if (para.includes('\n- ') || para.startsWith('- ')) {
-      const items = para.split(/\n/).filter(line => line.trim());
-      const listItems = items.map(item => {
-        const itemText = item.replace(/^-\s*/, '').trim();
-        return `<li>${processInlineMarkdown(itemText)}</li>`;
-      }).join('');
-      return `<ul>${listItems}</ul>`;
-    }
-
-    // Regular paragraph - join lines with space (single newlines become spaces)
-    const lines = para.split('\n').map(line => processInlineMarkdown(line.trim())).filter(l => l).join(' ');
-    return lines ? `<p>${lines}</p>` : '';
-  }).filter(p => p).join('');
-
-  // Return clean HTML without extra whitespace
-  return `<div class="ai-response"><p class="ai-response-header"><strong>🤖 AI Response</strong></p>${formattedParagraphs}</div><p></p>`;
-}
-
-/**
- * Insert AI response in TipTap editor with typing effect
- * Types words progressively for a natural feel while maintaining valid HTML
- */
-function typeAIResponseInOneNote(
-  editor: import('@tiptap/react').Editor,
-  text: string,
-  options: {
-    typingSpeed?: number; // ms per word
-    onComplete?: () => void;
-  } = {}
-) {
-  const { typingSpeed = 30, onComplete } = options;
-  
-  // Split text into words
-  const words = text.trim().split(/\s+/);
-  if (words.length === 0) {
-    onComplete?.();
-    return;
-  }
-  
-  // Insert header first, then type content word by word
-  const headerHTML = '<div class="ai-response"><p class="ai-response-header"><strong>🤖 AI Response</strong></p><p>';
-  editor.commands.insertContent(headerHTML);
-  
-  let currentWordIndex = 0;
-  let needsNewParagraph = false;
-  
-  const typeNextWord = () => {
-    if (currentWordIndex >= words.length) {
-      // Close the container and add trailing paragraph
-      editor.commands.insertContent('</p></div><p></p>');
-      setTimeout(() => {
-        onComplete?.();
-      }, 50);
-      return;
-    }
-    
-    const word = words[currentWordIndex] || '';
-    
-    // Handle paragraph breaks (double newlines become new paragraph indicators)
-    if (word === '' || needsNewParagraph) {
-      needsNewParagraph = false;
-      // Don't add empty words, just mark that next word needs new paragraph
-    } else {
-      // Check for markdown formatting
-      let displayWord = word;
-      
-      // Bold: **word** -> <strong>word</strong>
-      displayWord = displayWord.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-      // Italic: *word* -> <em>word</em>
-      displayWord = displayWord.replace(/\*(.+?)\*/g, '<em>$1</em>');
-      // Code: `word` -> <code>word</code>
-      displayWord = displayWord.replace(/`(.+?)`/g, '<code>$1</code>');
-      
-      // Insert word with space
-      editor.commands.insertContent(displayWord + ' ');
-    }
-    
-    currentWordIndex++;
-    
-    // Calculate delay - vary slightly for natural feel
-    const delay = typingSpeed + Math.random() * 10;
-    setTimeout(typeNextWord, delay);
-  };
-  
-  // Start typing after a brief pause
-  setTimeout(typeNextWord, 100);
-}
-
 // ============================================================================
 // Main Component
 // ============================================================================
@@ -629,10 +510,10 @@ export default function CourseViewer() {
   // =========================================================================
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('static');
-  const [editorMode, setEditorMode] = useState<EditorMode>('canvas');
   const [showNav, setShowNav] = useState(true);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [showChatPanel, setShowChatPanel] = useState(false); // Chat panel hidden by default in interactive mode
+  const [chatPanelWidth, setChatPanelWidth] = useState(CHAT_DEFAULT_WIDTH);
   const [showContextDebug, setShowContextDebug] = useState(false); // AI context debug panel
   const [showStylePanel, setShowStylePanel] = useState(false); // tldraw style panel collapsed by default
   const [notification, setNotification] = useState<{
@@ -649,8 +530,6 @@ export default function CourseViewer() {
   const [isAddingModule, setIsAddingModule] = useState(false);
   const [isAddingLesson, setIsAddingLesson] = useState(false);
 
-  // Sync to CSV state
-  const [isSyncingCsv, setIsSyncingCsv] = useState(false);
 
   // =========================================================================
   // Course/Lesson State
@@ -670,18 +549,12 @@ export default function CourseViewer() {
   const [hasUnsavedCanvasChanges, setHasUnsavedCanvasChanges] = useState(false);
   const pendingCanvasSnapshot = useRef<TLSnapshot | null>(null);
   
-  // OneNote unsaved state (defined early so handleBackToCourses can use it)
-  const [hasUnsavedOneNoteChanges, setHasUnsavedOneNoteChanges] = useState(false);
-  const pendingOneNoteContent = useRef<string | null>(null);
-  
   // Active LLM model display
   const [activeLLMModel, setActiveLLMModel] = useState<string | null>(null);
 
   // Canvas ref - exposes editor for AI writing
   const canvasRef = useRef<UnifiedCanvasRef>(null);
   
-  // OneNote editor ref
-  const oneNoteRef = useRef<OneNoteEditorRef>(null);
   
   // AI state tracking ref - prevents activity tracker from sending during AI typing animation
   const aiTypingRef = useRef<boolean>(false);
@@ -749,56 +622,7 @@ export default function CourseViewer() {
     tutor.sendCanvasText,
     tutor.sendCanvasIdle,
     { 
-      enabled: viewMode === 'interactive' && tutor.isConnected && editorMode === 'canvas',
-      textDebounceMs: 2000,      // Debounce to reduce noise
-      idleThresholdMs: 30000,    // Idle nudge after 30s
-      aiTypingRef               // Prevent sending during AI typing animation
-    }
-  );
-
-  // =========================================================================
-  // OneNote Activity Tracker (AI writing companion for TipTap)
-  // =========================================================================
-  
-  // Get TipTap editor instance from OneNote ref
-  const [oneNoteEditor, setOneNoteEditor] = useState<import('@tiptap/react').Editor | null>(null);
-  
-  // Update OneNote editor ref when component mounts
-  const hasLoggedOneNoteEditorReadyRef = useRef(false);
-  useEffect(() => {
-    // Only check when we have a lesson selected and in onenote mode
-    if (!selectedLesson?.uuid || editorMode !== 'onenote') {
-      hasLoggedOneNoteEditorReadyRef.current = false;
-      return;
-    }
-    
-    const checkEditor = () => {
-      const ed = oneNoteRef.current?.getEditor();
-      if (ed && ed !== oneNoteEditor) {
-        if (!hasLoggedOneNoteEditorReadyRef.current) {
-          console.log('%c[OneNote] Editor ready', 'color: #4caf50');
-          hasLoggedOneNoteEditorReadyRef.current = true;
-        }
-        setOneNoteEditor(ed);
-      }
-    };
-    
-    // Check immediately and then periodically until we get the editor
-    checkEditor();
-    const interval = setInterval(() => {
-      if (!oneNoteEditor) checkEditor();
-    }, 500);
-    
-    return () => clearInterval(interval);
-  }, [selectedLesson?.uuid, editorMode]); // Removed oneNoteEditor from deps to avoid re-triggering
-
-  // OneNote activity tracker - sends TipTap updates to tutor agent
-  const { syncLastSentText: syncOneNoteLastSentText } = useOneNoteActivityTracker(
-    oneNoteEditor,
-    tutor.sendCanvasText,
-    tutor.sendCanvasIdle,
-    { 
-      enabled: viewMode === 'interactive' && tutor.isConnected && editorMode === 'onenote',
+      enabled: viewMode === 'interactive' && tutor.isConnected,
       textDebounceMs: 2000,      // Debounce to reduce noise
       idleThresholdMs: 30000,    // Idle nudge after 30s
       aiTypingRef               // Prevent sending during AI typing animation
@@ -989,17 +813,8 @@ export default function CourseViewer() {
 
   // Parse canvas data from current lesson
   // Canvas data comes from canvas_content field (not content!)
-  // content holds the original markdown or OneNote HTML
   const canvasData = parseCanvasData(selectedLesson?.canvas_content);
   
-  // OneNote uses the `content` field directly (original markdown or saved HTML)
-  // Canvas uses the `canvas_content` field (tldraw JSON)
-  // No need to extract from canvas - these are now separate fields
-  const oneNoteInitialContent = useMemo(() => {
-    if (!selectedLesson) return '';
-    // Use content field directly - it contains either original markdown or saved OneNote HTML
-    return selectedLesson.content || '';
-  }, [selectedLesson?.uuid, selectedLesson?.content]); // Recalculate when lesson changes
 
   // =========================================================================
   // Handlers - General
@@ -1016,8 +831,7 @@ export default function CourseViewer() {
 
   const handleBackToCourses = useCallback(() => {
     // Check for unsaved changes before leaving
-    const hasUnsavedChanges = hasUnsavedCanvasChanges || hasUnsavedOneNoteChanges;
-    if (hasUnsavedChanges) {
+    if (hasUnsavedCanvasChanges) {
       const confirmed = window.confirm(
         'You have unsaved changes. Are you sure you want to leave? Your changes will be lost.'
       );
@@ -1049,8 +863,30 @@ export default function CourseViewer() {
     
     // Reset unsaved state
     setHasUnsavedCanvasChanges(false);
-    setHasUnsavedOneNoteChanges(false);
-  }, [tutor, hasUnsavedCanvasChanges, hasUnsavedOneNoteChanges]);
+  }, [tutor, hasUnsavedCanvasChanges]);
+
+  // Resize handle for chat panel (MUI-only, no external lib)
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = chatPanelWidth;
+    const onMove = (moveEvent: MouseEvent) => {
+      const deltaX = startX - moveEvent.clientX; // drag left = positive = chat narrower
+      let newWidth = startWidth + deltaX;
+      newWidth = Math.max(CHAT_MIN_WIDTH, Math.min(CHAT_MAX_WIDTH, newWidth));
+      setChatPanelWidth(newWidth);
+    };
+    const onUp = () => {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [chatPanelWidth]);
 
   const handleModeChange = useCallback((_: any, newMode: ViewMode | null) => {
     if (newMode) {
@@ -1071,108 +907,79 @@ export default function CourseViewer() {
   // Keyboard shortcuts - tldraw handles its own shortcuts for zoom, tools, etc.
 
   // =========================================================================
-  // AI Canvas/OneNote Writing - Handle when agent wants to write
+  // AI Canvas Writing - Handle when agent wants to write
   // =========================================================================
+  // Retry when editor not ready - tldraw may not have mounted yet when canvas.ai_write arrives
+  const CANVAS_WRITE_RETRY_MS = 150;
+  const CANVAS_WRITE_MAX_RETRIES = 10;
 
   useEffect(() => {
-    // Only process when in interactive mode and we have a write request
     if (!tutor.canvasAIWrite || viewMode !== 'interactive') return;
 
     const { text, position, color = 'violet', typingSpeed = 35, size = 'm' } = tutor.canvasAIWrite;
+    let retryTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
-    // =========================================================================
-    // OneNote Mode - Insert styled AI response with typing effect
-    // =========================================================================
-    if (editorMode === 'onenote') {
-      const tipTapEditor = oneNoteRef.current?.getEditor();
-      if (!tipTapEditor) {
-        console.warn('[CourseViewer] Cannot write to OneNote - no editor ref');
+    const tryWrite = (attempt: number) => {
+      const editor = canvasRef.current?.getEditor();
+      if (!editor) {
+        if (attempt < CANVAS_WRITE_MAX_RETRIES) {
+          console.log(`[CourseViewer] Editor not ready, retry ${attempt + 1}/${CANVAS_WRITE_MAX_RETRIES} in ${CANVAS_WRITE_RETRY_MS}ms`);
+          retryTimeoutId = setTimeout(() => tryWrite(attempt + 1), CANVAS_WRITE_RETRY_MS);
+          return;
+        }
+        console.warn('[CourseViewer] Cannot write to canvas - no editor ref after retries');
         tutor.clearCanvasAIWrite();
         return;
       }
 
-      console.log('%c[OneNote] ✍️ AI typing response', 'color: #9c27b0; font-weight: bold; font-size: 12px', {
-        text: text.length > 100 ? text.substring(0, 100) + '...' : text
+      // Find position for AI text
+      const targetPosition = position || findEmptySpaceNear(
+        editor,
+        100, // Default reference X
+        100, // Default reference Y
+        'auto'
+      );
+
+      console.log('%c[Canvas] ✍️ AI typing on canvas', 'color: #9c27b0; font-weight: bold; font-size: 12px', {
+        text: text.length > 100 ? text.substring(0, 100) + '...' : text,
+        position: targetPosition,
+        color
       });
 
       // Mark AI as typing - prevents activity tracker from sending updates
       aiTypingRef.current = true;
 
-      // Clear the request immediately to prevent re-processing
-      tutor.clearCanvasAIWrite();
-
-      // Type the AI response with animation
-      typeAIResponseInOneNote(tipTapEditor, text, {
-        typingSpeed: typingSpeed || 15,
-        onComplete: () => {
-          console.log('%c[OneNote] ✅ AI typing complete', 'color: #4caf50; font-weight: bold');
+      // Start typing animation
+      typeAIResponse(editor, {
+        text,
+        x: targetPosition.x,
+        y: targetPosition.y,
+        color,
+        typingSpeed,
+        size,
+        onComplete: (shapeId: string) => {
+          console.log('%c[Canvas] ✅ AI typing complete', 'color: #4caf50; font-weight: bold');
           
           // Mark AI as done typing
           aiTypingRef.current = false;
           
-          // Re-focus the editor so user can continue typing
-          tipTapEditor.commands.focus('end');
+          // Sync lastSentText to include AI response - prevents re-triggering on same content
+          syncLastSentText();
           
-          // Sync lastSentText to prevent re-triggering
-          syncOneNoteLastSentText();
-          
-          setNotification({ type: 'info', message: 'AI responded' });
+          setNotification({ type: 'info', message: 'AI wrote on canvas' });
         }
       });
-      return;
-    }
 
-    // =========================================================================
-    // Canvas Mode - Animated typing on canvas
-    // =========================================================================
-    const editor = canvasRef.current?.getEditor();
-    if (!editor) {
-      console.warn('[CourseViewer] Cannot write to canvas - no editor ref');
+      // Clear the request so we don't process it again
       tutor.clearCanvasAIWrite();
-      return;
-    }
+    };
 
-    // Find position for AI text
-    const targetPosition = position || findEmptySpaceNear(
-      editor,
-      100, // Default reference X
-      100, // Default reference Y
-      'auto'
-    );
+    tryWrite(0);
 
-    console.log('%c[Canvas] ✍️ AI typing on canvas', 'color: #9c27b0; font-weight: bold; font-size: 12px', {
-      text: text.length > 100 ? text.substring(0, 100) + '...' : text,
-      position: targetPosition,
-      color
-    });
-
-    // Mark AI as typing - prevents activity tracker from sending updates
-    aiTypingRef.current = true;
-
-    // Start typing animation
-    typeAIResponse(editor, {
-      text,
-      x: targetPosition.x,
-      y: targetPosition.y,
-      color,
-      typingSpeed,
-      size,
-      onComplete: (shapeId: string) => {
-        console.log('%c[Canvas] ✅ AI typing complete', 'color: #4caf50; font-weight: bold');
-        
-        // Mark AI as done typing
-        aiTypingRef.current = false;
-        
-        // Sync lastSentText to include AI response - prevents re-triggering on same content
-        syncLastSentText();
-        
-        setNotification({ type: 'info', message: 'AI wrote on canvas' });
-      }
-    });
-
-    // Clear the request so we don't process it again
-    tutor.clearCanvasAIWrite();
-  }, [tutor.canvasAIWrite, viewMode, editorMode, tutor]);
+    return () => {
+      if (retryTimeoutId) clearTimeout(retryTimeoutId);
+    };
+  }, [tutor.canvasAIWrite, viewMode, tutor]);
 
   // =========================================================================
   // AI Status Auto-Dismiss - Clear status messages after a short delay
@@ -1377,8 +1184,6 @@ export default function CourseViewer() {
   }, []);
 
   // Save canvas (called from header button or UnifiedCanvas onSave)
-  // Canvas saves to `canvas_content` field (tldraw JSON)
-  // OneNote saves to `content` field (HTML)
   const handleCanvasSave = useCallback(async (snapshot?: TLSnapshot) => {
     if (!selectedLesson) return;
     
@@ -1416,34 +1221,37 @@ export default function CourseViewer() {
         message: apiError.message || 'Failed to save'
       });
       setTimeout(() => setCanvasSaveStatus('idle'), 3000);
+      throw err;
     }
   }, [selectedLesson]);
 
-  // Save from header button (uses pending snapshot)
-  const handleHeaderSave = useCallback(() => {
-    handleCanvasSave();
-  }, [handleCanvasSave]);
-
-  // Handle sync to CSV (exports database to CSV seed files)
-  const handleSyncToCsv = useCallback(async () => {
-    setIsSyncingCsv(true);
+  // Single Save button: save canvas to DB, then sync DB to CSV
+  const handleSaveAndSync = useCallback(async () => {
+    setCanvasSaveStatus('saving');
     try {
+      // 1. Save canvas to DB (if there are changes)
+      await handleCanvasSave();
+
+      // 2. Sync DB to CSV
       const result = await syncSeeds();
       const tableCount = result.results?.length || 0;
+
+      setCanvasSaveStatus('saved');
       setNotification({
         type: 'success',
-        message: `✅ Synced ${tableCount} tables to CSV in ${result.total_time || 'N/A'}`
+        message: `Saved & synced ${tableCount} tables to CSV`
       });
-    } catch (error) {
-      console.error('[CourseViewer] Sync to CSV failed:', error);
+      setTimeout(() => setCanvasSaveStatus('idle'), 2000);
+    } catch (err) {
+      const apiError = err as { message?: string };
+      setCanvasSaveStatus('error');
       setNotification({
         type: 'error',
-        message: 'Failed to sync data. Check console for details.'
+        message: apiError.message || 'Failed to save or sync'
       });
-    } finally {
-      setIsSyncingCsv(false);
+      setTimeout(() => setCanvasSaveStatus('idle'), 3000);
     }
-  }, []);
+  }, [handleCanvasSave]);
 
   // =========================================================================
   // Handlers - Interactive Mode
@@ -1515,18 +1323,11 @@ export default function CourseViewer() {
     });
   }, [selectedLesson?.uuid, tutor]);
 
-  // =========================================================================
-  // Handlers - OneNote Editor (TipTap-based document editor)
-  // =========================================================================
-
   // Warn user about unsaved changes when leaving the page (browser close/reload)
   useEffect(() => {
-    const hasUnsavedChanges = hasUnsavedCanvasChanges || hasUnsavedOneNoteChanges;
-    
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
+      if (hasUnsavedCanvasChanges) {
         e.preventDefault();
-        // Chrome requires returnValue to be set
         e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
         return e.returnValue;
       }
@@ -1537,75 +1338,7 @@ export default function CourseViewer() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [hasUnsavedCanvasChanges, hasUnsavedOneNoteChanges]);
-
-  const handleOneNoteChange = useCallback((html: string) => {
-    pendingOneNoteContent.current = html;
-    setHasUnsavedOneNoteChanges(true);
-  }, []);
-
-  // Save OneNote content
-  const handleOneNoteSave = useCallback(async (html?: string) => {
-    if (!selectedLesson) return;
-    
-    const contentToSave = html || pendingOneNoteContent.current;
-    if (!contentToSave) {
-      setNotification({ type: 'info', message: 'No changes to save' });
-      return;
-    }
-
-    setCanvasSaveStatus('saving');
-    try {
-      // Store as plain HTML (or we could wrap it in a structure)
-      await updateHTILLesson(selectedLesson.uuid, {
-        content: contentToSave
-      });
-
-      setHasUnsavedOneNoteChanges(false);
-      setCanvasSaveStatus('saved');
-      setNotification({ type: 'success', message: 'Saved!' });
-      setTimeout(() => setCanvasSaveStatus('idle'), 2000);
-    } catch (err) {
-      const apiError = err as { message?: string };
-      setCanvasSaveStatus('error');
-      setNotification({
-        type: 'error',
-        message: apiError.message || 'Failed to save'
-      });
-      setTimeout(() => setCanvasSaveStatus('idle'), 3000);
-    }
-  }, [selectedLesson]);
-
-  // Handlers for OneNote concept/confusion marking
-  const handleOneNoteSaveConcept = useCallback((data: OneNoteSelectionData) => {
-    if (!data.text || !selectedLesson?.uuid) return;
-    
-    setIsSavingSelection(true);
-
-    if (viewMode === 'interactive') {
-      setShowChatPanel(true);
-    }
-
-    tutor.sendCanvasSelection({
-      text: data.text,
-      action: 'save_concept',
-      source_type: 'note' as SourceType,
-      lesson_uuid: selectedLesson.uuid,
-      view_mode: viewMode
-    });
-  }, [selectedLesson?.uuid, tutor, viewMode]);
-
-  const handleOneNoteMarkConfusion = useCallback((data: OneNoteSelectionData) => {
-    if (!data.text || !selectedLesson?.uuid) return;
-    
-    setIsSavingSelection(true);
-    tutor.sendCanvasSelection({
-      text: data.text,
-      action: 'mark_confusion',
-      source_type: 'note' as SourceType,
-      lesson_uuid: selectedLesson.uuid
-    });
-  }, [selectedLesson?.uuid, tutor]);
+  }, [hasUnsavedCanvasChanges]);
 
   // =========================================================================
   // Handlers - End Lesson Session
@@ -1842,23 +1575,6 @@ export default function CourseViewer() {
             </ToggleButton>
           </ToggleButtonGroup>
 
-          {/* Editor Mode Toggle (Canvas ↔ OneNote) - Single icon */}
-          <Tooltip title={editorMode === 'canvas' ? 'Switch to OneNote view' : 'Switch to Canvas view'}>
-            <IconButton
-              onClick={() => setEditorMode(editorMode === 'canvas' ? 'onenote' : 'canvas')}
-              size="small"
-              sx={{
-                color: editorMode === 'onenote' ? theme.palette.secondary.main : theme.palette.text.secondary,
-                bgcolor: editorMode === 'onenote' ? alpha(theme.palette.secondary.main, 0.1) : 'transparent',
-                '&:hover': {
-                  bgcolor: alpha(theme.palette.secondary.main, 0.2)
-                }
-              }}
-            >
-              {editorMode === 'canvas' ? <IconNote size={18} /> : <IconPencil size={18} />}
-            </IconButton>
-          </Tooltip>
-
           {/* LLM Model Display */}
           {activeLLMModel && (
             <Tooltip title="AI Model">
@@ -1927,15 +1643,21 @@ export default function CourseViewer() {
             </Tooltip>
           )}
 
-          {/* Save Button - handles both Canvas and OneNote modes */}
-          <Tooltip title={(editorMode === 'canvas' ? hasUnsavedCanvasChanges : hasUnsavedOneNoteChanges) ? 'Save changes (unsaved!)' : 'No changes to save'}>
+          {/* Save Button - saves canvas to DB and syncs DB to CSV */}
+          <Tooltip title={
+            canvasSaveStatus === 'saving'
+              ? 'Saving & syncing...'
+              : hasUnsavedCanvasChanges
+                ? 'Save to DB & sync to CSV (unsaved!)'
+                : 'Save to DB & sync to CSV'
+          }>
             <span>
               <IconButton 
-                onClick={() => editorMode === 'canvas' ? handleHeaderSave() : handleOneNoteSave()}
+                onClick={() => handleSaveAndSync()}
                 disabled={canvasSaveStatus === 'saving'}
                 size="small"
                 sx={{
-                  color: (editorMode === 'canvas' ? hasUnsavedCanvasChanges : hasUnsavedOneNoteChanges)
+                  color: hasUnsavedCanvasChanges
                     ? theme.palette.error.main 
                     : canvasSaveStatus === 'saved' 
                       ? theme.palette.success.main 
@@ -1953,32 +1675,8 @@ export default function CourseViewer() {
             </span>
           </Tooltip>
 
-          {/* Sync to CSV Button - exports database to CSV seed files */}
-          <Tooltip title={isSyncingCsv ? 'Syncing...' : 'Sync to CSV'}>
-            <span>
-              <IconButton
-                onClick={handleSyncToCsv}
-                disabled={isSyncingCsv}
-                size="small"
-                sx={{
-                  color: theme.palette.text.secondary,
-                  '&:hover': {
-                    bgcolor: alpha(theme.palette.secondary.main, 0.1),
-                    color: theme.palette.secondary.main
-                  }
-                }}
-              >
-                {isSyncingCsv ? (
-                  <CircularProgress size={16} color="inherit" />
-                ) : (
-                  <IconDatabaseExport size={18} />
-                )}
-              </IconButton>
-            </span>
-          </Tooltip>
-
-          {/* Style Panel Toggle - only for Canvas mode (tldraw) */}
-          {editorMode === 'canvas' && (
+          {/* Style Panel Toggle */}
+          {(
             <Tooltip title={showStylePanel ? 'Hide colors & sizes' : 'Show colors & sizes'}>
               <IconButton 
                 onClick={() => setShowStylePanel(!showStylePanel)} 
@@ -2070,11 +1768,13 @@ export default function CourseViewer() {
           />
         </Drawer>
 
-        {/* Editor Content Area */}
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {/* Content Area - Canvas or OneNote Mode */}
-          <Box sx={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-            {loadingLesson || loadingCourse ? (
+        {/* Editor + Chat (resizable when chat visible) */}
+        <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden', minWidth: 0 }}>
+          {/* Editor Content Area */}
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+            {/* Content Area */}
+            <Box sx={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+              {loadingLesson || loadingCourse ? (
               <Box sx={{ p: 4 }}>
                 <Skeleton variant="text" width={300} height={40} />
                 <Skeleton
@@ -2084,13 +1784,11 @@ export default function CourseViewer() {
                 />
               </Box>
             ) : selectedLesson ? (
-              /* Conditional rendering: Canvas (tldraw) or OneNote (TipTap) */
-              editorMode === 'canvas' ? (
                 <UnifiedCanvas
                   ref={canvasRef}
                   key={selectedLesson.uuid}
                   initialData={canvasData}
-                  initialText={undefined} // Canvas uses canvas_content only, never falls back to content
+                  initialText={undefined}
                   onChange={handleCanvasChange}
                   readOnly={false}
                   minHeight="100%"
@@ -2098,22 +1796,6 @@ export default function CourseViewer() {
                   transparentBg={false}
                   components={tldrawComponents}
                 />
-              ) : (
-                <OneNoteEditor
-                  ref={oneNoteRef}
-                  key={`onenote-${selectedLesson.uuid}`}
-                  initialContent={oneNoteInitialContent}
-                  onChange={handleOneNoteChange}
-                  onSave={handleOneNoteSave}
-                  onSaveConcept={handleOneNoteSaveConcept}
-                  onMarkConfusion={handleOneNoteMarkConfusion}
-                  readOnly={false}
-                  placeholder="Start taking notes..."
-                  showToolbar={true}
-                  minHeight="100%"
-                  isSaving={isSavingSelection}
-                />
-              )
             ) : (
               <Box
                 sx={{
@@ -2130,21 +1812,36 @@ export default function CourseViewer() {
           </Box>
         </Box>
 
-        {/* Right Panel: Tutor Chat (only when showChatPanel is true) */}
+        {/* Resize Handle + Chat Panel (only when showChatPanel is true) */}
         {showChatPanel && viewMode === 'interactive' && (
-          <Slide direction="left" in={showChatPanel}>
+          <>
             <Box
+              onMouseDown={handleResizeStart}
               sx={{
-                width: CHAT_WIDTH,
-                height: '100%',
+                width: 6,
                 flexShrink: 0,
-                borderLeft: `1px solid ${theme.palette.divider}`,
-                display: 'flex',
-                flexDirection: 'column',
-                bgcolor: theme.palette.background.paper,
-                overflow: 'hidden'
+                cursor: 'col-resize',
+                bgcolor: theme.palette.divider,
+                '&:hover': { bgcolor: theme.palette.primary.main, opacity: 0.5 }
               }}
-            >
+              role="separator"
+              aria-label="Resize chat panel"
+            />
+            <Slide direction="left" in={showChatPanel}>
+              <Box
+                sx={{
+                  width: chatPanelWidth,
+                  minWidth: CHAT_MIN_WIDTH,
+                  maxWidth: CHAT_MAX_WIDTH,
+                  height: '100%',
+                  flexShrink: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  bgcolor: theme.palette.background.paper,
+                  overflow: 'hidden',
+                  borderLeft: `1px solid ${theme.palette.divider}`
+                }}
+              >
               {/* Show IntakeForm if intake not complete, otherwise TutorChat */}
               {!tutor.intakeComplete ? (
                 tutor.currentIntakeQuestion ? (
@@ -2197,8 +1894,9 @@ export default function CourseViewer() {
                   onExitVetting={tutor.closeVetConsole}
                 />
               )}
-            </Box>
-          </Slide>
+              </Box>
+            </Slide>
+          </>
         )}
       </Box>
 
@@ -2554,6 +2252,7 @@ export default function CourseViewer() {
         </Paper>
       </Collapse>
 
+      </Box>
     </Box>
   );
 }
