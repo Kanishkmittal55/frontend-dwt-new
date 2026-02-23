@@ -157,27 +157,52 @@ export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounde
     [onPursuitUpdated]
   );
 
+  const eventIdRef = useRef(0);
+  const nextEventId = () => `evt-${++eventIdRef.current}-${Date.now()}`;
+
   const handleAgentThinking = useCallback((payload: AgentThinkingPayload) => {
     if (!isMounted.current) return;
     setStreamingEvents((prev) => [
       ...prev,
-      { id: `thinking-${Date.now()}`, type: 'thinking', payload, timestamp: new Date() }
+      { id: nextEventId(), type: 'thinking', payload, timestamp: new Date() }
     ]);
   }, []);
 
   const handleAgentToolCall = useCallback((payload: AgentToolCallPayload) => {
     if (!isMounted.current) return;
+    // Debug: log tool calls (especially crawl_radar, create_milestone for milestone creation flow)
+    console.log('[FounderAgent] tool_call:', payload.name, payload.arguments);
     setStreamingEvents((prev) => [
       ...prev,
-      { id: `tool-${Date.now()}`, type: 'tool_call', payload, timestamp: new Date() }
+      { id: nextEventId(), type: 'tool_call', payload, timestamp: new Date() }
     ]);
   }, []);
 
   const handleAgentToolResult = useCallback((payload: AgentToolResultPayload) => {
     if (!isMounted.current) return;
+    // Debug: log tool results - crawl_radar should include aggregated_skill_gaps for milestone creation
+    if (payload.name === 'crawl_radar') {
+      try {
+        const parsed = JSON.parse(payload.result || '{}');
+        const gaps = parsed.aggregated_skill_gaps;
+        console.log('[FounderAgent] crawl_radar result:', {
+          discoveries_count: parsed.discoveries_count,
+          aggregated_skill_gaps: gaps,
+          has_skill_gaps: Array.isArray(gaps) && gaps.length > 0,
+          raw_result_preview: payload.result?.slice(0, 200)
+        });
+        if (!gaps || gaps.length === 0) {
+          console.warn('[FounderAgent] crawl_radar returned NO aggregated_skill_gaps — milestones will not be auto-created. Check: analyses table has skill_gaps? Resume uploaded with relevance enabled?');
+        }
+      } catch {
+        console.log('[FounderAgent] crawl_radar result (parse failed):', payload.result?.slice(0, 300));
+      }
+    } else if (payload.name === 'create_milestone' || payload.name === 'create_milestones_from_skill_gaps') {
+      console.log('[FounderAgent]', payload.name, 'result:', payload.result, payload.error);
+    }
     setStreamingEvents((prev) => [
       ...prev,
-      { id: `result-${Date.now()}`, type: 'tool_result', payload, timestamp: new Date() }
+      { id: nextEventId(), type: 'tool_result', payload, timestamp: new Date() }
     ]);
   }, []);
 
@@ -186,7 +211,7 @@ export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounde
       if (!isMounted.current) return;
       setStreamingEvents((prev) => [
         ...prev,
-        { id: `discoveries-${Date.now()}`, type: 'discoveries', payload, timestamp: new Date() }
+        { id: nextEventId(), type: 'discoveries', payload, timestamp: new Date() }
       ]);
       onPursuitUpdated?.(); // Refetch pursuits so discoveries appear in pursuit cards
     },

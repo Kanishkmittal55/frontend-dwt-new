@@ -1,14 +1,15 @@
 /**
  * MilestoneList
- * Displays milestones for a track with complete/skip actions
+ * Displays milestones for a track with complete/skip actions.
+ * Click a milestone title to expand and view its description.
  */
+import { useState } from 'react';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import Tooltip from '@mui/material/Tooltip';
-import { IconCircleCheck, IconCircle, IconTrash } from '@tabler/icons-react';
+import { IconCircleCheck, IconCircle, IconTrash, IconChevronDown, IconChevronRight } from '@tabler/icons-react';
 import { useTheme } from '@mui/material/styles';
-import type { Milestone } from '@/api/founder';
 import type { TrackWithMilestones } from '../hooks/usePursuits';
 
 export interface MilestoneListProps {
@@ -35,6 +36,7 @@ export default function MilestoneList({
   disabled = false
 }: MilestoneListProps) {
   const theme = useTheme();
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   if (!track.milestones?.length) {
     return (
@@ -48,51 +50,79 @@ export default function MilestoneList({
     <Box sx={{ pl: 4, mt: 0.5 }}>
       {track.milestones.map((m) => {
         const isCompleted = m.status === 'completed' || m.status === 'skipped';
+        const isExpanded = expanded === m.uuid;
+        const hasDescription = Boolean(m.description?.trim());
         return (
-          <Box
-            key={m.uuid}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              py: 0.25
-            }}
-          >
-            <IconButton
-              size="small"
-              onClick={() =>
-                !isCompleted && !disabled
-                  ? onCompleteMilestone(pursuitUUID, track.uuid, m.uuid)
-                  : undefined
-              }
-              disabled={disabled || isCompleted}
-              sx={{ p: 0.25 }}
-            >
-              {isCompleted ? (
-                <IconCircleCheck size={18} style={{ color: theme.palette.success.main }} />
-              ) : (
-                <IconCircle size={18} />
-              )}
-            </IconButton>
-            <Typography
-              variant="body2"
+          <Box key={m.uuid} sx={{ py: 0.25 }}>
+            <Box
               sx={{
-                textDecoration: isCompleted ? 'line-through' : 'none',
-                color: isCompleted ? 'text.secondary' : 'text.primary'
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
               }}
             >
-              {m.title}
-            </Typography>
-            {!disabled && onDeleteMilestone && (
-              <Tooltip title="Delete milestone">
+              <IconButton
+                size="small"
+                onClick={() =>
+                  !isCompleted && !disabled
+                    ? onCompleteMilestone(pursuitUUID, track.uuid, m.uuid)
+                    : undefined
+                }
+                disabled={disabled || isCompleted}
+                sx={{ p: 0.25 }}
+              >
+                {isCompleted ? (
+                  <IconCircleCheck size={18} style={{ color: theme.palette.success.main }} />
+                ) : (
+                  <IconCircle size={18} />
+                )}
+              </IconButton>
+              {hasDescription ? (
                 <IconButton
                   size="small"
-                  onClick={() => onDeleteMilestone(pursuitUUID, track.uuid, m.uuid)}
-                  sx={{ color: 'error.main', p: 0.25, ml: 'auto' }}
+                  onClick={() => setExpanded(isExpanded ? null : m.uuid)}
+                  sx={{ p: 0.25, color: 'text.secondary' }}
+                  aria-label={isExpanded ? 'Collapse' : 'Expand'}
                 >
-                  <IconTrash size={14} />
+                  {isExpanded ? (
+                    <IconChevronDown size={16} />
+                  ) : (
+                    <IconChevronRight size={16} />
+                  )}
                 </IconButton>
-              </Tooltip>
+              ) : null}
+              <Typography
+                variant="body2"
+                onClick={hasDescription ? () => setExpanded(isExpanded ? null : m.uuid) : undefined}
+                sx={{
+                  flex: 1,
+                  cursor: hasDescription ? 'pointer' : 'default',
+                  textDecoration: isCompleted ? 'line-through' : 'none',
+                  color: isCompleted ? 'text.secondary' : 'text.primary'
+                }}
+              >
+                {m.title}
+              </Typography>
+              {!disabled && onDeleteMilestone && (
+                <Tooltip title="Delete milestone">
+                  <IconButton
+                    size="small"
+                    onClick={() => onDeleteMilestone(pursuitUUID, track.uuid, m.uuid)}
+                    sx={{ color: 'error.main', p: 0.25 }}
+                  >
+                    <IconTrash size={14} />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Box>
+            {isExpanded && m.description && (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ pl: 5.5, mt: 0.5, whiteSpace: 'pre-wrap' }}
+              >
+                {m.description}
+              </Typography>
             )}
           </Box>
         );
