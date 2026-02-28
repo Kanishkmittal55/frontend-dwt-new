@@ -30,6 +30,13 @@ const DEFAULT_OPTIONS = {
   enabled: true
 };
 
+const CANVAS_DEBUG = true; // Set to false to reduce log noise
+function canvasLog(...args: unknown[]) {
+  if (CANVAS_DEBUG) {
+    console.log('%c[Canvas]', 'color: #607d8b', ...args);
+  }
+}
+
 /**
  * Hook to track canvas activity and send updates to tutor agent
  */
@@ -48,6 +55,7 @@ export function useCanvasActivityTracker(
   const lastSentTextRef = useRef<string>('');
   const idleSentRef = useRef<boolean>(false);
   const lastSkipReasonRef = useRef<string>(''); // Prevent log spam
+  const lessonJustChangedRef = useRef<boolean>(false);
 
   // Extract all text content from canvas shapes (excluding AI and lesson content shapes)
   const extractCanvasText = useCallback((ed: Editor): { text: string; position: { x: number; y: number }; shapeId: string } | null => {
@@ -128,7 +136,28 @@ export function useCanvasActivityTracker(
   // Handle text change with debounce
   // Rate limiting is handled by backend - frontend only debounces and prevents sending during AI typing
   const handleTextChange = useCallback(() => {
-    if (!editor || !opts.enabled) return;
+    if (!editor || !opts.enabled) {
+      if (!opts.enabled) canvasLog('SKIP: tracker disabled (viewMode or connection)');
+      return;
+    }
+
+    // When lesson just changed: sync to loaded content so we don't re-send it, but DO continue
+    // to debounce - user's new typing will be sent after debounce (don't return early!)
+    if (lessonJustChangedRef.current) {
+      lessonJustChangedRef.current = false;
+      const extracted = extractCanvasText(editor);
+      if (extracted) {
+        lastSentTextRef.current = extracted.text;
+        canvasLog('Synced lastSentText after lesson switch (loaded content)', extracted.text.substring(0, 40) + '...');
+      } else {
+        canvasLog('Lesson switch: no extracted content to sync');
+      }
+      if (textDebounceRef.current) {
+        clearTimeout(textDebounceRef.current);
+        textDebounceRef.current = null;
+      }
+      // Fall through - don't return! User may type; debounce will send it.
+    }
 
     // Check if AI is currently typing animation - skip if so
     if (opts.aiTypingRef?.current) {
@@ -158,14 +187,26 @@ export function useCanvasActivityTracker(
     // Backend handles rate limiting (10s between responses)
     textDebounceRef.current = setTimeout(() => {
       const extracted = extractCanvasText(editor);
-      
-      if (extracted && extracted.text !== lastSentTextRef.current) {
+      const lastSent = lastSentTextRef.current;
+      const isNew = extracted && extracted.text !== lastSent;
+
+      canvasLog('Debounce fired', {
+        extracted: extracted ? extracted.text.substring(0, 50) + '...' : null,
+        lastSent: lastSent ? lastSent.substring(0, 50) + '...' : '(empty)',
+        willSend: !!isNew
+      });
+
+      if (isNew) {
         console.log('%c[Canvas] 📝 Sending text to AI', 'color: #9c27b0; font-weight: bold', {
-          text: extracted.text.length > 80 ? extracted.text.substring(0, 80) + '...' : extracted.text,
-          position: extracted.position
+          text: extracted!.text.length > 80 ? extracted!.text.substring(0, 80) + '...' : extracted!.text,
+          position: extracted!.position
         });
-        lastSentTextRef.current = extracted.text;
-        sendCanvasText(extracted.text, extracted.position, extracted.shapeId);
+        lastSentTextRef.current = extracted!.text;
+        sendCanvasText(extracted!.text, extracted!.position, extracted!.shapeId);
+      } else if (extracted) {
+        canvasLog('SKIP send: same as lastSentText', extracted.text.substring(0, 30));
+      } else {
+        canvasLog('SKIP send: no extracted text');
       }
     }, opts.textDebounceMs);
   }, [editor, opts.enabled, opts.textDebounceMs, opts.aiTypingRef, extractCanvasText, sendCanvasText]);
@@ -186,18 +227,19 @@ export function useCanvasActivityTracker(
 
   // Subscribe to editor store changes
   useEffect(() => {
+    canvasLog('useEffect [editor, enabled]', { hasEditor: !!editor, enabled: opts.enabled });
     if (!editor) {
-      console.log('%c[Canvas] Activity tracker: no editor', 'color: #999');
+      canvasLog('Activity tracker: no editor');
       return;
     }
     if (!opts.enabled) {
-      console.log('%c[Canvas] Activity tracker: disabled (switch to Interactive mode)', 'color: #ff9800');
+      canvasLog('Activity tracker: disabled (switch to Interactive mode)');
       return;
     }
-    
+
     console.log('%c[Canvas] ✅ Activity tracker: ACTIVE', 'color: #4caf50; font-weight: bold');
 
-    // Listen for store changes
+    // Listen for store changes (source: 'user' = typing/drawing, not programmatic load)
     const unsubscribe = editor.store.listen(
       () => {
         handleTextChange();
@@ -209,6 +251,7 @@ export function useCanvasActivityTracker(
     idleTimerRef.current = setInterval(checkIdle, 5000); // Check every 5 seconds
 
     return () => {
+      canvasLog('Activity tracker: cleanup (unsubscribe)');
       unsubscribe();
       if (textDebounceRef.current) {
         clearTimeout(textDebounceRef.current);
@@ -235,7 +278,21 @@ export function useCanvasActivityTracker(
     }
   }, [editor, extractCanvasText]);
 
-  return { resetActivity, syncLastSentText };
+  // Reset for new lesson - marks that we switched so we sync to loaded content on first
+  // store change (don't send it) and allow fresh sends. Call when lesson changes.
+  const clearForNewLesson = useCallback(() => {
+    lessonJustChangedRef.current = true;
+    lastSentTextRef.current = '';
+    lastActivityRef.current = Date.now();
+    idleSentRef.current = false;
+    if (textDebounceRef.current) {
+      clearTimeout(textDebounceRef.current);
+      textDebounceRef.current = null;
+    }
+    console.log('%c[Canvas] 🔄 Reset for new lesson', 'color: #607d8b');
+  }, []);
+
+  return { resetActivity, syncLastSentText, clearForNewLesson };
 }
 
 /**

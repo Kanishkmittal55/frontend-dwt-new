@@ -598,26 +598,25 @@ export default function CourseViewer() {
     const checkEditor = () => {
       const ed = canvasRef.current?.getEditor() as import('@tldraw/tldraw').Editor | null;
       if (ed && ed !== canvasEditor) {
-        if (!hasLoggedEditorReadyRef.current) {
-          console.log('%c[Canvas] Editor ready', 'color: #4caf50');
-          hasLoggedEditorReadyRef.current = true;
-        }
+        console.log('%c[Canvas] Editor ready', 'color: #4caf50', '| lesson:', selectedLesson?.uuid?.slice(0, 8));
+        hasLoggedEditorReadyRef.current = true;
         setCanvasEditor(ed);
       }
     };
     
-    // Check immediately and then periodically until we get the editor
+    // Check immediately and then periodically. MUST always run checkEditor - when we
+    // switch lessons the canvas remounts (new key) and we get a new editor. If we only
+    // ran when canvasEditor was null, we'd never detect it (canvasEditor still holds
+    // the stale/destroyed old editor ref).
     checkEditor();
-    const interval = setInterval(() => {
-      if (!canvasEditor) checkEditor();
-    }, 500);
-    
+    const interval = setInterval(checkEditor, 500);
+
     return () => clearInterval(interval);
   }, [selectedLesson?.uuid]); // Removed canvasEditor from deps to avoid re-triggering
 
   // Activity tracker - sends canvas updates to tutor agent
   // Rate limiting is handled by backend (single source of truth)
-  const { syncLastSentText } = useCanvasActivityTracker(
+  const { syncLastSentText, clearForNewLesson } = useCanvasActivityTracker(
     canvasEditor,
     tutor.sendCanvasText,
     tutor.sendCanvasIdle,
@@ -720,19 +719,27 @@ export default function CourseViewer() {
     }
   }, [tutor.llmProvider, tutor.llmModel]);
 
+  // Log viewMode changes for debugging
+  useEffect(() => {
+    console.log('%c[CourseViewer] viewMode', 'color: #795548', viewMode, '| tracker enabled:', viewMode === 'interactive' && tutor.isConnected);
+  }, [viewMode, tutor.isConnected]);
+
   // Sync selected lesson with tutor - only after session is established
   // Clear AI context when switching lessons to ensure fresh context from DB
   useEffect(() => {
     if (tutor.isConnected && tutor.hasSession && selectedLesson?.uuid) {
-      console.log('%c[Tutor] 📖 Selecting lesson', 'color: #2196f3', selectedLesson.uuid);
+      console.log('%c[Tutor] 📖 Selecting lesson', 'color: #2196f3', selectedLesson.uuid, '| title:', selectedLesson?.title?.substring(0, 30));
       // Clear previous AI context before selecting new lesson
       tutor.clearCanvasAIContext();
       tutor.clearCanvasAIStatus();
       tutor.selectLesson(selectedLesson.uuid);
+      // Reset activity tracker so we don't skip sending when user types same text
+      // they had in the previous lesson (avoids "duplicate" false negatives)
+      clearForNewLesson();
       // Reset lesson start time
       lessonStartTimeRef.current = Date.now();
     }
-  }, [tutor.isConnected, tutor.hasSession, selectedLesson?.uuid, tutor.selectLesson, tutor.clearCanvasAIContext, tutor.clearCanvasAIStatus]);
+  }, [tutor.isConnected, tutor.hasSession, selectedLesson?.uuid, tutor.selectLesson, tutor.clearCanvasAIContext, tutor.clearCanvasAIStatus, clearForNewLesson]);
 
   // Handle selection result from server
   useEffect(() => {

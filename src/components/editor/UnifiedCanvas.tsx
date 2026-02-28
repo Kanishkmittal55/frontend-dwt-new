@@ -5,7 +5,7 @@
  * 
  * Auto-pastes lesson content as text when first loaded (if no saved canvas data)
  */
-import { useCallback, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import { useCallback, useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { Tldraw, Editor, createShapeId } from '@tldraw/tldraw';
 import '@tldraw/tldraw/tldraw.css';
 import Box from '@mui/material/Box';
@@ -17,6 +17,7 @@ import { useTheme, alpha } from '@mui/material/styles';
 import { Save, Check } from 'lucide-react';
 
 import type { UnifiedCanvasProps, UnifiedCanvasRef } from './types';
+import { useCanvasImagePaste } from '../../hooks/useCanvasImagePaste';
 
 // ============================================================================
 // Types - Using generic object for tldraw snapshot since API varies by version
@@ -229,6 +230,14 @@ const UnifiedCanvas = forwardRef<UnifiedCanvasRef, UnifiedCanvasProps>(
       getEditor: () => editorRef.current,
       focus: () => editorRef.current?.focus()
     }));
+
+    // Image paste: isolated in useCanvasImagePaste to avoid interfering with
+    // activity tracker (AI response) and tldraw's native text paste.
+    useCanvasImagePaste({
+      editorRef,
+      readOnly,
+      onPasteSuccess: () => setHasUnsavedChanges(true)
+    });
 
     // Debounced onChange handler
     const debouncedOnChange = useDebouncedCallback((snapshot: TLSnapshot) => {
