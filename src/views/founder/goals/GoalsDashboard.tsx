@@ -21,7 +21,9 @@ import usePursuits from './hooks/usePursuits';
 import {
   uploadTrackAsset,
   deleteTrackAsset,
-  updateTrackAssetRelevance
+  updateTrackAssetRelevance,
+  createRadarRun,
+  deleteRadarRun
 } from '@/api/founder/pursuitsAPI';
 import { syncSeeds } from '@/api/founder/founderProfileAPI';
 import PursuitCard from './components/PursuitCard';
@@ -33,6 +35,8 @@ import ChatMessage from '../agent/components/ChatMessage';
 import AgentTypingIndicator from '../agent/components/AgentTypingIndicator';
 import StreamingEventBubble from '../agent/components/StreamingEventBubble';
 import useFounderAgent from '@/hooks/useFounderAgent';
+import { useDiscoveryLive } from '@/contexts/DiscoveryLiveContext';
+import { radarRunStreamStore } from '@/stores/radarRunStreamStore';
 import type { PursuitWithTracks } from './hooks/usePursuits';
 
 // ============================================================================
@@ -60,8 +64,8 @@ export default function GoalsDashboard() {
   } | null>(null);
   const [showChatPanel, setShowChatPanel] = useState(true);
   const [chatPanelWidth, setChatPanelWidth] = useState(CHAT_DEFAULT_WIDTH);
-  const [discoveriesRefreshTrigger, setDiscoveriesRefreshTrigger] = useState(0);
   const [syncLoading, setSyncLoading] = useState(false);
+  const { invalidateDiscoveries, invalidateRadarRunsByPursuit } = useDiscoveryLive();
   const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const {
@@ -84,8 +88,15 @@ export default function GoalsDashboard() {
 
   const handlePursuitUpdated = useCallback(() => {
     refetch();
-    setDiscoveriesRefreshTrigger((t) => t + 1);
   }, [refetch]);
+
+  const handleRadarDiscoveryIngested = useCallback(
+    (pursuitUUID: string) => {
+      invalidateDiscoveries(pursuitUUID);
+      invalidateRadarRunsByPursuit(pursuitUUID);
+    },
+    [invalidateDiscoveries, invalidateRadarRunsByPursuit]
+  );
 
   const {
     isConnected,
@@ -96,7 +107,12 @@ export default function GoalsDashboard() {
     streamingEvents,
     startSession,
     sendMessage
-  } = useFounderAgent({ autoConnect: true, onPursuitUpdated: handlePursuitUpdated });
+  } = useFounderAgent({
+    autoConnect: true,
+    onPursuitUpdated: handlePursuitUpdated,
+    onRadarDiscoveryIngested: handleRadarDiscoveryIngested,
+    onRadarRunProgress: radarRunStreamStore.addEvent
+  });
 
   const handleCreatePursuit = useCallback(
     async (params: Parameters<typeof createPursuit>[0]) => {
@@ -144,6 +160,29 @@ export default function GoalsDashboard() {
       handlePursuitUpdated();
     },
     [userId, handlePursuitUpdated]
+  );
+
+  const handleRunDiscovery = useCallback(
+    async (pursuitUUID: string, trackUUID: string) => {
+      if (!userId) return;
+      await createRadarRun(userId, pursuitUUID, trackUUID);
+      handlePursuitUpdated();
+      invalidateRadarRunsByPursuit(pursuitUUID);
+    },
+    [userId, handlePursuitUpdated, invalidateRadarRunsByPursuit]
+  );
+
+  const handleDeleteRadarRun = useCallback(
+    async (
+      pursuitUUID: string,
+      trackUUID: string,
+      runUUID: string
+    ) => {
+      if (!userId) return;
+      await deleteRadarRun(userId, pursuitUUID, trackUUID, runUUID);
+      invalidateRadarRunsByPursuit(pursuitUUID);
+    },
+    [userId, invalidateRadarRunsByPursuit]
   );
 
   const handleUpdateAssetRelevance = useCallback(
@@ -364,7 +403,6 @@ export default function GoalsDashboard() {
                     key={p.uuid}
                     pursuit={p}
                     userId={userId}
-                    refreshTrigger={discoveriesRefreshTrigger}
                     onUpdatePhase={updatePhase}
                     onCompletePursuit={completePursuit}
                     onDeletePursuit={deletePursuit}
@@ -376,6 +414,8 @@ export default function GoalsDashboard() {
                     onUploadAsset={handleUploadAsset}
                     onDeleteAsset={handleDeleteAsset}
                     onUpdateAssetRelevance={handleUpdateAssetRelevance}
+                    onRunDiscovery={handleRunDiscovery}
+                    onDeleteRadarRun={handleDeleteRadarRun}
                   />
                 ))}
               </Box>

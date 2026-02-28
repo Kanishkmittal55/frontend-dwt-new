@@ -15,13 +15,16 @@ export interface DiscoveryListProps {
   error?: string | null;
   /** Show "No discoveries yet" when empty (e.g. for job_search pursuits) */
   showEmptyState?: boolean;
+  /** Dot size in px (default 8) */
+  dotSize?: number;
 }
 
 export default function DiscoveryList({
   items,
   loading,
   error,
-  showEmptyState = false
+  showEmptyState = false,
+  dotSize = 8
 }: DiscoveryListProps) {
   const theme = useTheme();
 
@@ -58,7 +61,7 @@ export default function DiscoveryList({
   }
 
   return (
-    <Box sx={{ mt: 1.5 }}>
+    <Box sx={{ mt: 0 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
         <Typography variant="caption" color="text.secondary">
           Discoveries
@@ -122,8 +125,8 @@ export default function DiscoveryList({
                   rel="noopener noreferrer"
                   sx={{
                     display: 'inline-block',
-                    width: 8,
-                    height: 8,
+                    width: dotSize,
+                    height: dotSize,
                     borderRadius: '50%',
                     bgcolor: matchPct != null && matchPct >= 70
                       ? theme.palette.success.main

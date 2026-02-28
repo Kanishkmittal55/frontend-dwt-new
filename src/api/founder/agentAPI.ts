@@ -79,8 +79,15 @@ export interface RadarDiscoveryItemPayload {
 }
 export interface AgentDiscoveriesPayload {
   pursuit_uuid: string;
+  /** Radar run that ingested these (for run-scoped filtering) */
+  run_uuid?: string;
   items: RadarDiscoveryItemPayload[];
   count: number;
+  /** Set when emitted per-source during background crawl */
+  source_site?: string;
+  total_crawled?: number;
+  /** Chunk identifier (e.g. employer for Workday); empty for JobSpy/SmartExtract */
+  work_unit_key?: string;
 }
 
 export interface AgentEventHandlers {

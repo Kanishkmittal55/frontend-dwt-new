@@ -8,26 +8,22 @@ import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import IconButton from '@mui/material/IconButton';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import { IconDotsVertical } from '@tabler/icons-react';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
-import { IconCheck, IconTrash } from '@tabler/icons-react';
+import { IconCheck, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { GOAL_TYPE_LABELS } from '../constants';
-import type { Pursuit } from '@/api/founder';
 import type { PursuitWithTracks, TrackWithMilestones } from '../hooks/usePursuits';
 import PhaseStepper from './PhaseStepper';
 import TrackList from './TrackList';
-import DiscoveryList from './DiscoveryList';
-import useDiscoveries from '../hooks/useDiscoveries';
 import type { GoalType } from '@/api/founder/schemas';
 
 export interface PursuitCardProps {
   pursuit: PursuitWithTracks;
   userId?: number | null;
-  refreshTrigger?: number;
   onUpdatePhase?: (pursuitUUID: string, phase: string) => Promise<void>;
   onCompletePursuit?: (pursuitUUID: string) => Promise<void>;
   onDeletePursuit?: (pursuitUUID: string) => Promise<void>;
@@ -60,13 +56,21 @@ export interface PursuitCardProps {
     assetUUID: string,
     enabled: boolean
   ) => Promise<void>;
+  onRunDiscovery?: (
+    pursuitUUID: string,
+    trackUUID: string
+  ) => Promise<void>;
+  onDeleteRadarRun?: (
+    pursuitUUID: string,
+    trackUUID: string,
+    runUUID: string
+  ) => Promise<void>;
   disabled?: boolean;
 }
 
 export default function PursuitCard({
   pursuit,
   userId,
-  refreshTrigger,
   onUpdatePhase,
   onCompletePursuit,
   onDeletePursuit,
@@ -78,15 +82,12 @@ export default function PursuitCard({
   onUploadAsset,
   onDeleteAsset,
   onUpdateAssetRelevance,
+  onRunDiscovery,
+  onDeleteRadarRun,
   disabled = false
 }: PursuitCardProps) {
+  const navigate = useNavigate();
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
-  const { items: discoveries, loading: discoveriesLoading, error: discoveriesError } = useDiscoveries({
-    userId: userId ?? null,
-    pursuitUUID: pursuit.uuid,
-    enabled: !!userId,
-    refreshTrigger
-  });
   const goalLabel = GOAL_TYPE_LABELS[pursuit.goal_type as GoalType] ?? pursuit.goal_type;
   const isActive = pursuit.status === 'active';
   const isCompleted = pursuit.status === 'completed';
@@ -129,7 +130,7 @@ export default function PursuitCard({
               />
             )}
           </Box>
-          {!disabled && (onCompletePursuit || onDeletePursuit) && (
+          {!disabled && (onAddTrack || onCompletePursuit || onDeletePursuit) && (
             <>
               <IconButton size="small" onClick={(e) => setMenuAnchor(e.currentTarget)}>
                 <IconDotsVertical size={18} />
@@ -141,6 +142,14 @@ export default function PursuitCard({
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                 transformOrigin={{ vertical: 'top', horizontal: 'right' }}
               >
+                {!isCompleted && onAddTrack && (
+                  <MenuItem onClick={() => { onAddTrack(pursuit); handleCloseMenu(); }}>
+                    <ListItemIcon>
+                      <IconPlus size={18} />
+                    </ListItemIcon>
+                    Add Track
+                  </MenuItem>
+                )}
                 {!isCompleted && onCompletePursuit && (
                   <MenuItem onClick={handleComplete}>
                     <ListItemIcon>
@@ -184,15 +193,6 @@ export default function PursuitCard({
           <Typography variant="subtitle2" color="text.secondary">
             Tracks
           </Typography>
-          {!disabled && !isCompleted && onAddTrack && (
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() => onAddTrack?.(pursuit)}
-            >
-              + Add Track
-            </Button>
-          )}
         </Box>
         <TrackList
           tracks={pursuit.tracks ?? []}
@@ -205,13 +205,11 @@ export default function PursuitCard({
           onUploadAsset={onUploadAsset}
           onDeleteAsset={onDeleteAsset}
           onUpdateAssetRelevance={onUpdateAssetRelevance}
+          goalType={pursuit.goal_type}
+          onRunDiscovery={onRunDiscovery}
+          onDeleteRadarRun={onDeleteRadarRun}
+          onOpenDashboard={(uuid) => navigate(`/founder/pursuits/${uuid}/dashboard`)}
           disabled={disabled}
-        />
-        <DiscoveryList
-          items={discoveries}
-          loading={discoveriesLoading}
-          error={discoveriesError}
-          showEmptyState={pursuit.goal_type === 'job_search'}
         />
       </CardContent>
     </Card>

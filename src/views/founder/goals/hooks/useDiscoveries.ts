@@ -3,7 +3,11 @@
  * Fetches radar discovery items (job listings, etc.) for a pursuit
  */
 import { useState, useCallback, useEffect } from 'react';
-import { getDiscoveriesByPursuit, type RadarDiscoveryItem } from '@/api/founder';
+import {
+  getDiscoveriesByPursuit,
+  type RadarDiscoveryItem,
+  type ScoreFilter
+} from '@/api/founder';
 
 export interface UseDiscoveriesOptions {
   userId: number | null;
@@ -11,6 +15,8 @@ export interface UseDiscoveriesOptions {
   enabled?: boolean;
   /** When this changes, refetch (e.g. after crawl completes) */
   refreshTrigger?: number;
+  /** Score filter: All / 7 / 8 / 9 (exact bucket, matches graph) */
+  score?: ScoreFilter;
 }
 
 export interface UseDiscoveriesReturn {
@@ -24,7 +30,8 @@ export default function useDiscoveries({
   userId,
   pursuitUUID,
   enabled = true,
-  refreshTrigger
+  refreshTrigger,
+  score = 'all'
 }: UseDiscoveriesOptions): UseDiscoveriesReturn {
   const [items, setItems] = useState<RadarDiscoveryItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -39,7 +46,7 @@ export default function useDiscoveries({
     setLoading(true);
     setError(null);
     try {
-      const data = await getDiscoveriesByPursuit(userId, pursuitUUID);
+      const data = await getDiscoveriesByPursuit(userId, pursuitUUID, { score });
       setItems(data);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to load discoveries';
@@ -48,7 +55,7 @@ export default function useDiscoveries({
     } finally {
       setLoading(false);
     }
-  }, [userId, pursuitUUID]);
+  }, [userId, pursuitUUID, score]);
 
   useEffect(() => {
     if (enabled && userId && pursuitUUID) {
@@ -57,7 +64,7 @@ export default function useDiscoveries({
       setItems([]);
       setError(null);
     }
-  }, [enabled, userId, pursuitUUID, refreshTrigger, fetchDiscoveries]);
+  }, [enabled, userId, pursuitUUID, refreshTrigger, score, fetchDiscoveries]);
 
   return {
     items,

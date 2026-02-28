@@ -48,6 +48,10 @@ export interface UseFounderAgentOptions {
   onError?: (error: ErrorPayload) => void;
   /** Called when agent creates/updates a pursuit or track — use to refetch pursuits */
   onPursuitUpdated?: () => void;
+  /** Called when founder.agent.discoveries arrives (background crawl) — use to invalidate discovery data */
+  onRadarDiscoveryIngested?: (pursuitUUID: string) => void;
+  /** Called with full payload when discoveries stream — use for live radar run progress UI */
+  onRadarRunProgress?: (payload: AgentDiscoveriesPayload) => void;
 }
 
 export interface UseFounderAgentReturn {
@@ -85,7 +89,7 @@ export interface UseFounderAgentReturn {
 // ============================================================================
 
 export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounderAgentReturn {
-  const { autoConnect = false, onError, onPursuitUpdated } = options;
+  const { autoConnect = false, onError, onPursuitUpdated, onRadarDiscoveryIngested, onRadarRunProgress } = options;
 
   // Connection state - sync from client on mount (handles return-to-page when already connected)
   const [connectionState, setConnectionState] = useState<ConnectionState>(
@@ -214,8 +218,10 @@ export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounde
         { id: nextEventId(), type: 'discoveries', payload, timestamp: new Date() }
       ]);
       onPursuitUpdated?.(); // Refetch pursuits so discoveries appear in pursuit cards
+      onRadarDiscoveryIngested?.(payload.pursuit_uuid); // Invalidate discovery data for live updates
+      onRadarRunProgress?.(payload); // Live radar run progress for Discover track
     },
-    [onPursuitUpdated]
+    [onPursuitUpdated, onRadarDiscoveryIngested, onRadarRunProgress]
   );
 
   const handleAgentTyping = useCallback((payload: AgentTypingPayload) => {

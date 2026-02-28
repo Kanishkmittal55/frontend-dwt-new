@@ -149,7 +149,7 @@ export default function StreamingEventBubble({ event }: StreamingEventBubbleProp
     case 'tool_result':
       return <ToolResultBubble payload={event.payload as { name?: string; error?: string }} />;
     case 'discoveries':
-      return <DiscoveriesBubble payload={event.payload as { pursuit_uuid?: string; items?: RadarDiscoveryItemPayload[]; count?: number }} />;
+      return <DiscoveriesBubble payload={event.payload as { pursuit_uuid?: string; run_uuid?: string; items?: RadarDiscoveryItemPayload[]; count?: number }} />;
     default:
       return null;
   }

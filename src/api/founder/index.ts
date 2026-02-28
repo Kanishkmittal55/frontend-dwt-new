@@ -169,6 +169,13 @@ export {
   getTracksByPursuit,
   getTrackAssets,
   getDiscoveriesByPursuit,
+  getDiscoveriesSummary,
+  runRadarCrawl,
+  getRadarRunsByTrack,
+  getRadarRunDiscoveries,
+  createRadarRun,
+  cancelRadarRun,
+  deleteRadarRun,
   createTrack,
   getMilestonesByTrack,
   createMilestone,
@@ -186,10 +193,14 @@ export type {
   Milestone,
   PursuitTrackAssetResponse,
   RadarDiscoveryItem,
+  RadarDiscoverySummaryResponse,
+  PursuitTrackRadarRunResponse,
+  PursuitTrackRadarRunStatus,
   PursuitListResponse,
   CreatePursuitRequest,
   CreateTrackRequest,
-  CreateMilestoneRequest
+  CreateMilestoneRequest,
+  ScoreFilter
 } from './pursuitsAPI';
 
 // Agent API (WebSocket)

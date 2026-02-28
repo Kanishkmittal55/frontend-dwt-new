@@ -12,6 +12,7 @@ import {
   type ReactNode
 } from 'react';
 import { useAuth } from './AuthContext';
+import { DiscoveryLiveProvider } from './DiscoveryLiveContext';
 import {
   getProfile,
   createProfile,
@@ -228,7 +229,7 @@ export function FounderProvider({ children }: FounderProviderProps) {
 
   return (
     <FounderContext.Provider value={value}>
-      {children}
+      <DiscoveryLiveProvider>{children}</DiscoveryLiveProvider>
     </FounderContext.Provider>
   );
 }

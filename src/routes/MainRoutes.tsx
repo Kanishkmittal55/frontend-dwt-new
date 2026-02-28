@@ -20,6 +20,7 @@ const CoFounderView = Loadable(lazy(() => import('views/founder/assistant/Assist
 
 // Mission (was Goals)
 const MissionDashboard = Loadable(lazy(() => import('views/founder/goals/GoalsDashboard')));
+const PursuitDiscoveryDashboard = Loadable(lazy(() => import('views/founder/goals/PursuitDiscoveryDashboard')));
 
 // Course viewers
 const CourseViewerSwitch = Loadable(lazy(() => import('views/founder/reader/CourseViewerSwitch')));
@@ -99,6 +100,11 @@ const MainRoutes = {
         {
           path: 'mission',
           element: <MissionDashboard />
+        },
+        // Pursuit discovery dashboard (job-search pursuits)
+        {
+          path: 'pursuits/:pursuitUUID/dashboard',
+          element: <PursuitDiscoveryDashboard />
         },
         // Learn (courses)
         {

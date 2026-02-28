@@ -12,12 +12,15 @@ import Tooltip from '@mui/material/Tooltip';
 import Switch from '@mui/material/Switch';
 import Collapse from '@mui/material/Collapse';
 import Popper from '@mui/material/Popper';
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
 import { useTheme, alpha } from '@mui/material/styles';
-import { IconBook2, IconRocket, IconSearch, IconTrash, IconUpload, IconFile, IconChevronDown, IconChevronRight, IconCheck, IconAlertCircle, IconCopy } from '@tabler/icons-react';
+import { IconBook2, IconRocket, IconSearch, IconTrash, IconUpload, IconFile, IconChevronDown, IconChevronRight, IconCheck, IconAlertCircle, IconCopy, IconRadar } from '@tabler/icons-react';
 import { TRACK_TYPE_LABELS } from '../constants';
 import type { TrackWithMilestones } from '../hooks/usePursuits';
 import type { PursuitTrackAssetResponse } from '@/api/founder';
 import MilestoneList from './MilestoneList';
+import DiscoverTrackContent from './DiscoverTrackContent';
 
 const TRACK_ICONS: Record<string, React.ReactNode> = {
   learn: <IconBook2 size={16} />,
@@ -332,6 +335,18 @@ export interface TrackListProps {
     assetUUID: string,
     enabled: boolean
   ) => Promise<void>;
+  /** For job_search pursuits: show discover track content (radar runs) */
+  goalType?: string;
+  onRunDiscovery?: (
+    pursuitUUID: string,
+    trackUUID: string
+  ) => Promise<void>;
+  onDeleteRadarRun?: (
+    pursuitUUID: string,
+    trackUUID: string,
+    runUUID: string
+  ) => Promise<void>;
+  onOpenDashboard?: (pursuitUUID: string) => void;
   disabled?: boolean;
 }
 
@@ -346,10 +361,21 @@ export default function TrackList({
   onUploadAsset,
   onDeleteAsset,
   onUpdateAssetRelevance,
+  goalType,
+  onRunDiscovery,
+  onDeleteRadarRun,
+  onOpenDashboard,
   disabled = false
 }: TrackListProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [expandedAssets, setExpandedAssets] = useState<Record<string, boolean>>({});
+  const [runDiscoveryLoading, setRunDiscoveryLoading] = useState(false);
+  const [noResumeWarning, setNoResumeWarning] = useState(false);
+
+  const trackHasResumeForScoring = (track: TrackWithMilestones) =>
+    track.assets?.some(
+      (a) => a.asset_relevance_enabled && (a.extracted_text?.trim() ?? '').length > 0
+    ) ?? false;
 
   const handleUploadClick = (trackUUID: string) => {
     if (!onUploadAsset || !userId) return;
@@ -415,7 +441,34 @@ export default function TrackList({
                 variant="outlined"
                 sx={{ textTransform: 'capitalize', height: 20 }}
               />
-              {!disabled && onAddMilestone && (
+              {track.track_type === 'discover' && !disabled && onRunDiscovery && userId && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={runDiscoveryLoading ? undefined : <IconRadar size={14} />}
+                  disabled={runDiscoveryLoading}
+                  sx={{ minWidth: 'auto', px: 1, ml: 'auto' }}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (!trackHasResumeForScoring(track)) {
+                      console.warn(
+                        '[Run Radar] No resume for job matching. Upload a resume, enable it for job matching, and wait for text extraction before running radar.'
+                      );
+                      setNoResumeWarning(true);
+                      return;
+                    }
+                    setRunDiscoveryLoading(true);
+                    try {
+                      await onRunDiscovery(pursuitUUID, track.uuid);
+                    } finally {
+                      setRunDiscoveryLoading(false);
+                    }
+                  }}
+                >
+                  {runDiscoveryLoading ? 'Running…' : 'Run Radar'}
+                </Button>
+              )}
+              {!disabled && onAddMilestone && track.track_type !== 'discover' && (
                 <Button
                   size="small"
                   variant="text"
@@ -464,16 +517,42 @@ export default function TrackList({
                 onUpdateAssetRelevance={onUpdateAssetRelevance}
               />
             )}
-            <MilestoneList
-              track={track}
-              pursuitUUID={pursuitUUID}
-              onCompleteMilestone={onCompleteMilestone}
-              onDeleteMilestone={onDeleteMilestone}
-              disabled={disabled}
-            />
+            {track.track_type !== 'discover' && (
+              <MilestoneList
+                track={track}
+                pursuitUUID={pursuitUUID}
+                onCompleteMilestone={onCompleteMilestone}
+                onDeleteMilestone={onDeleteMilestone}
+                disabled={disabled}
+              />
+            )}
+            {track.track_type === 'discover' && goalType === 'job_search' && (
+              <DiscoverTrackContent
+                pursuitUUID={pursuitUUID}
+                trackUUID={track.uuid}
+                userId={userId ?? null}
+                onDeleteRadarRun={onDeleteRadarRun}
+                onOpenDashboard={onOpenDashboard}
+                disabled={disabled}
+              />
+            )}
           </Box>
         );
       })}
+      <Snackbar
+        open={noResumeWarning}
+        autoHideDuration={6000}
+        onClose={() => setNoResumeWarning(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          severity="warning"
+          onClose={() => setNoResumeWarning(false)}
+          variant="filled"
+        >
+          Upload a resume first and enable it for job matching. Radar needs your resume to score job fit.
+        </Alert>
+      </Snackbar>
       <input
         ref={fileInputRef}
         type="file"

@@ -901,6 +901,25 @@ export const RadarDiscoveryListResponseSchema = z.object({
   count: z.number().int()
 });
 
+// Radar discovery summary (dashboard stats)
+export const RadarDiscoverySummaryBySourceSchema = z.object({
+  source_site: z.string(),
+  count: z.number().int(),
+  strong_fit_count: z.number().int(),
+  avg_score: z.number().optional()
+});
+export const RadarDiscoverySummaryScoreDistSchema = z.object({
+  score: z.number().int(),
+  count: z.number().int()
+});
+export const RadarDiscoverySummaryResponseSchema = z.object({
+  total: z.number().int(),
+  scored: z.number().int(),
+  strong_fit_7_plus: z.number().int(),
+  by_source: z.array(RadarDiscoverySummaryBySourceSchema),
+  score_distribution: z.array(RadarDiscoverySummaryScoreDistSchema)
+});
+
 // Create/update request schemas
 export const CreatePursuitRequestSchema = z.object({
   goal_type: GoalTypeSchema,
@@ -945,6 +964,7 @@ export type CreateMilestoneRequest = z.infer<typeof CreateMilestoneRequestSchema
 export type UpdatePursuitPhaseRequest = z.infer<typeof UpdatePursuitPhaseRequestSchema>;
 export type RadarDiscoveryItem = z.infer<typeof RadarDiscoveryItemSchema>;
 export type RadarDiscoveryListResponse = z.infer<typeof RadarDiscoveryListResponseSchema>;
+export type RadarDiscoverySummaryResponse = z.infer<typeof RadarDiscoverySummaryResponseSchema>;
 
 // ============================================================================
 // Memory Matrix Schemas

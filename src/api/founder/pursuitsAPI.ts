@@ -12,6 +12,7 @@ import {
   PursuitTrackListResponseSchema,
   PursuitMilestoneListResponseSchema,
   RadarDiscoveryListResponseSchema,
+  RadarDiscoverySummaryResponseSchema,
   CreatePursuitRequestSchema,
   CreateTrackRequestSchema,
   CreateMilestoneRequestSchema,
@@ -22,6 +23,7 @@ import {
   type Track,
   type Milestone,
   type RadarDiscoveryItem,
+  type RadarDiscoverySummaryResponse,
   type CreatePursuitRequest,
   type CreateTrackRequest,
   type CreateMilestoneRequest
@@ -36,10 +38,12 @@ export type {
   Track,
   Milestone,
   RadarDiscoveryItem,
+  RadarDiscoverySummaryResponse,
   PursuitListResponse,
   CreatePursuitRequest,
   CreateTrackRequest,
-  CreateMilestoneRequest
+  CreateMilestoneRequest,
+  ScoreFilter
 };
 
 // ============================================================================
@@ -129,20 +133,191 @@ export async function createTrack(
   return parseApiResponse(TrackSchema, response);
 }
 
+/** Score filter options: All (no filter), or exact bucket 7, 8, 9 (matches graph bars) */
+export type ScoreFilter = 'all' | 7 | 8 | 9;
+
 /**
  * Get radar discoveries (job listings, etc.) for a pursuit
  * GET /v1/founder/{userID}/pursuits/{pursuitUUID}/radar/discoveries
+ * @param score - Optional: 'all' | 7 | 8 | 9 for exact score bucket (matches graph)
  */
 export async function getDiscoveriesByPursuit(
   userID: number,
-  pursuitUUID: string
+  pursuitUUID: string,
+  options?: { score?: ScoreFilter }
 ): Promise<RadarDiscoveryItem[]> {
-  const endpoint = `/v1/founder/${userID}/pursuits/${pursuitUUID}/radar/discoveries`;
+  let endpoint = `/v1/founder/${userID}/pursuits/${pursuitUUID}/radar/discoveries`;
+  const score = options?.score;
+  if (score && score !== 'all') {
+    endpoint += `?score=${score}`;
+  }
   const response = await founderClient.get<{ items: RadarDiscoveryItem[]; count: number }>(
     endpoint
   );
   const validated = parseApiResponse(RadarDiscoveryListResponseSchema, response);
   return validated.items;
+}
+
+/** ApplyPilot-style discovery engines (JobSpy, Workday, SmartExtract) */
+export const DISCOVERY_ENGINES = ['jobspy', 'workday', 'smartextract'] as const;
+
+export type RunRadarCrawlOptions = {
+  sourceSites?: string[];
+};
+
+// ============================================================================
+// Radar Runs (discovery crawl runs per track)
+// ============================================================================
+
+export type PursuitTrackRadarRunStatus =
+  | 'enqueued'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
+
+export interface PursuitTrackRadarRunResponse {
+  uuid?: string;
+  pursuit_uuid?: string;
+  track_uuid?: string;
+  user_id?: number;
+  run_status?: PursuitTrackRadarRunStatus;
+  current_source_site?: string | null;
+  sources_completed_count?: number;
+  sources_total?: number;
+  source_sites?: string;
+  ingested_count?: number;
+  total_crawled_count?: number;
+  error_message?: string | null;
+  enqueued_at?: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface PursuitTrackRadarRunListResponse {
+  items: PursuitTrackRadarRunResponse[];
+  count: number;
+}
+
+/**
+ * Get radar runs for a track
+ * GET /v1/founder/{userID}/pursuits/{pursuitUUID}/tracks/{trackUUID}/radar/runs
+ */
+export async function getRadarRunsByTrack(
+  userID: number,
+  pursuitUUID: string,
+  trackUUID: string
+): Promise<PursuitTrackRadarRunResponse[]> {
+  const endpoint = `/v1/founder/${userID}/pursuits/${pursuitUUID}/tracks/${trackUUID}/radar/runs`;
+  const response = await founderClient.get<PursuitTrackRadarRunListResponse>(endpoint);
+  return response.items ?? [];
+}
+
+/**
+ * Create a radar run for a track (enqueues crawl job)
+ * POST /v1/founder/{userID}/pursuits/{pursuitUUID}/tracks/{trackUUID}/radar/runs
+ * Returns 202 and runs crawl in background; WebSocket events emitted as discoveries are ingested.
+ */
+export async function createRadarRun(
+  userID: number,
+  pursuitUUID: string,
+  trackUUID: string,
+  options: { source_sites?: string[] } = {}
+): Promise<PursuitTrackRadarRunResponse> {
+  const { source_sites = DISCOVERY_ENGINES } = options;
+  const endpoint = `/v1/founder/${userID}/pursuits/${pursuitUUID}/tracks/${trackUUID}/radar/runs`;
+  const response = await founderClient.post<PursuitTrackRadarRunResponse>(endpoint, {
+    source_sites
+  });
+  return response;
+}
+
+/**
+ * Get discovery items for a radar run
+ * GET /v1/founder/{userID}/pursuits/{pursuitUUID}/tracks/{trackUUID}/radar/runs/{runUUID}/discoveries
+ */
+export async function getRadarRunDiscoveries(
+  userID: number,
+  pursuitUUID: string,
+  trackUUID: string,
+  runUUID: string
+): Promise<RadarDiscoveryItem[]> {
+  const endpoint = `/v1/founder/${userID}/pursuits/${pursuitUUID}/tracks/${trackUUID}/radar/runs/${runUUID}/discoveries`;
+  const response = await founderClient.get<{ items: RadarDiscoveryItem[]; count: number }>(
+    endpoint
+  );
+  return response.items ?? [];
+}
+
+/**
+ * Delete a radar run
+ * DELETE /v1/founder/{userID}/pursuits/{pursuitUUID}/tracks/{trackUUID}/radar/runs/{runUUID}
+ */
+export async function deleteRadarRun(
+  userID: number,
+  pursuitUUID: string,
+  trackUUID: string,
+  runUUID: string
+): Promise<void> {
+  const endpoint = `/v1/founder/${userID}/pursuits/${pursuitUUID}/tracks/${trackUUID}/radar/runs/${runUUID}`;
+  await founderClient.delete(endpoint);
+}
+
+/**
+ * Cancel a radar run (stops in-flight crawl)
+ * POST /v1/founder/{userID}/pursuits/{pursuitUUID}/tracks/{trackUUID}/radar/runs/{runUUID}/cancel
+ */
+export async function cancelRadarRun(
+  userID: number,
+  pursuitUUID: string,
+  trackUUID: string,
+  runUUID: string
+): Promise<PursuitTrackRadarRunResponse> {
+  const endpoint = `/v1/founder/${userID}/pursuits/${pursuitUUID}/tracks/${trackUUID}/radar/runs/${runUUID}/cancel`;
+  console.log('[cancelRadarRun] Requesting cancel', { userID, pursuitUUID, trackUUID, runUUID });
+  const response = await founderClient.post<PursuitTrackRadarRunResponse>(endpoint, {});
+  console.log('[cancelRadarRun] Cancel success', { runUUID, status: response.run_status });
+  return response;
+}
+
+// ============================================================================
+// Legacy radar crawl (pursuit-level, kept for backward compatibility)
+// ============================================================================
+
+/**
+ * Run radar crawl for a pursuit (scans job boards, ingests discoveries)
+ * POST /v1/founder/{userID}/pursuits/{pursuitUUID}/radar/crawl
+ * Returns 202 and emits WebSocket founder.agent.discoveries events.
+ * @deprecated Prefer createRadarRun for track-level runs
+ */
+export async function runRadarCrawl(
+  userID: number,
+  pursuitUUID: string,
+  options: RunRadarCrawlOptions = {}
+): Promise<{ results?: { source_site: string; ingested: number; total_crawled: number; error?: string }[]; status?: string; message?: string }> {
+  const { sourceSites = DISCOVERY_ENGINES } = options;
+  const endpoint = `/v1/founder/${userID}/pursuits/${pursuitUUID}/radar/crawl`;
+  const response = await founderClient.post<{
+    results?: { source_site: string; ingested: number; total_crawled: number; error?: string }[];
+    status?: string;
+    message?: string;
+  }>(endpoint, { source_sites: sourceSites });
+  return response;
+}
+
+/**
+ * Get radar discovery summary for a pursuit (dashboard stats)
+ * GET /v1/founder/{userID}/pursuits/{pursuitUUID}/radar/discoveries/summary
+ */
+export async function getDiscoveriesSummary(
+  userID: number,
+  pursuitUUID: string
+): Promise<RadarDiscoverySummaryResponse> {
+  const endpoint = `/v1/founder/${userID}/pursuits/${pursuitUUID}/radar/discoveries/summary`;
+  const response = await founderClient.get<RadarDiscoverySummaryResponse>(endpoint);
+  return parseApiResponse(RadarDiscoverySummaryResponseSchema, response);
 }
 
 /**
@@ -409,6 +584,11 @@ export const pursuitsAPI = {
   getTracksByPursuit,
   getTrackAssets,
   getDiscoveriesByPursuit,
+  runRadarCrawl,
+  getRadarRunsByTrack,
+  createRadarRun,
+  cancelRadarRun,
+  deleteRadarRun,
   createTrack,
   getMilestonesByTrack,
   createMilestone,
