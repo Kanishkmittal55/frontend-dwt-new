@@ -1,4 +1,5 @@
 import { lazy } from 'react';
+import { Navigate } from 'react-router-dom';
 
 // project imports
 import MainLayout from 'layout/MainLayout';
@@ -31,6 +32,7 @@ const DailyTasksDashboard = Loadable(lazy(() => import('views/founder/today/Dail
 
 // Memory (was Knowledge / Memory Matrix)
 const KnowledgeDashboard = Loadable(lazy(() => import('views/founder/knowledge/KnowledgeDashboard')));
+const DomainKnowledgeDashboard = Loadable(lazy(() => import('views/founder/knowledge/DomainKnowledgeDashboard')));
 const PracticeImpact = Loadable(lazy(() => import('views/founder/knowledge/PracticeImpact')));
 
 // Radar (goal-driven signals — replaces Ideas)
@@ -90,6 +92,11 @@ const MainRoutes = {
         {
           path: 'dashboard',
           element: <FounderDashboard />
+        },
+        // Domain Knowledge (under Founder Persona)
+        {
+          path: 'domains',
+          element: <DomainKnowledgeDashboard />
         },
         // CoFounder (AI partner)
         {
@@ -171,13 +178,17 @@ const MainRoutes = {
         }
       ]
     },
-    // ── Memory (was Knowledge / Memory Matrix) ──
+    // ── Memory (course-based memory matrix; Domain Knowledge lives under Founder Persona) ──
     {
       path: 'memory',
       children: [
         {
           index: true,
           element: <KnowledgeDashboard />
+        },
+        {
+          path: 'domains',
+          element: <Navigate to="/founder/domains" replace />
         },
         {
           path: 'strength',
@@ -200,6 +211,10 @@ const MainRoutes = {
         {
           index: true,
           element: <KnowledgeDashboard />
+        },
+        {
+          path: 'domains',
+          element: <Navigate to="/founder/domains" replace />
         },
         {
           path: 'strength',

@@ -23,6 +23,7 @@ import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import TaskAltIcon from '@mui/icons-material/TaskAlt';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import SaveIcon from '@mui/icons-material/Save';
+import BubbleChartIcon from '@mui/icons-material/BubbleChart';
 
 // Context
 import { useFounder } from 'contexts/FounderContext';
@@ -188,6 +189,26 @@ export default function FounderDashboard() {
           </Card>
         </Grid>
       </Grid>
+
+      {/* Domain Knowledge — clickable cards */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <BubbleChartIcon color="primary" />
+            Domain Knowledge
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Explore curated skill taxonomies — Docker, Go, and more. Click a domain to view its concept graph.
+          </Typography>
+          <Button
+            variant="outlined"
+            startIcon={<BubbleChartIcon />}
+            onClick={() => navigate('/founder/domains')}
+          >
+            View Domain Graphs
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Quick Actions */}
       <Card>

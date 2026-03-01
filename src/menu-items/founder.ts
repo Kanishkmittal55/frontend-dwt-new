@@ -12,7 +12,8 @@ import {
   IconRadar2,
   IconRobot,
   IconMap2,
-  IconRocket
+  IconRocket,
+  IconNetwork
 } from '@tabler/icons-react';
 
 // constant
@@ -27,7 +28,8 @@ const icons = {
   IconRadar2,
   IconRobot,
   IconMap2,
-  IconRocket
+  IconRocket,
+  IconNetwork
 };
 
 // ==============================|| SECTION 1: FOUNDER CORE ||============================== //
@@ -40,10 +42,27 @@ const founderCore: MenuItem = {
     {
       id: 'founder-persona',
       title: 'Founder Persona',
-      type: 'item',
-      url: '/founder/dashboard',
+      type: 'collapse',
       icon: icons.IconUser,
-      breadcrumbs: false
+      breadcrumbs: false,
+      children: [
+        {
+          id: 'founder-dashboard',
+          title: 'Dashboard',
+          type: 'item',
+          url: '/founder/dashboard',
+          icon: icons.IconUser,
+          breadcrumbs: false
+        },
+        {
+          id: 'domain-knowledge',
+          title: 'Domain Knowledge',
+          type: 'item',
+          url: '/founder/domains',
+          icon: icons.IconNetwork,
+          breadcrumbs: false
+        }
+      ]
     },
     {
       id: 'cofounder',

@@ -728,6 +728,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/founder/domain-knowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List domain knowledge domains
+         * @description Returns all available domain knowledge graphs (e.g. docker, golang).
+         *     Used to populate domain selector cards in the Founder Persona dashboard.
+         */
+        get: operations["V1GetFounderDomainKnowledgeList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/domain-knowledge/{slug}/graph": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get domain knowledge graph for NeuralMap view
+         * @description Returns the curated concept graph for a domain (e.g. docker, golang) with
+         *     concepts (nodes) and relationships (edges). Used by the Founder Persona
+         *     dashboard for the NeuralMap graph visualization. Difficulty drives node
+         *     color (beginner=green, intermediate=amber, advanced=red).
+         */
+        get: operations["V1GetFounderDomainKnowledgeGraph"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/founder/agent/ws": {
         parameters: {
             query?: never;
@@ -902,6 +946,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/founder/{userID}/pursuits/{pursuitUUID}/tracks/{trackUUID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete pursuit track
+         * @description Deletes a track and its milestones.
+         */
+        delete: operations["V1DeleteFounderPursuitTrack"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/{userID}/pursuits/{pursuitUUID}/radar/crawl": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crawl radar sources for pursuit
+         * @description Crawls the specified source sites for job discoveries and ingests them into the pursuit.
+         */
+        post: operations["V1PostFounderPursuitRadarCrawl"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/{userID}/pursuits/{pursuitUUID}/radar/discoveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List radar discoveries for a pursuit
+         * @description Returns discovery items (job listings, etc.) crawled for this pursuit.
+         */
+        get: operations["V1GetFounderPursuitRadarDiscoveries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/{userID}/pursuits/{pursuitUUID}/radar/discoveries/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get radar discovery summary for a pursuit
+         * @description Aggregated stats for dashboard — total, scored, strong fit, by source, score distribution.
+         */
+        get: operations["V1GetFounderPursuitRadarDiscoveriesSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/founder/{userID}/pursuits/{pursuitUUID}/tracks/{trackUUID}/milestones": {
         parameters: {
             query?: never;
@@ -926,6 +1050,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/founder/{userID}/pursuits/{pursuitUUID}/tracks/{trackUUID}/milestones/{milestoneUUID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete pursuit milestone
+         * @description Deletes a milestone from a track.
+         */
+        delete: operations["V1DeleteFounderPursuitMilestone"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/founder/{userID}/pursuits/{pursuitUUID}/tracks/{trackUUID}/milestones/{milestoneUUID}/complete": {
         parameters: {
             query?: never;
@@ -940,6 +1084,194 @@ export interface paths {
          * @description Marks a milestone as completed.
          */
         post: operations["V1PostFounderPursuitMilestoneComplete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/{userID}/pursuits/{pursuitUUID}/tracks/{trackUUID}/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List assets for a track
+         * @description Returns all assets (resume, cover letter, portfolio) for the given track.
+         */
+        get: operations["V1GetFounderPursuitTrackAssets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/{userID}/pursuits/{pursuitUUID}/tracks/{trackUUID}/radar/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List radar runs for a track
+         * @description Returns all discovery crawl runs for the given track, ordered by enqueued_at DESC.
+         */
+        get: operations["V1GetFounderPursuitTrackRadarRuns"];
+        put?: never;
+        /**
+         * Create a discovery run for a track
+         * @description Creates a new radar discovery run and optionally starts the crawl in background. Called when user clicks Run Discovery.
+         */
+        post: operations["V1PostFounderPursuitTrackRadarRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/{userID}/pursuits/{pursuitUUID}/tracks/{trackUUID}/radar/runs/{runUUID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a radar run by UUID
+         * @description Returns a single discovery crawl run by UUID.
+         */
+        get: operations["V1GetFounderPursuitTrackRadarRun"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a radar run
+         * @description Deletes a discovery crawl run. Only enqueued or completed runs should be deleted.
+         */
+        delete: operations["V1DeleteFounderPursuitTrackRadarRun"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/{userID}/pursuits/{pursuitUUID}/tracks/{trackUUID}/radar/runs/{runUUID}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a radar run
+         * @description Cancels an in-flight discovery crawl run. Only running or enqueued runs can be cancelled.
+         */
+        post: operations["V1PostFounderPursuitTrackRadarRunCancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/{userID}/pursuits/{pursuitUUID}/tracks/{trackUUID}/radar/runs/{runUUID}/discoveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List discoveries for a radar run
+         * @description Returns unique discovery items (job listings, etc.) ingested for the given radar run.
+         */
+        get: operations["V1GetFounderPursuitTrackRadarRunDiscoveries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/{userID}/pursuits/{pursuitUUID}/tracks/{trackUUID}/assets/{assetUUID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete pursuit track asset
+         * @description Deletes an asset (resume, cover letter, portfolio) from a track.
+         */
+        delete: operations["V1DeleteFounderPursuitTrackAsset"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/{userID}/pursuits/{pursuitUUID}/tracks/{trackUUID}/assets/{assetUUID}/relevance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update asset relevance for job matching
+         * @description Toggle whether this asset is used for job matching and skill gap analysis in radar crawl.
+         */
+        patch: operations["V1PatchFounderPursuitTrackAssetRelevance"];
+        trace?: never;
+    };
+    "/v1/founder/{userID}/pursuits/{pursuitUUID}/tracks/{trackUUID}/assets/upload-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get presigned URL for pursuit track asset upload
+         * @description Returns a presigned S3 URL for uploading an asset (resume, cover letter, portfolio) to a pursuit track. Client uploads via PUT to the returned URL, then calls the complete endpoint to save metadata and extract text (for PDFs).
+         */
+        post: operations["V1PostFounderPursuitTrackAssetUploadUrl"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/{userID}/pursuits/{pursuitUUID}/tracks/{trackUUID}/assets/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete pursuit track asset upload
+         * @description Called after client has uploaded the file to S3. Backend downloads the file, extracts text from PDFs, and saves the asset record to the database.
+         */
+        post: operations["V1PostFounderPursuitTrackAssetComplete"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3478,6 +3810,105 @@ export interface components {
              */
             computed_at: string;
         };
+        /** @description List of domain knowledge domains */
+        DomainKnowledgeListResponse: {
+            /** @description Available domain knowledge graphs */
+            domains: {
+                /**
+                 * @description Domain slug (e.g. docker, golang)
+                 * @example docker
+                 */
+                slug: string;
+                /**
+                 * @description Human-readable domain name
+                 * @example Docker
+                 */
+                name: string;
+                /** @description Optional domain description */
+                description?: string;
+            }[];
+        };
+        /** @description Domain knowledge graph for NeuralMap — concepts (nodes) + relationships (edges) */
+        DomainKnowledgeGraphResponse: {
+            /** @description The domain metadata */
+            domain: {
+                /**
+                 * @description Domain slug (e.g. docker, golang)
+                 * @example docker
+                 */
+                slug: string;
+                /**
+                 * @description Human-readable domain name
+                 * @example Docker
+                 */
+                name: string;
+                /** @description Optional domain description */
+                description?: string;
+            };
+            /** @description Concept nodes for the graph */
+            concepts: {
+                /**
+                 * Format: uuid
+                 * @description Concept UUID
+                 */
+                uuid: string;
+                /**
+                 * @description Concept slug within domain
+                 * @example images
+                 */
+                slug: string;
+                /**
+                 * @description Concept name
+                 * @example Docker Images
+                 */
+                name: string;
+                /** @description Optional concept description */
+                description?: string;
+                /**
+                 * @description Difficulty level (drives node color in NeuralMap)
+                 * @example beginner
+                 * @enum {string}
+                 */
+                difficulty: "beginner" | "intermediate" | "advanced";
+                /** @description Grouping label (e.g. images, dockerfile) */
+                sub_domain?: string;
+                /**
+                 * Format: int32
+                 * @description Display order within sub-domain
+                 */
+                sequence_order?: number;
+            }[];
+            /** @description Graph edges between concepts */
+            relationships: {
+                /**
+                 * Format: uuid
+                 * @description Edge UUID
+                 */
+                uuid: string;
+                /**
+                 * Format: uuid
+                 * @description Source concept UUID
+                 */
+                from_concept_uuid: string;
+                /**
+                 * Format: uuid
+                 * @description Target concept UUID
+                 */
+                to_concept_uuid: string;
+                /**
+                 * @description Edge type
+                 * @example prerequisite
+                 * @enum {string}
+                 */
+                relationship: "prerequisite" | "builds_on" | "related";
+                /**
+                 * Format: float
+                 * @description Edge strength (0-1)
+                 * @example 0.8
+                 */
+                strength: number;
+            }[];
+        };
         /** @description A founder pursuit (abstract goal) */
         PursuitResponse: {
             /**
@@ -3636,6 +4067,89 @@ export interface components {
             /** @description Detailed description */
             description?: string;
         };
+        /** @description Overrides for crawl parameters */
+        RadarCrawlParams: {
+            /** @description Search query */
+            query?: string;
+            /** @description Location for the search */
+            location?: string;
+            /**
+             * Format: int32
+             * @description Maximum number of results to crawl
+             */
+            max_results?: number;
+            /** @description Region code (e.g. uk, us) */
+            region?: string;
+        };
+        /** @description Request to crawl radar sources for a pursuit */
+        CreatePursuitRadarCrawlRequest: {
+            /** @description Source sites to crawl (e.g. indeed, jobspy, workday, smartextract) */
+            source_sites: string[];
+            params?: components["schemas"]["RadarCrawlParams"];
+        };
+        /** @description Result for a single source site crawl */
+        RadarCrawlResult: {
+            /** @description Source site that was crawled */
+            source_site: string;
+            /** @description Number of discoveries ingested */
+            ingested: number;
+            /** @description Total number of items crawled */
+            total_crawled: number;
+            /** @description Error message if crawl or ingest failed */
+            error?: string;
+        };
+        /** @description Response for radar crawl operation */
+        RadarCrawlResponse: {
+            /** @description Per-source-site crawl results */
+            results: components["schemas"]["RadarCrawlResult"][];
+        };
+        /** @description A radar discovery item (job listing, etc.) */
+        RadarDiscoveryItem: {
+            /** Format: uuid */
+            uuid?: string;
+            /** @example job_listing */
+            discovery_type?: string;
+            /** @example indeed */
+            source_site?: string;
+            source_url?: string | null;
+            title?: string;
+            summary?: string | null;
+            match_score?: number | null;
+            /** @example new */
+            status?: string;
+            /** Format: date-time */
+            created_at?: string;
+        };
+        /** @description List of radar discovery items for a pursuit */
+        RadarDiscoveryListResponse: {
+            items: components["schemas"]["RadarDiscoveryItem"][];
+            /** Format: int32 */
+            count: number;
+        };
+        /** @description Aggregated discovery stats for pursuit dashboard */
+        RadarDiscoverySummaryResponse: {
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            scored: number;
+            /** Format: int32 */
+            strong_fit_7_plus: number;
+            by_source: {
+                source_site: string;
+                /** Format: int32 */
+                count: number;
+                /** Format: int32 */
+                strong_fit_count: number;
+                /** Format: float */
+                avg_score?: number;
+            }[];
+            score_distribution: {
+                /** Format: int32 */
+                score: number;
+                /** Format: int32 */
+                count: number;
+            }[];
+        };
         /** @description A pursuit track milestone */
         PursuitMilestoneResponse: {
             /**
@@ -3717,6 +4231,198 @@ export interface components {
              * @description Due date
              */
             due_at?: string;
+        };
+        /** @description Pursuit track asset (resume, cover letter, portfolio) */
+        PursuitTrackAssetResponse: {
+            /**
+             * Format: uuid
+             * @description Asset UUID
+             */
+            uuid?: string;
+            /**
+             * Format: uuid
+             * @description Track UUID
+             */
+            track_uuid?: string;
+            /** @description resume, cover_letter, portfolio */
+            asset_type?: string;
+            /** @description S3 location of the file */
+            s3_uri?: string;
+            /** @description Original filename */
+            filename?: string;
+            /** @description MIME type */
+            content_type?: string;
+            /** @description Whether this asset is used for matching/skill gap analysis */
+            asset_relevance_enabled?: boolean;
+            /** @description Extracted text from PDF/document for job matching. Present when extraction completed. */
+            extracted_text?: string | null;
+            /** Format: date-time */
+            created_at?: string;
+        };
+        /** @description List of pursuit track assets */
+        PursuitTrackAssetListResponse: {
+            /** @description List of assets */
+            items: components["schemas"]["PursuitTrackAssetResponse"][];
+            /**
+             * Format: int32
+             * @description Total count
+             */
+            count: number;
+        };
+        /** @description Discovery crawl run for a pursuit track */
+        PursuitTrackRadarRunResponse: {
+            /**
+             * Format: uuid
+             * @description Run UUID
+             */
+            uuid?: string;
+            /**
+             * Format: uuid
+             * @description Pursuit UUID
+             */
+            pursuit_uuid?: string;
+            /**
+             * Format: uuid
+             * @description Track UUID
+             */
+            track_uuid?: string;
+            /**
+             * Format: int32
+             * @description User ID
+             */
+            user_id?: number;
+            /**
+             * @description Run status
+             * @enum {string}
+             */
+            run_status?: "enqueued" | "running" | "completed" | "failed" | "cancelled";
+            /** @description Source currently crawling (jobspy, workday, smartextract). Null when idle. */
+            current_source_site?: string | null;
+            /**
+             * Format: int32
+             * @description Number of sources that have finished
+             */
+            sources_completed_count?: number;
+            /**
+             * Format: int32
+             * @description Total sources to crawl in this run
+             */
+            sources_total?: number;
+            /** @description Comma-separated sources, e.g. jobspy,workday,smartextract */
+            source_sites?: string;
+            /**
+             * Format: int32
+             * @description Total discoveries ingested so far
+             */
+            ingested_count?: number;
+            /**
+             * Format: int32
+             * @description Total items crawled across all sources
+             */
+            total_crawled_count?: number;
+            /** @description Error message when run_status is failed */
+            error_message?: string | null;
+            /**
+             * Format: date-time
+             * @description When the run was enqueued
+             */
+            enqueued_at?: string;
+            /**
+             * Format: date-time
+             * @description When the run started
+             */
+            started_at?: string | null;
+            /**
+             * Format: date-time
+             * @description When the run completed
+             */
+            completed_at?: string | null;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        /** @description List of pursuit track radar runs */
+        PursuitTrackRadarRunListResponse: {
+            /** @description List of radar runs */
+            items: components["schemas"]["PursuitTrackRadarRunResponse"][];
+            /**
+             * Format: int32
+             * @description Total count
+             */
+            count: number;
+        };
+        /** @description Request to create a discovery run for a track (triggered by Run Discovery button) */
+        CreatePursuitTrackRadarRunRequest: {
+            /** @description Source sites to crawl (e.g. jobspy, workday, smartextract) */
+            source_sites: string[];
+        };
+        /** @description Request to toggle asset relevance for job matching */
+        PatchPursuitTrackAssetRelevanceRequest: {
+            /** @description When true, use this asset for job matching and skill gap analysis in radar crawl */
+            asset_relevance_enabled: boolean;
+        };
+        /** @description Request to get a presigned URL for uploading an asset to a pursuit track */
+        PostPursuitTrackAssetUploadUrlRequest: {
+            /**
+             * @description Name of the file to upload (e.g. resume.pdf)
+             * @example resume.pdf
+             */
+            filename: string;
+            /**
+             * @description MIME type. Inferred from extension if omitted.
+             * @example application/pdf
+             */
+            content_type?: string;
+            /**
+             * @description Type of asset (resume, cover_letter, portfolio). Defaults to resume.
+             * @default resume
+             * @enum {string}
+             */
+            asset_type: "resume" | "cover_letter" | "portfolio";
+        };
+        PursuitTrackAssetPresignedResponse: {
+            /**
+             * Format: uri
+             * @description Presigned URL for uploading the file via HTTP PUT.
+             */
+            upload_url?: string;
+            /** @description The S3 object key where the file will be stored. */
+            s3_key?: string;
+            /**
+             * Format: uri
+             * @description The S3 URI to pass to the complete endpoint.
+             */
+            s3_uri?: string;
+            /**
+             * Format: date-time
+             * @description When the presigned URL expires.
+             */
+            expires_at?: string;
+        };
+        /** @description Request to complete an asset upload after client has uploaded to S3 */
+        PostPursuitTrackAssetCompleteRequest: {
+            /**
+             * Format: uri
+             * @description S3 URI returned from upload-url (s3://bucket/key)
+             * @example s3://hassleskipbuckets/assets/pursuit_track/123/abc-uuid/resume.pdf
+             */
+            s3_uri: string;
+            /**
+             * @description Original filename
+             * @example resume.pdf
+             */
+            filename: string;
+            /**
+             * @description MIME type of the file
+             * @example application/pdf
+             */
+            content_type?: string;
+            /**
+             * @description Type of asset
+             * @enum {string}
+             */
+            asset_type: "resume" | "cover_letter" | "portfolio";
         };
         /** @description Fit score for a specific dimension */
         EnrichmentFitScore: {
@@ -7225,6 +7931,72 @@ export interface operations {
             };
         };
     };
+    V1GetFounderDomainKnowledgeList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of domain knowledge domains */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainKnowledgeListResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1GetFounderDomainKnowledgeGraph: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Domain slug (e.g. docker, golang) */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Domain knowledge graph (concepts + relationships) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainKnowledgeGraphResponse"];
+                };
+            };
+            /** @description Domain not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     V1GetFounderAgentWS: {
         parameters: {
             query: {
@@ -7674,6 +8446,203 @@ export interface operations {
             };
         };
     };
+    V1DeleteFounderPursuitTrack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+                /** @description Pursuit UUID */
+                pursuitUUID: string;
+                /** @description Track UUID */
+                trackUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Track deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Track not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1PostFounderPursuitRadarCrawl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+                /** @description Pursuit UUID */
+                pursuitUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePursuitRadarCrawlRequest"];
+            };
+        };
+        responses: {
+            /** @description Crawl completed (sync mode) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarCrawlResponse"];
+                };
+            };
+            /** @description Accepted - Crawl running in background (when background=true). Connect to WebSocket for founder.agent.discoveries events. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example accepted */
+                        status?: string;
+                        /** @example Discovery running in background; connect to WebSocket for live updates */
+                        message?: string;
+                    };
+                };
+            };
+            /** @description Bad Request - Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Pursuit not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1GetFounderPursuitRadarDiscoveries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userID: number;
+                pursuitUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of discoveries */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarDiscoveryListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1GetFounderPursuitRadarDiscoveriesSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userID: number;
+                pursuitUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Summary stats */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarDiscoverySummaryResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     V1GetFounderPursuitTrackMilestones: {
         parameters: {
             query?: never;
@@ -7787,6 +8756,56 @@ export interface operations {
             };
         };
     };
+    V1DeleteFounderPursuitMilestone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+                /** @description Pursuit UUID */
+                pursuitUUID: string;
+                /** @description Track UUID */
+                trackUUID: string;
+                /** @description Milestone UUID */
+                milestoneUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Milestone deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Milestone not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     V1PostFounderPursuitMilestoneComplete: {
         parameters: {
             query?: never;
@@ -7836,6 +8855,617 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    V1GetFounderPursuitTrackAssets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+                /** @description Pursuit UUID */
+                pursuitUUID: string;
+                /** @description Track UUID */
+                trackUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of assets */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PursuitTrackAssetListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Track not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1GetFounderPursuitTrackRadarRuns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+                /** @description Pursuit UUID */
+                pursuitUUID: string;
+                /** @description Track UUID */
+                trackUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of radar runs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PursuitTrackRadarRunListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Track not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1PostFounderPursuitTrackRadarRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+                /** @description Pursuit UUID */
+                pursuitUUID: string;
+                /** @description Track UUID */
+                trackUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePursuitTrackRadarRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Run created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PursuitTrackRadarRunResponse"];
+                };
+            };
+            /** @description Accepted - Run created and crawl running in background. Connect to WebSocket for live updates. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PursuitTrackRadarRunResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Track not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1GetFounderPursuitTrackRadarRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+                /** @description Pursuit UUID */
+                pursuitUUID: string;
+                /** @description Track UUID */
+                trackUUID: string;
+                /** @description Radar run UUID */
+                runUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Radar run details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PursuitTrackRadarRunResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Run not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1DeleteFounderPursuitTrackRadarRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+                /** @description Pursuit UUID */
+                pursuitUUID: string;
+                /** @description Track UUID */
+                trackUUID: string;
+                /** @description Radar run UUID */
+                runUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Run deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Run not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1PostFounderPursuitTrackRadarRunCancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+                /** @description Pursuit UUID */
+                pursuitUUID: string;
+                /** @description Track UUID */
+                trackUUID: string;
+                /** @description Radar run UUID */
+                runUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Run cancelled */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PursuitTrackRadarRunResponse"];
+                };
+            };
+            /** @description Bad Request - Run cannot be cancelled (e.g. already completed) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Run not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1GetFounderPursuitTrackRadarRunDiscoveries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+                /** @description Pursuit UUID */
+                pursuitUUID: string;
+                /** @description Track UUID */
+                trackUUID: string;
+                /** @description Radar run UUID */
+                runUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of discoveries for the run */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarDiscoveryListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Run not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1DeleteFounderPursuitTrackAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+                /** @description Pursuit UUID */
+                pursuitUUID: string;
+                /** @description Track UUID */
+                trackUUID: string;
+                /** @description Asset UUID */
+                assetUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Asset deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Asset not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1PatchFounderPursuitTrackAssetRelevance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The founder's user ID */
+                userID: number;
+                /** @description Pursuit UUID */
+                pursuitUUID: string;
+                /** @description Track UUID */
+                trackUUID: string;
+                /** @description Asset UUID */
+                assetUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatchPursuitTrackAssetRelevanceRequest"];
+            };
+        };
+        responses: {
+            /** @description Asset updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PursuitTrackAssetResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Asset not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1PostFounderPursuitTrackAssetUploadUrl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userID: number;
+                pursuitUUID: string;
+                trackUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PostPursuitTrackAssetUploadUrlRequest"];
+            };
+        };
+        responses: {
+            /** @description Presigned URL generated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PursuitTrackAssetPresignedResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PostFounderPursuitTrackAssetComplete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userID: number;
+                pursuitUUID: string;
+                trackUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PostPursuitTrackAssetCompleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Asset created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PursuitTrackAssetResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
             };
         };
     };

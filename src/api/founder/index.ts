@@ -288,7 +288,9 @@ export {
   getRetentionCurve,
   getStrengthMatrix,
   getPracticeImpact,
-  getLearnerProfile
+  getLearnerProfile,
+  getDomainKnowledgeList,
+  getDomainKnowledgeGraph
 } from './knowledgeAPI';
 
 export type {
@@ -297,7 +299,9 @@ export type {
   RetentionCurveResponse,
   StrengthMatrixResponse,
   PracticeImpactResponse,
-  LearnerProfileResponse
+  LearnerProfileResponse,
+  DomainKnowledgeGraphResponse,
+  DomainKnowledgeListResponse
 } from './knowledgeAPI';
 
 // Schemas & Types
