@@ -106,6 +106,8 @@ export interface AgentEventHandlers {
   onAgentToolCall?: (payload: AgentToolCallPayload) => void;
   onAgentToolResult?: (payload: AgentToolResultPayload) => void;
   onAgentDiscoveries?: (payload: AgentDiscoveriesPayload) => void;
+  /** When agent runs terminal_execute; client injects command into ttyd iframe */
+  onTerminalInput?: (payload: { command: string }) => void;
 }
 
 // ============================================================================
@@ -130,7 +132,6 @@ class FounderAgentClient {
     return new Promise((resolve, reject) => {
       // Already connected or connecting - sync state to new component and return
       if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
-        console.log('[AgentWS] Already connected/connecting, syncing state to new component');
         this.handlers = handlers;
         if (this.ws.readyState === WebSocket.OPEN) {
           this.setConnectionState('connected');
@@ -163,7 +164,6 @@ class FounderAgentClient {
       }
 
       this.ws.onopen = () => {
-        console.log('[AgentWS] Connected');
         this.reconnectAttempts = 0;
         this.startPingInterval();
       };
@@ -193,7 +193,6 @@ class FounderAgentClient {
       };
 
       this.ws.onclose = (event) => {
-        console.log('[AgentWS] Disconnected:', event.code, event.reason);
         this.stopPingInterval();
         this.ws = null;
         this.setConnectionState('disconnected');
@@ -393,8 +392,11 @@ class FounderAgentClient {
         this.handlers.onAgentDiscoveries?.(payload as AgentDiscoveriesPayload);
         break;
 
+      case 'founder.agent.terminal_input':
+        this.handlers.onTerminalInput?.(payload as { command: string });
+        break;
+
       default:
-        console.warn('[AgentWS] Unknown message type:', type);
     }
   }
 
@@ -423,7 +425,6 @@ class FounderAgentClient {
     this.setConnectionState('reconnecting');
     
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-    console.log(`[AgentWS] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
 
     setTimeout(() => {
       if (this.connectionState === 'reconnecting') {

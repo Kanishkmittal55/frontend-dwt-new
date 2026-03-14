@@ -1187,6 +1187,76 @@ export type LearnerProfileActivity = z.infer<typeof LearnerProfileActivitySchema
 export type LearnerProfileResponse = z.infer<typeof LearnerProfileResponseSchema>;
 
 // ============================================================================
+// Domain Knowledge CRUD Schemas
+// ============================================================================
+
+export const DomainKnowledgeDifficultySchema = z.enum(['beginner', 'intermediate', 'advanced']);
+export const DomainKnowledgeRelationshipSchema = z.enum(['prerequisite', 'builds_on', 'related']);
+
+// Slug: lowercase alphanumeric, hyphens allowed, pattern ^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$
+export const DomainSlugSchema = z
+  .string()
+  .min(1, 'Slug is required')
+  .max(100)
+  .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/, 'Slug must be lowercase alphanumeric with hyphens (e.g. docker, golang)');
+
+export const CreateDomainKnowledgeRequestSchema = z.object({
+  slug: DomainSlugSchema,
+  name: z.string().min(1, 'Name is required').max(200),
+  description: z.string().max(500).optional()
+});
+
+export const UpdateDomainKnowledgeRequestSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().max(500).optional()
+});
+
+export const CreateDomainKnowledgeConceptRequestSchema = z.object({
+  slug: z.string().min(1, 'Slug is required').max(100),
+  name: z.string().min(1, 'Name is required').max(200),
+  description: z.string().max(1000).optional(),
+  difficulty: DomainKnowledgeDifficultySchema.default('intermediate'),
+  sub_domain: z.string().max(50).optional(),
+  sequence_order: z.number().int().min(1).default(1)
+});
+
+export const UpdateDomainKnowledgeConceptRequestSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().max(1000).optional(),
+  difficulty: DomainKnowledgeDifficultySchema.optional(),
+  sub_domain: z.string().max(50).optional(),
+  sequence_order: z.number().int().min(1).optional()
+});
+
+export const CreateDomainKnowledgeEdgeRequestSchema = z.object({
+  from_concept_slug: z.string().min(1, 'From concept is required'),
+  to_concept_slug: z.string().min(1, 'To concept is required'),
+  relationship: DomainKnowledgeRelationshipSchema,
+  strength: z.number().min(0).max(1).default(0.5)
+}).refine((data) => data.from_concept_slug !== data.to_concept_slug, {
+  message: 'From and to concepts must be different',
+  path: ['to_concept_slug']
+});
+
+export const UpdateDomainKnowledgeEdgeRequestSchema = z.object({
+  relationship: DomainKnowledgeRelationshipSchema.optional(),
+  strength: z.number().min(0).max(1).optional()
+}).refine((data) => data.relationship != null || data.strength != null, {
+  message: 'At least one of relationship or strength is required',
+  path: ['relationship']
+});
+
+// Type exports
+export type DomainKnowledgeDifficulty = z.infer<typeof DomainKnowledgeDifficultySchema>;
+export type DomainKnowledgeRelationship = z.infer<typeof DomainKnowledgeRelationshipSchema>;
+export type CreateDomainKnowledgeRequest = z.infer<typeof CreateDomainKnowledgeRequestSchema>;
+export type UpdateDomainKnowledgeRequest = z.infer<typeof UpdateDomainKnowledgeRequestSchema>;
+export type CreateDomainKnowledgeConceptRequest = z.infer<typeof CreateDomainKnowledgeConceptRequestSchema>;
+export type UpdateDomainKnowledgeConceptRequest = z.infer<typeof UpdateDomainKnowledgeConceptRequestSchema>;
+export type CreateDomainKnowledgeEdgeRequest = z.infer<typeof CreateDomainKnowledgeEdgeRequestSchema>;
+export type UpdateDomainKnowledgeEdgeRequest = z.infer<typeof UpdateDomainKnowledgeEdgeRequestSchema>;
+
+// ============================================================================
 // Validation Helpers
 // ============================================================================
 

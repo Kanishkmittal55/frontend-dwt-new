@@ -738,11 +738,143 @@ export interface paths {
         /**
          * List domain knowledge domains
          * @description Returns all available domain knowledge graphs (e.g. docker, golang).
-         *     Used to populate domain selector cards in the Founder Persona dashboard.
+         *     When user_id is provided, includes skill_score_pct, coverage_pct, last_assessment per domain.
          */
         get: operations["V1GetFounderDomainKnowledgeList"];
         put?: never;
+        /**
+         * Create a new domain knowledge graph
+         * @description Creates a new domain (e.g. docker, golang) for building concept graphs.
+         */
+        post: operations["V1PostFounderDomainKnowledge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/domain-knowledge/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a single domain by slug
+         * @description Returns domain metadata for CRUD operations.
+         */
+        get: operations["V1GetFounderDomainKnowledgeBySlug"];
+        /**
+         * Update domain metadata
+         * @description Updates name and description. Slug is immutable.
+         */
+        put: operations["V1PutFounderDomainKnowledge"];
         post?: never;
+        /**
+         * Delete a domain and its concepts and edges
+         * @description Cascades to all concepts and edges in the domain.
+         */
+        delete: operations["V1DeleteFounderDomainKnowledge"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/domain-knowledge/{slug}/concepts/{conceptSlug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a single concept by slug
+         * @description Returns concept details for the given domain and concept slug.
+         */
+        get: operations["V1GetFounderDomainKnowledgeConcept"];
+        /**
+         * Update a concept
+         * @description Updates name, description, difficulty, sub_domain, sequence_order. Slug is immutable.
+         */
+        put: operations["V1PutFounderDomainKnowledgeConcept"];
+        post?: never;
+        /**
+         * Delete a concept
+         * @description Deletes the concept and all edges referencing it.
+         */
+        delete: operations["V1DeleteFounderDomainKnowledgeConcept"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/domain-knowledge/{slug}/concepts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List concepts in a domain
+         * @description Returns all concepts for the domain, ordered by sub_domain and sequence_order.
+         */
+        get: operations["V1GetFounderDomainKnowledgeConcepts"];
+        put?: never;
+        /**
+         * Create a concept in a domain
+         * @description Adds a new concept (node) to the domain knowledge graph.
+         */
+        post: operations["V1PostFounderDomainKnowledgeConcept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/domain-knowledge/{slug}/edges/{edgeUUID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update an edge
+         * @description Updates relationship and strength.
+         */
+        put: operations["V1PutFounderDomainKnowledgeEdge"];
+        post?: never;
+        /**
+         * Delete an edge
+         * @description Removes the relationship between two concepts.
+         */
+        delete: operations["V1DeleteFounderDomainKnowledgeEdge"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/domain-knowledge/{slug}/edges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List edges in a domain
+         * @description Returns all edges (relationships) between concepts in the domain.
+         */
+        get: operations["V1GetFounderDomainKnowledgeEdges"];
+        put?: never;
+        /**
+         * Create an edge between concepts
+         * @description Creates a relationship (prerequisite, builds_on, related) between two concepts.
+         */
+        post: operations["V1PostFounderDomainKnowledgeEdge"];
         delete?: never;
         options?: never;
         head?: never;
@@ -766,6 +898,133 @@ export interface paths {
         get: operations["V1GetFounderDomainKnowledgeGraph"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/domain-knowledge/{slug}/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get last assessment metrics for a domain
+         * @description Returns the last inferred metrics for a user's assessment in a domain.
+         *     Includes overall score, coverage, per-concept scores, duration, hints.
+         *     When user_id is omitted, returns null/empty.
+         */
+        get: operations["V1GetFounderDomainKnowledgeMetrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/domain-knowledge/{slug}/founder-graph": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get domain knowledge graph with founder scores
+         * @description Returns the concept graph for a domain with per-concept tested and last_score
+         *     when user_id is provided. Used for NeuralMap with user progress overlay.
+         */
+        get: operations["V1GetFounderDomainKnowledgeFounderGraph"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/domain-knowledge/{slug}/assessment/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate domain knowledge assessment
+         * @description Generates scenario-based assessment tests for a domain from its knowledge graph.
+         *     Uses templates to produce applicative tasks (e.g. fix Dockerfile, add volume to compose)
+         *     that test application of concepts rather than recall. Optional body overrides config.
+         */
+        post: operations["V1PostFounderDomainKnowledgeAssessmentGenerate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/domain-knowledge/{slug}/assessment/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start domain knowledge assessment
+         * @description Starts a rig session for the chosen scenario. Spawns a container with the scenario setup,
+         *     persists the session to DB, and returns the session URL for the terminal.
+         */
+        post: operations["V1PostFounderDomainKnowledgeAssessmentStart"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/domain-knowledge/{slug}/assessment/sessions/{session_id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End domain knowledge assessment session
+         * @description Ends the rig session, stops the container, captures session log, and updates the assessment record.
+         */
+        post: operations["V1PostFounderDomainKnowledgeAssessmentSessionsEnd"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/domain-knowledge/{slug}/assessment/sessions/{session_id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify domain knowledge assessment submission
+         * @description LLM-based verification of the user's work. Reads session log and relevant files from the rig,
+         *     calls LLM to judge pass/fail, score, and feedback. No validation rules - LLM judges from the task.
+         */
+        post: operations["V1PostFounderDomainKnowledgeAssessmentSessionsVerify"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1342,6 +1601,28 @@ export interface paths {
         get: operations["V1GetIdeaEnrichmentStream"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/internal/radar/filter-urls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Filter URLs for pre-scrape exclusion
+         * @description Internal service-to-service endpoint. Returns URLs from the request that are NOT
+         *     already in radar_discovery_items for the given pursuit. Used by Radar (Python)
+         *     before scraping to avoid re-fetching known URLs.
+         */
+        post: operations["V1PostInternalRadarFilterUrls"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3812,6 +4093,17 @@ export interface components {
         };
         /** @description List of domain knowledge domains */
         DomainKnowledgeListResponse: {
+            /** @description Active assessment for user (when user_id provided and one exists). Enables resume after page refresh. */
+            active_assessment?: {
+                /** @description Rig session ID */
+                session_id?: string;
+                /** @description Terminal URL (ttyd) */
+                session_url?: string;
+                /** @description Domain slug (e.g. docker, golang) */
+                slug?: string;
+                /** @description Human-readable domain name */
+                domain_name?: string;
+            };
             /** @description Available domain knowledge graphs */
             domains: {
                 /**
@@ -3826,7 +4118,188 @@ export interface components {
                 name: string;
                 /** @description Optional domain description */
                 description?: string;
+                /**
+                 * Format: int32
+                 * @description Last inferred overall score 0-100 (when user_id provided)
+                 */
+                skill_score_pct?: number;
+                /**
+                 * Format: int32
+                 * @description Last inferred coverage 0-100 (when user_id provided)
+                 */
+                coverage_pct?: number;
+                /**
+                 * Format: date-time
+                 * @description When last assessment ended (when user_id provided)
+                 */
+                last_assessment?: string;
             }[];
+        };
+        /** @description Request to create a new domain knowledge graph */
+        CreateDomainKnowledgeRequest: {
+            /**
+             * @description Unique identifier (e.g. docker, golang)
+             * @example docker
+             */
+            slug: string;
+            /**
+             * @description Human-readable domain name
+             * @example Docker
+             */
+            name: string;
+            /** @description Optional domain description */
+            description?: string;
+        };
+        /** @description Domain knowledge graph metadata */
+        DomainKnowledgeResponse: {
+            /**
+             * Format: uuid
+             * @description Domain UUID
+             */
+            uuid: string;
+            /**
+             * @description Domain slug
+             * @example docker
+             */
+            slug: string;
+            /**
+             * @description Human-readable name
+             * @example Docker
+             */
+            name: string;
+            /** @description Optional description */
+            description?: string;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        /** @description Request to update domain metadata (slug is immutable) */
+        UpdateDomainKnowledgeRequest: {
+            /** @description Human-readable domain name */
+            name?: string;
+            /** @description Optional domain description */
+            description?: string;
+        };
+        /** @description A concept (node) in a domain knowledge graph */
+        DomainKnowledgeConceptResponse: {
+            /** Format: uuid */
+            uuid: string;
+            /** @example images */
+            slug: string;
+            /** @example Docker Images */
+            name: string;
+            description?: string;
+            /** @enum {string} */
+            difficulty: "beginner" | "intermediate" | "advanced";
+            sub_domain?: string;
+            /** Format: int32 */
+            sequence_order?: number;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        /** @description Request to update a concept (slug is immutable) */
+        UpdateDomainKnowledgeConceptRequest: {
+            name?: string;
+            description?: string;
+            /** @enum {string} */
+            difficulty?: "beginner" | "intermediate" | "advanced";
+            sub_domain?: string;
+            /** Format: int32 */
+            sequence_order?: number;
+        };
+        /** @description List of concepts in a domain */
+        DomainKnowledgeConceptListResponse: {
+            concepts: components["schemas"]["DomainKnowledgeConceptResponse"][];
+        };
+        /** @description Request to create a concept in a domain */
+        CreateDomainKnowledgeConceptRequest: {
+            /**
+             * @description Unique concept slug within domain
+             * @example images
+             */
+            slug: string;
+            /**
+             * @description Concept name
+             * @example Docker Images
+             */
+            name: string;
+            /** @description Optional concept description */
+            description?: string;
+            /**
+             * @default intermediate
+             * @example beginner
+             * @enum {string}
+             */
+            difficulty: "beginner" | "intermediate" | "advanced";
+            /** @description Grouping label (e.g. fundamentals, dockerfile) */
+            sub_domain?: string;
+            /**
+             * Format: int32
+             * @description Display order within sub_domain
+             * @default 1
+             */
+            sequence_order: number;
+        };
+        /** @description Request to update an edge */
+        UpdateDomainKnowledgeEdgeRequest: {
+            /** @enum {string} */
+            relationship?: "prerequisite" | "builds_on" | "related";
+            /** Format: float */
+            strength?: number;
+        };
+        /** @description An edge (relationship) between two concepts */
+        DomainKnowledgeEdgeResponse: {
+            /** Format: uuid */
+            uuid: string;
+            /** Format: uuid */
+            from_concept_uuid: string;
+            /** @description Source concept slug (for convenience) */
+            from_concept_slug?: string;
+            /** Format: uuid */
+            to_concept_uuid: string;
+            /** @description Target concept slug (for convenience) */
+            to_concept_slug?: string;
+            /** @enum {string} */
+            relationship: "prerequisite" | "builds_on" | "related";
+            /** Format: float */
+            strength: number;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        /** @description List of edges in a domain */
+        DomainKnowledgeEdgeListResponse: {
+            edges: components["schemas"]["DomainKnowledgeEdgeResponse"][];
+        };
+        /** @description Request to create an edge between two concepts */
+        CreateDomainKnowledgeEdgeRequest: {
+            /**
+             * @description Slug of source concept
+             * @example images
+             */
+            from_concept_slug: string;
+            /**
+             * @description Slug of target concept
+             * @example containers
+             */
+            to_concept_slug: string;
+            /**
+             * @description prerequisite (A needed before B), builds_on (B extends A), related (sibling)
+             * @example prerequisite
+             * @enum {string}
+             */
+            relationship: "prerequisite" | "builds_on" | "related";
+            /**
+             * Format: float
+             * @description Edge strength 0-1
+             * @default 0.5
+             * @example 0.9
+             */
+            strength: number;
         };
         /** @description Domain knowledge graph for NeuralMap — concepts (nodes) + relationships (edges) */
         DomainKnowledgeGraphResponse: {
@@ -3908,6 +4381,237 @@ export interface components {
                  */
                 strength: number;
             }[];
+        };
+        /** @description Last assessment metrics for a domain (inferred from session log) */
+        DomainKnowledgeMetricsResponse: {
+            /**
+             * Format: int32
+             * @example 72
+             */
+            overall_score_pct?: number;
+            /**
+             * Format: int32
+             * @example 65
+             */
+            coverage_pct?: number;
+            concept_scores?: {
+                concept_slug?: string;
+                /** Format: int32 */
+                score?: number;
+                justification?: string;
+            }[];
+            /** Format: int32 */
+            duration_sec?: number;
+            /** Format: int32 */
+            hints_used?: number;
+            /** Format: date-time */
+            inferred_at?: string;
+            inference_error?: string;
+        };
+        /** @description Domain knowledge graph with per-concept user scores (founder-graph) */
+        DomainKnowledgeFounderGraphResponse: {
+            domain: {
+                /** @example docker */
+                slug: string;
+                /** @example Docker */
+                name: string;
+                description?: string;
+            };
+            /** @description Concept nodes with tested and last_score when user_id provided */
+            concepts: {
+                /** Format: uuid */
+                uuid: string;
+                slug: string;
+                name: string;
+                description?: string;
+                /** @enum {string} */
+                difficulty: "beginner" | "intermediate" | "advanced";
+                sub_domain?: string;
+                /** Format: int32 */
+                sequence_order?: number;
+                /** @description Whether user has been assessed on this concept */
+                tested?: boolean;
+                /**
+                 * Format: int32
+                 * @description Last inferred score 0-100 (when tested)
+                 */
+                last_score?: number;
+            }[];
+            /** @description Graph edges */
+            relationships: {
+                /** Format: uuid */
+                uuid: string;
+                /** Format: uuid */
+                from_concept_uuid: string;
+                /** Format: uuid */
+                to_concept_uuid: string;
+                /** @enum {string} */
+                relationship: "prerequisite" | "builds_on" | "related";
+                /** Format: float */
+                strength: number;
+            }[];
+        };
+        /** @description Optional overrides for assessment generation when generating domain knowledge tests */
+        DomainKnowledgeAssessmentGenerateRequest: {
+            /**
+             * Format: int32
+             * @description Number of scenarios to generate (default 3)
+             * @example 3
+             */
+            scenario_count?: number;
+            /**
+             * Format: int32
+             * @description Concepts per scenario (1 = single-concept)
+             * @example 2
+             */
+            concept_batch_size?: number;
+            /**
+             * @description Difficulty ceiling (default intermediate)
+             * @example intermediate
+             * @enum {string}
+             */
+            max_difficulty?: "beginner" | "intermediate" | "advanced";
+            /**
+             * @description Selected concept slugs (manual mode). Ignored when auto_select is true.
+             * @example [
+             *       "images",
+             *       "containers",
+             *       "volumes"
+             *     ]
+             */
+            concept_filter?: string[];
+            /**
+             * @description If true, LLM suggests best concept combinations from all concepts (ignores concept_filter)
+             * @example false
+             */
+            auto_select?: boolean;
+        };
+        /** @description Rules for validating founder submission */
+        DomainKnowledgeAssessmentValidationRules: {
+            /** @description Dockerfile must have FROM instruction */
+            must_have_from?: boolean;
+            /** @description Dockerfile must have COPY instruction */
+            must_have_copy?: boolean;
+            /** @description Dockerfile must have RUN instruction */
+            must_have_run?: boolean;
+            /** @description Dockerfile must use multi-stage build */
+            must_have_multi_stage?: boolean;
+            /** @description Command must include -p flag */
+            must_have_port_flag?: boolean;
+            /** @description Command must include -v flag */
+            must_have_volume_flag?: boolean;
+            /** @description Expected image name in command */
+            expected_image?: string;
+            /** @description Compose must define volumes */
+            must_have_volumes?: boolean;
+            /** @description Compose must define networks */
+            must_have_networks?: boolean;
+            /** @description Compose must define healthcheck */
+            must_have_healthcheck?: boolean;
+            /**
+             * Format: int32
+             * @description Index of correct choice (scenario_choice)
+             */
+            correct_choice_index?: number;
+        };
+        /** @description A single applicative test scenario */
+        DomainKnowledgeAssessmentScenario: {
+            /** @description Unique scenario ID */
+            id: string;
+            /**
+             * @description Concept being tested
+             * @example volumes
+             */
+            concept_slug: string;
+            /**
+             * @description Human-readable concept name
+             * @example Docker Volumes
+             */
+            concept_name: string;
+            /**
+             * @description Type of interactive task
+             * @enum {string}
+             */
+            task_type: "dockerfile_edit" | "command_build" | "compose_edit" | "scenario_choice" | "code_edit" | "test_write";
+            /** @enum {string} */
+            difficulty: "beginner" | "intermediate" | "advanced";
+            /** @description Scenario prompt (e.g. fix this Dockerfile) */
+            prompt: string;
+            /** @description Optional initial content (for edit tasks) */
+            initial_content?: string;
+            validation_rules: components["schemas"]["DomainKnowledgeAssessmentValidationRules"];
+            /**
+             * Format: int32
+             * @description Estimated time to complete in seconds
+             */
+            estimated_time_sec: number;
+            /** @description Optional hint for the founder */
+            hint?: string;
+            /** @description Short description for the choice card (e.g. "Combine Dockerfile + images – see how well you know image building") */
+            selling_pitch?: string;
+        };
+        /** @description Generated assessment scenarios for domain knowledge testing */
+        DomainKnowledgeAssessmentGenerateResponse: {
+            /**
+             * @description Domain slug (e.g. docker, golang)
+             * @example docker
+             */
+            domain_slug: string;
+            /** @description Scenario-based test tasks */
+            scenarios: components["schemas"]["DomainKnowledgeAssessmentScenario"][];
+            /**
+             * Format: int32
+             * @description Number of scenarios generated
+             * @example 5
+             */
+            total_count: number;
+        };
+        /** @description Request body for starting a domain knowledge assessment rig session */
+        DomainKnowledgeAssessmentStartRequest: {
+            /** @description The chosen scenario from generate response */
+            scenario: components["schemas"]["DomainKnowledgeAssessmentScenario"];
+            /**
+             * Format: int32
+             * @description User ID (must own the session)
+             */
+            user_id: number;
+        };
+        /** @description Response after starting a rig session */
+        DomainKnowledgeAssessmentStartResponse: {
+            /** @description Rig session ID (UUID) for ending session and agent routing */
+            session_id: string;
+            /**
+             * @description URL where the terminal (ttyd) is hosted
+             * @example http://localhost:49152
+             */
+            session_url: string;
+        };
+        /** @description Response after ending a rig session */
+        DomainKnowledgeAssessmentEndResponse: {
+            /** @description Terminal output captured during the session */
+            session_log: string;
+        };
+        /** @description Request body for verifying a domain knowledge assessment submission */
+        DomainKnowledgeAssessmentVerifyRequest: {
+            /**
+             * Format: int32
+             * @description User ID (ownership check)
+             */
+            user_id: number;
+            /** @description The scenario from generate/start (needed for task prompt and task type) */
+            scenario: components["schemas"]["DomainKnowledgeAssessmentScenario"];
+        };
+        /** @description LLM-judged verification result */
+        DomainKnowledgeAssessmentVerifyResponse: {
+            /** @description Whether the user completed the task correctly */
+            passed: boolean;
+            /**
+             * Format: int32
+             * @description Score 0-100
+             */
+            score: number;
+            /** @description Feedback items (e.g. "✓ Multi-stage build present", "✗ Missing COPY") */
+            feedback: string[];
         };
         /** @description A founder pursuit (abstract goal) */
         PursuitResponse: {
@@ -4354,8 +5058,13 @@ export interface components {
         };
         /** @description Request to create a discovery run for a track (triggered by Run Discovery button) */
         CreatePursuitTrackRadarRunRequest: {
-            /** @description Source sites to crawl (e.g. jobspy, workday, smartextract) */
+            /** @description Source sites to crawl (e.g. jobspy, workday, smartextract for job_search; bloomberg for stock_investing) */
             source_sites: string[];
+            /**
+             * @description Pursuit goal type so backend can tailor crawl (e.g. job_search, stock_investing)
+             * @enum {string}
+             */
+            goal_type?: "job_search" | "company_launch" | "stock_investing" | "personal_brand" | "job_management" | "resume_management";
         };
         /** @description Request to toggle asset relevance for job matching */
         PatchPursuitTrackAssetRelevanceRequest: {
@@ -4575,6 +5284,21 @@ export interface components {
             estimated_completion?: string | null;
             /** @description Error message if state is failed */
             error?: string | null;
+        };
+        /** @description Request to filter URLs that are not yet in radar_discovery_items for a pursuit */
+        RadarFilterUrlsRequest: {
+            /**
+             * Format: uuid
+             * @description Pursuit UUID to check against
+             */
+            pursuit_uuid: string;
+            /** @description URLs to filter (returns only those not already in DB) */
+            urls: string[];
+        };
+        /** @description URLs that are not yet in radar_discovery_items for the pursuit */
+        RadarFilterUrlsResponse: {
+            /** @description URLs from the request that are not in radar_discovery_items */
+            new_urls: string[];
         };
         /** @description Entity trend data with EWMA metrics */
         EntityTrend: {
@@ -7933,7 +8657,10 @@ export interface operations {
     };
     V1GetFounderDomainKnowledgeList: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description User ID for per-domain metrics */
+                user_id?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7955,6 +8682,612 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    V1PostFounderDomainKnowledge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDomainKnowledgeRequest"];
+            };
+        };
+        responses: {
+            /** @description Domain created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainKnowledgeResponse"];
+                };
+            };
+            /** @description Invalid request (e.g. invalid slug format) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Slug already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1GetFounderDomainKnowledgeBySlug: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Domain slug (e.g. docker, golang) */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Domain details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainKnowledgeResponse"];
+                };
+            };
+            /** @description Domain not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PutFounderDomainKnowledge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Domain slug (e.g. docker, golang) */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDomainKnowledgeRequest"];
+            };
+        };
+        responses: {
+            /** @description Domain updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainKnowledgeResponse"];
+                };
+            };
+            /** @description Domain not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1DeleteFounderDomainKnowledge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Domain slug (e.g. docker, golang) */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Domain deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Domain not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1GetFounderDomainKnowledgeConcept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Domain slug (e.g. docker, golang) */
+                slug: string;
+                /** @description Concept slug within the domain */
+                conceptSlug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Concept details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainKnowledgeConceptResponse"];
+                };
+            };
+            /** @description Domain or concept not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PutFounderDomainKnowledgeConcept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Domain slug (e.g. docker, golang) */
+                slug: string;
+                /** @description Concept slug within the domain */
+                conceptSlug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDomainKnowledgeConceptRequest"];
+            };
+        };
+        responses: {
+            /** @description Concept updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainKnowledgeConceptResponse"];
+                };
+            };
+            /** @description Domain or concept not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1DeleteFounderDomainKnowledgeConcept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Domain slug (e.g. docker, golang) */
+                slug: string;
+                /** @description Concept slug within the domain */
+                conceptSlug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Concept deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Domain or concept not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1GetFounderDomainKnowledgeConcepts: {
+        parameters: {
+            query?: {
+                /** @description Filter by sub_domain */
+                sub_domain?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Domain slug (e.g. docker, golang) */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of concepts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainKnowledgeConceptListResponse"];
+                };
+            };
+            /** @description Domain not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PostFounderDomainKnowledgeConcept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Domain slug (e.g. docker, golang) */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDomainKnowledgeConceptRequest"];
+            };
+        };
+        responses: {
+            /** @description Concept created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainKnowledgeConceptResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Domain not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Concept slug already exists in domain */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PutFounderDomainKnowledgeEdge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Domain slug (e.g. docker, golang) */
+                slug: string;
+                /** @description Edge UUID */
+                edgeUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDomainKnowledgeEdgeRequest"];
+            };
+        };
+        responses: {
+            /** @description Edge updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainKnowledgeEdgeResponse"];
+                };
+            };
+            /** @description Domain or edge not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1DeleteFounderDomainKnowledgeEdge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Domain slug (e.g. docker, golang) */
+                slug: string;
+                /** @description Edge UUID */
+                edgeUUID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Edge deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Domain or edge not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1GetFounderDomainKnowledgeEdges: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Domain slug (e.g. docker, golang) */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of edges */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainKnowledgeEdgeListResponse"];
+                };
+            };
+            /** @description Domain not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PostFounderDomainKnowledgeEdge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Domain slug (e.g. docker, golang) */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDomainKnowledgeEdgeRequest"];
+            };
+        };
+        responses: {
+            /** @description Edge created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainKnowledgeEdgeResponse"];
+                };
+            };
+            /** @description Invalid request (e.g. from_concept_slug equals to_concept_slug) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Domain or concept not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Edge already exists (same from, to, relationship) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
             };
         };
     };
@@ -7994,6 +9327,302 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    V1GetFounderDomainKnowledgeMetrics: {
+        parameters: {
+            query?: {
+                /** @description User ID to fetch metrics for */
+                user_id?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Domain slug (e.g. docker, golang) */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Last assessment metrics (or null if none) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainKnowledgeMetricsResponse"];
+                };
+            };
+            /** @description Domain not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1GetFounderDomainKnowledgeFounderGraph: {
+        parameters: {
+            query?: {
+                /** @description User ID for per-concept scores */
+                user_id?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Domain slug (e.g. docker, golang) */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Graph with concepts and relationships; concepts include tested/last_score when user_id provided */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainKnowledgeFounderGraphResponse"];
+                };
+            };
+            /** @description Domain not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1PostFounderDomainKnowledgeAssessmentGenerate: {
+        parameters: {
+            query?: {
+                /** @description User ID for LLM config (required when auto_select is true) */
+                user_id?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Domain slug (e.g. docker, golang) */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        /** @description Optional config overrides */
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DomainKnowledgeAssessmentGenerateRequest"];
+            };
+        };
+        responses: {
+            /** @description Generated assessment scenarios */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainKnowledgeAssessmentGenerateResponse"];
+                };
+            };
+            /** @description Domain not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PostFounderDomainKnowledgeAssessmentStart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Domain slug (e.g. docker, golang) */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DomainKnowledgeAssessmentStartRequest"];
+            };
+        };
+        responses: {
+            /** @description Rig session started */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainKnowledgeAssessmentStartResponse"];
+                };
+            };
+            /** @description Bad request (invalid scenario, user_id required) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Domain not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PostFounderDomainKnowledgeAssessmentSessionsEnd: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Domain slug (e.g. docker, golang) */
+                slug: string;
+                /** @description Rig session ID from start response */
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * Format: int32
+                     * @description User ID (ownership check)
+                     */
+                    user_id: number;
+                    /** @description Optional. Passed from Verify API (call Verify before End). */
+                    verify_passed?: boolean;
+                    /**
+                     * Format: int32
+                     * @description Optional. Score 0-100 from Verify API.
+                     */
+                    verify_score?: number;
+                    /** @description Optional. Feedback items from Verify API. */
+                    verify_feedback?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Session ended */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainKnowledgeAssessmentEndResponse"];
+                };
+            };
+            /** @description Bad request (assessment not found or not owned) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PostFounderDomainKnowledgeAssessmentSessionsVerify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Domain slug (e.g. docker, golang) */
+                slug: string;
+                /** @description Rig session ID from start response */
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DomainKnowledgeAssessmentVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Verification result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainKnowledgeAssessmentVerifyResponse"];
+                };
+            };
+            /** @description Bad request (assessment not found or not owned) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
             };
         };
     };
@@ -9583,6 +11212,55 @@ export interface operations {
             };
             /** @description Streaming not available (Redis not configured) */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1PostInternalRadarFilterUrls: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RadarFilterUrlsRequest"];
+            };
+        };
+        responses: {
+            /** @description URLs not yet in radar_discovery_items */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFilterUrlsResponse"];
+                };
+            };
+            /** @description Bad Request - Invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized - Invalid or missing x-api-key */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };

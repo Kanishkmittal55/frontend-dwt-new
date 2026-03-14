@@ -19,6 +19,7 @@ import useFounderAgent, { type UseFounderAgentReturn } from '@/hooks/useFounderA
 import ChatMessage from '@/views/founder/agent/components/ChatMessage';
 import ChatInput from '@/views/founder/agent/components/ChatInput';
 import AgentTypingIndicator from '@/views/founder/agent/components/AgentTypingIndicator';
+import VerifyResultCard from '@/views/founder/knowledge/VerifyResultCard';
 import { verifyDomainKnowledgeAssessment } from 'api/founder/knowledgeAPI';
 import { getStoredUserId } from 'api/founder/founderClient';
 
@@ -47,6 +48,8 @@ interface DomainKnowledgeAssessmentViewProps {
   onError?: (message: string) => void;
   /** Pass founder agent from parent so chat uses same connection/session (required for chat to work) */
   founderAgent?: UseFounderAgentReturn;
+  /** Ref for terminal iframe — parent uses it to postMessage commands from agent */
+  terminalIframeRef?: React.RefObject<HTMLIFrameElement | null>;
 }
 
 export default function DomainKnowledgeAssessmentView({
@@ -54,12 +57,16 @@ export default function DomainKnowledgeAssessmentView({
   onDone,
   isEnding = false,
   onError,
-  founderAgent: founderAgentProp
+  founderAgent: founderAgentProp,
+  terminalIframeRef: terminalIframeRefProp
 }: DomainKnowledgeAssessmentViewProps) {
   const theme = useTheme();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const localIframeRef = useRef<HTMLIFrameElement>(null);
+  const terminalIframeRef = terminalIframeRefProp ?? localIframeRef;
   const [isVerifying, setIsVerifying] = useState(false);
-  const [verifyResult, setVerifyResult] = useState<{ passed: boolean; score: number; feedback: string[] } | null>(null);
+  const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
+  const [verifyResultCardOpen, setVerifyResultCardOpen] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
 
   const internalAgent = useFounderAgent({
@@ -103,7 +110,8 @@ export default function DomainKnowledgeAssessmentView({
   }, [messages, isTyping]);
 
   const handleOpenInNewTab = useCallback(() => {
-    window.open(session.sessionUrl, '_blank', 'noopener,noreferrer');
+    const wrapperUrl = `${import.meta.env.VITE_APP_BASE_NAME || ''}/founder/terminal?url=${encodeURIComponent(session.sessionUrl)}`;
+    window.open(wrapperUrl, '_blank', 'noopener,noreferrer');
   }, [session.sessionUrl]);
 
   const handleVerify = useCallback(async (): Promise<VerifyResult | null> => {
@@ -121,8 +129,9 @@ export default function DomainKnowledgeAssessmentView({
         uid,
         session.scenario
       );
-      const vr = { passed: result.passed, score: result.score, feedback: result.feedback ?? [] };
+      const vr: VerifyResult = { passed: result.passed, score: result.score, feedback: result.feedback ?? [] };
       setVerifyResult(vr);
+      setVerifyResultCardOpen(true);
       return vr;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Verification failed';
@@ -189,7 +198,8 @@ export default function DomainKnowledgeAssessmentView({
         </Box>
         <Box sx={{ flex: 1, minHeight: 0 }}>
           <iframe
-            src={session.sessionUrl}
+            ref={terminalIframeRef}
+            src={`${import.meta.env.VITE_APP_BASE_NAME || ''}/founder/terminal?url=${encodeURIComponent(session.sessionUrl)}`}
             title="Assessment terminal"
             style={{
               width: '100%',
@@ -197,7 +207,7 @@ export default function DomainKnowledgeAssessmentView({
               border: 'none',
               minHeight: 400
             }}
-            sandbox="allow-scripts allow-same-origin"
+            sandbox="allow-scripts allow-same-origin allow-forms"
           />
         </Box>
       </Card>
@@ -277,20 +287,12 @@ export default function DomainKnowledgeAssessmentView({
               {verifyError}
             </Alert>
           )}
-          {messages.length === 0 && !isTyping && !verifyResult && !verifyError && (
+          {messages.length === 0 && !isTyping && !verifyError && (
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Chat with the agent for hints or help. It can run commands and read files in your terminal.
             </Typography>
           )}
-          {[...messages, ...(verifyResult ? [{
-            id: 'verify-result',
-            role: 'agent' as const,
-            content: verifyResult.passed
-              ? `You passed! Score: ${verifyResult.score}/100.${verifyResult.feedback.length ? '\n\n' + verifyResult.feedback.join('\n') : ''}`
-              : `Not passed. Score: ${verifyResult.score}/100.${verifyResult.feedback.length ? '\n\n' + verifyResult.feedback.join('\n') : ''}`,
-            timestamp: new Date(),
-            agentName: 'learning'
-          }] : [])].map((msg) => (
+          {messages.map((msg) => (
             <ChatMessage key={msg.id} message={msg} />
           ))}
           {isTyping && <AgentTypingIndicator agentName="Learning Agent" />}
@@ -302,6 +304,14 @@ export default function DomainKnowledgeAssessmentView({
           placeholder={agentSession ? 'Ask for help or hints...' : 'Connecting...'}
         />
       </Card>
+
+      {verifyResult && (
+        <VerifyResultCard
+          open={verifyResultCardOpen}
+          onClose={() => setVerifyResultCardOpen(false)}
+          result={verifyResult}
+        />
+      )}
     </Box>
   );
 }

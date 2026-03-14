@@ -2,7 +2,7 @@
  * Domain Knowledge Dashboard — Curated skill taxonomies (Docker, Go, etc.)
  * Clickable cards open the NeuralMap graph for each domain.
  */
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useBlocker } from 'react-router-dom';
 
 // MUI
@@ -16,6 +16,9 @@ import Alert from '@mui/material/Alert';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import Chip from '@mui/material/Chip';
 import Snackbar from '@mui/material/Snackbar';
@@ -31,6 +34,9 @@ import {
   getDomainKnowledgeList,
   getDomainKnowledgeGraph,
   getDomainKnowledgeMetrics,
+  createDomainKnowledge,
+  updateDomainKnowledge,
+  deleteDomainKnowledge,
   generateDomainKnowledgeAssessment,
   startDomainKnowledgeAssessment,
   verifyDomainKnowledgeAssessment,
@@ -42,6 +48,7 @@ import type {
   DomainKnowledgeAssessmentGenerateResponse,
   DomainKnowledgeAssessmentScenario
 } from 'api/founder/knowledgeAPI';
+import type { CreateDomainKnowledgeRequest } from '@/api/founder/schemas';
 import { getStoredUserId } from 'api/founder/founderClient';
 
 // Hooks
@@ -49,6 +56,10 @@ import useFounderAgent from '@/hooks/useFounderAgent';
 
 // Sub-components
 import DomainKnowledgeNeuralMap from './DomainKnowledgeNeuralMap';
+import DomainKnowledgeManageTab from './DomainKnowledgeManageTab';
+import CreateDomainDialog from './CreateDomainDialog';
+import EditDomainDialog from './EditDomainDialog';
+import DeleteDomainConfirmDialog from './DeleteDomainConfirmDialog';
 import DomainKnowledgeAssessmentDialog from './DomainKnowledgeAssessmentDialog';
 import DomainKnowledgeAssessmentConfigDialog, {
   type AssessmentConfigOverrides
@@ -61,6 +72,10 @@ import DomainKnowledgeMetricsDialog from './DomainKnowledgeMetricsDialog';
 // Icons (additional)
 import QuizIcon from '@mui/icons-material/Quiz';
 import BarChartIcon from '@mui/icons-material/BarChart';
+import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import SettingsIcon from '@mui/icons-material/Settings';
 
 // ============================================================================
 // Domain icon mapping
@@ -149,9 +164,22 @@ export default function DomainKnowledgeDashboard() {
   const [doneSnackbar, setDoneSnackbar] = useState(false);
   const [endErrorSnackbar, setEndErrorSnackbar] = useState<string | null>(null);
   const [metricsDialogSlug, setMetricsDialogSlug] = useState<string | null>(null);
+  const [createDomainOpen, setCreateDomainOpen] = useState(false);
+  const [editDomainOpen, setEditDomainOpen] = useState(false);
+  const [editDomainSlug, setEditDomainSlug] = useState<string | null>(null);
+  const [deleteDomainOpen, setDeleteDomainOpen] = useState(false);
+  const [deleteDomainSlug, setDeleteDomainSlug] = useState<string | null>(null);
+  const [detailTab, setDetailTab] = useState(0); // 0 = graph, 1 = manage
 
-  const founderAgent = useFounderAgent();
-  const { isConnected, session: agentSession, connect, startSession, endSession } = founderAgent;
+  const terminalIframeRef = useRef<HTMLIFrameElement>(null);
+  const founderAgent = useFounderAgent({
+    onTerminalInput: (cmd) =>
+      terminalIframeRef.current?.contentWindow?.postMessage(
+        { type: 'terminal_input', command: cmd },
+        '*'
+      )
+  });
+  const { isConnected, connectionState, session: agentSession, connect, startSession, endSession } = founderAgent;
   const userId = getStoredUserId();
 
   // Block navigation while assessment is active — user must complete or end gracefully
@@ -215,6 +243,24 @@ export default function DomainKnowledgeDashboard() {
     loadDomains();
   }, [loadDomains]);
 
+  // Reconnect and start session when restoring active assessment after page reload
+  useEffect(() => {
+    if (!activeAssessment || !userId) return;
+    const ensureReady = async () => {
+      if (connectionState === 'disconnected') {
+        await connect().catch((err) => {
+          console.error('[DomainKnowledgeDashboard] reconnect failed:', err);
+        });
+      }
+      if (isConnected && !agentSession) {
+        await startSession('learning').catch((err) => {
+          console.error('[DomainKnowledgeDashboard] startSession failed:', err);
+        });
+      }
+    };
+    ensureReady();
+  }, [activeAssessment, userId, connectionState, isConnected, agentSession, connect, startSession]);
+
   const handleMetricsClick = useCallback((e: React.MouseEvent, slug: string) => {
     e.stopPropagation();
     setMetricsDialogSlug(slug);
@@ -241,7 +287,43 @@ export default function DomainKnowledgeDashboard() {
     setSelectedSlug(null);
     setGraph(null);
     setGraphError(null);
+    setDetailTab(0);
   }, []);
+
+  const handleCreateDomain = useCallback(
+    async (params: CreateDomainKnowledgeRequest) => {
+      await createDomainKnowledge(params);
+      loadDomains();
+      setCreateDomainOpen(false);
+    },
+    [loadDomains]
+  );
+
+  const handleEditDomain = useCallback(
+    async (params: { name?: string; description?: string }) => {
+      if (!editDomainSlug) return;
+      await updateDomainKnowledge(editDomainSlug, params);
+      loadDomains();
+      setEditDomainOpen(false);
+      setEditDomainSlug(null);
+      if (selectedSlug === editDomainSlug) {
+        setGraph(null);
+        setGraphError(null);
+      }
+    },
+    [editDomainSlug, loadDomains, selectedSlug]
+  );
+
+  const handleDeleteDomain = useCallback(async () => {
+    if (!deleteDomainSlug) return;
+    await deleteDomainKnowledge(deleteDomainSlug);
+    loadDomains();
+    setDeleteDomainOpen(false);
+    setDeleteDomainSlug(null);
+    if (selectedSlug === deleteDomainSlug) {
+      handleCloseDialog();
+    }
+  }, [deleteDomainSlug, loadDomains, selectedSlug, handleCloseDialog]);
 
   const handleTestKnowledgeClick = useCallback((e: React.MouseEvent, slug: string) => {
     e.stopPropagation();
@@ -371,6 +453,7 @@ export default function DomainKnowledgeDashboard() {
           isEnding={endingAssessment}
           onError={setAssessmentError}
           founderAgent={founderAgent}
+          terminalIframeRef={terminalIframeRef}
         />
         <Snackbar
           open={doneSnackbar}
@@ -423,9 +506,16 @@ export default function DomainKnowledgeDashboard() {
         <Typography variant="h5" gutterBottom>
           No domain knowledge graphs yet
         </Typography>
-        <Typography color="text.secondary">
-          Domain taxonomies (Docker, Go, etc.) will appear here once seeded.
+        <Typography color="text.secondary" sx={{ mb: 2 }}>
+          Create your first domain to get started (e.g. Docker, Go, Kubernetes).
         </Typography>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setCreateDomainOpen(true)}
+        >
+          Create domain
+        </Button>
       </Box>
     );
   }
@@ -433,13 +523,22 @@ export default function DomainKnowledgeDashboard() {
   return (
     <Box sx={{ p: { xs: 2, sm: 3 } }}>
       {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700 }}>
-          Domain Knowledge
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-          Curated skill taxonomies — explore concept graphs for each domain
-        </Typography>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 700 }}>
+            Domain Knowledge
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Curated skill taxonomies — explore concept graphs for each domain
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setCreateDomainOpen(true)}
+        >
+          Create domain
+        </Button>
       </Box>
 
       {/* Domain cards */}
@@ -500,6 +599,17 @@ export default function DomainKnowledgeDashboard() {
                     sx={{ cursor: 'pointer' }}
                   />
                   <Chip
+                    label="Manage"
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      handleCardClick(d.slug);
+                      setDetailTab(1);
+                    }}
+                    icon={<SettingsIcon sx={{ fontSize: 16 }} />}
+                    sx={{ cursor: 'pointer' }}
+                  />
+                  <Chip
                     label="Metrics"
                     size="small"
                     variant="outlined"
@@ -515,6 +625,28 @@ export default function DomainKnowledgeDashboard() {
                     icon={<QuizIcon sx={{ fontSize: 16 }} />}
                     sx={{ cursor: 'pointer' }}
                   />
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditDomainSlug(d.slug);
+                      setEditDomainOpen(true);
+                    }}
+                    sx={{ ml: 0.5 }}
+                  >
+                    <EditIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteDomainSlug(d.slug);
+                      setDeleteDomainOpen(true);
+                    }}
+                  >
+                    <DeleteIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
                 </Box>
               </CardContent>
             </Card>
@@ -522,7 +654,7 @@ export default function DomainKnowledgeDashboard() {
         ))}
       </Grid>
 
-      {/* Graph dialog */}
+      {/* Graph / Manage dialog */}
       <Dialog
         open={!!selectedSlug}
         onClose={handleCloseDialog}
@@ -537,23 +669,41 @@ export default function DomainKnowledgeDashboard() {
       >
         <DialogTitle component="div" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>
           <Typography variant="h6" component="span">
-            {domains.find((d) => d.slug === selectedSlug)?.name ?? selectedSlug} — Knowledge Graph
+            {domains.find((d) => d.slug === selectedSlug)?.name ?? selectedSlug}
           </Typography>
           <IconButton onClick={handleCloseDialog} size="small">
             <CloseIcon />
           </IconButton>
         </DialogTitle>
+        <Tabs value={detailTab} onChange={(_, v) => setDetailTab(v)} sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
+          <Tab label="Graph" />
+          <Tab label="Manage" />
+        </Tabs>
         <DialogContent dividers>
-          {graphLoading && (
-            <Skeleton variant="rectangular" height={480} sx={{ borderRadius: 2 }} />
+          {detailTab === 0 && (
+            <>
+              {graphLoading && (
+                <Skeleton variant="rectangular" height={480} sx={{ borderRadius: 2 }} />
+              )}
+              {graphError && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {graphError}
+                </Alert>
+              )}
+              {graph && !graphLoading && (
+                <DomainKnowledgeNeuralMap graph={graph} height={520} />
+              )}
+            </>
           )}
-          {graphError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {graphError}
-            </Alert>
-          )}
-          {graph && !graphLoading && (
-            <DomainKnowledgeNeuralMap graph={graph} height={520} />
+          {detailTab === 1 && selectedSlug && (
+            <DomainKnowledgeManageTab
+              slug={selectedSlug}
+              domainName={domains.find((d) => d.slug === selectedSlug)?.name ?? selectedSlug}
+              onGraphChanged={() => {
+                setGraph(null);
+                handleCardClick(selectedSlug);
+              }}
+            />
           )}
         </DialogContent>
       </Dialog>
@@ -597,6 +747,34 @@ export default function DomainKnowledgeDashboard() {
         slug={metricsDialogSlug ?? ''}
         domainName={domains.find((d) => d.slug === metricsDialogSlug)?.name ?? metricsDialogSlug ?? ''}
         userId={userId ?? undefined}
+      />
+
+      {/* Create / Edit / Delete domain dialogs */}
+      <CreateDomainDialog
+        open={createDomainOpen}
+        onClose={() => setCreateDomainOpen(false)}
+        onCreate={handleCreateDomain}
+      />
+      <EditDomainDialog
+        open={editDomainOpen}
+        slug={editDomainSlug ?? ''}
+        currentName={domains.find((d) => d.slug === editDomainSlug)?.name ?? ''}
+        currentDescription={domains.find((d) => d.slug === editDomainSlug)?.description}
+        onClose={() => {
+          setEditDomainOpen(false);
+          setEditDomainSlug(null);
+        }}
+        onSave={handleEditDomain}
+      />
+      <DeleteDomainConfirmDialog
+        open={deleteDomainOpen}
+        slug={deleteDomainSlug ?? ''}
+        name={domains.find((d) => d.slug === deleteDomainSlug)?.name ?? ''}
+        onClose={() => {
+          setDeleteDomainOpen(false);
+          setDeleteDomainSlug(null);
+        }}
+        onConfirm={handleDeleteDomain}
       />
 
       {/* Assessment error snackbar / inline */}

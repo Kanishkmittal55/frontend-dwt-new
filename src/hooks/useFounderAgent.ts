@@ -52,6 +52,8 @@ export interface UseFounderAgentOptions {
   onRadarDiscoveryIngested?: (pursuitUUID: string) => void;
   /** Called with full payload when discoveries stream — use for live radar run progress UI */
   onRadarRunProgress?: (payload: AgentDiscoveriesPayload) => void;
+  /** When agent runs terminal_execute; forward command to ttyd iframe (assessment mode) */
+  onTerminalInput?: (command: string) => void;
 }
 
 export interface UseFounderAgentReturn {
@@ -89,7 +91,7 @@ export interface UseFounderAgentReturn {
 // ============================================================================
 
 export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounderAgentReturn {
-  const { autoConnect = false, onError, onPursuitUpdated, onRadarDiscoveryIngested, onRadarRunProgress } = options;
+  const { autoConnect = false, onError, onPursuitUpdated, onRadarDiscoveryIngested, onRadarRunProgress, onTerminalInput } = options;
 
   // Connection state - sync from client on mount (handles return-to-page when already connected)
   const [connectionState, setConnectionState] = useState<ConnectionState>(
@@ -117,14 +119,12 @@ export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounde
   // Event Handlers
   // ============================================================================
 
-  const handleConnect = useCallback((payload: ConnectedPayload) => {
+  const handleConnect = useCallback((_payload: ConnectedPayload) => {
     if (!isMounted.current) return;
-    console.log('[useFounderAgent] Connected:', payload.connection_id);
   }, []);
 
-  const handleDisconnect = useCallback((reason: string) => {
+  const handleDisconnect = useCallback((_reason: string) => {
     if (!isMounted.current) return;
-    console.log('[useFounderAgent] Disconnected:', reason);
     setSession(null);
     setIsTyping(false);
   }, []);
@@ -174,8 +174,6 @@ export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounde
 
   const handleAgentToolCall = useCallback((payload: AgentToolCallPayload) => {
     if (!isMounted.current) return;
-    // Debug: log tool calls (especially crawl_radar, create_milestone for milestone creation flow)
-    console.log('[FounderAgent] tool_call:', payload.name, payload.arguments);
     setStreamingEvents((prev) => [
       ...prev,
       { id: nextEventId(), type: 'tool_call', payload, timestamp: new Date() }
@@ -184,26 +182,6 @@ export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounde
 
   const handleAgentToolResult = useCallback((payload: AgentToolResultPayload) => {
     if (!isMounted.current) return;
-    // Debug: log tool results - crawl_radar should include aggregated_skill_gaps for milestone creation
-    if (payload.name === 'crawl_radar') {
-      try {
-        const parsed = JSON.parse(payload.result || '{}');
-        const gaps = parsed.aggregated_skill_gaps;
-        console.log('[FounderAgent] crawl_radar result:', {
-          discoveries_count: parsed.discoveries_count,
-          aggregated_skill_gaps: gaps,
-          has_skill_gaps: Array.isArray(gaps) && gaps.length > 0,
-          raw_result_preview: payload.result?.slice(0, 200)
-        });
-        if (!gaps || gaps.length === 0) {
-          console.warn('[FounderAgent] crawl_radar returned NO aggregated_skill_gaps — milestones will not be auto-created. Check: analyses table has skill_gaps? Resume uploaded with relevance enabled?');
-        }
-      } catch {
-        console.log('[FounderAgent] crawl_radar result (parse failed):', payload.result?.slice(0, 300));
-      }
-    } else if (payload.name === 'create_milestone' || payload.name === 'create_milestones_from_skill_gaps') {
-      console.log('[FounderAgent]', payload.name, 'result:', payload.result, payload.error);
-    }
     setStreamingEvents((prev) => [
       ...prev,
       { id: nextEventId(), type: 'tool_result', payload, timestamp: new Date() }
@@ -253,6 +231,14 @@ export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounde
     setConnectionState(state);
   }, []);
 
+  const handleTerminalInput = useCallback(
+    (payload: { command: string }) => {
+      if (!isMounted.current) return;
+      onTerminalInput?.(payload.command);
+    },
+    [onTerminalInput]
+  );
+
   // ============================================================================
   // Actions
   // ============================================================================
@@ -272,7 +258,8 @@ export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounde
         onAgentThinking: handleAgentThinking,
         onAgentToolCall: handleAgentToolCall,
         onAgentToolResult: handleAgentToolResult,
-        onAgentDiscoveries: handleAgentDiscoveries
+        onAgentDiscoveries: handleAgentDiscoveries,
+        onTerminalInput: handleTerminalInput
       });
     } catch (error) {
       console.error('[useFounderAgent] Connect failed:', error);
@@ -291,7 +278,8 @@ export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounde
     handleAgentThinking,
     handleAgentToolCall,
     handleAgentToolResult,
-    handleAgentDiscoveries
+    handleAgentDiscoveries,
+    handleTerminalInput
   ]);
 
   const disconnect = useCallback(() => {

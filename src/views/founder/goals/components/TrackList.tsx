@@ -396,6 +396,27 @@ export default function TrackList({
     }
   };
 
+  const handleRunRadarClick = async (e: React.MouseEvent, track: TrackWithMilestones) => {
+    e.stopPropagation();
+    if (goalType === 'stock_investing') {
+      console.log('radar run for stock_investing');
+      return;
+    }
+    if (!trackHasResumeForScoring(track)) {
+      console.warn(
+        '[Run Radar] No resume for job matching. Upload a resume, enable it for job matching, and wait for text extraction before running radar.'
+      );
+      setNoResumeWarning(true);
+      return;
+    }
+    setRunDiscoveryLoading(true);
+    try {
+      await onRunDiscovery?.(pursuitUUID, track.uuid);
+    } finally {
+      setRunDiscoveryLoading(false);
+    }
+  };
+
   if (!tracks?.length) {
     return (
       <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
@@ -448,22 +469,7 @@ export default function TrackList({
                   startIcon={runDiscoveryLoading ? undefined : <IconRadar size={14} />}
                   disabled={runDiscoveryLoading}
                   sx={{ minWidth: 'auto', px: 1, ml: 'auto' }}
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    if (!trackHasResumeForScoring(track)) {
-                      console.warn(
-                        '[Run Radar] No resume for job matching. Upload a resume, enable it for job matching, and wait for text extraction before running radar.'
-                      );
-                      setNoResumeWarning(true);
-                      return;
-                    }
-                    setRunDiscoveryLoading(true);
-                    try {
-                      await onRunDiscovery(pursuitUUID, track.uuid);
-                    } finally {
-                      setRunDiscoveryLoading(false);
-                    }
-                  }}
+                  onClick={(e) => handleRunRadarClick(e, track)}
                 >
                   {runDiscoveryLoading ? 'Running…' : 'Run Radar'}
                 </Button>

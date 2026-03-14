@@ -16,6 +16,17 @@ export type StrengthMatrixResponse = components['schemas']['StrengthMatrixRespon
 export type PracticeImpactResponse = components['schemas']['PracticeImpactResponse'];
 export type LearnerProfileResponse = components['schemas']['LearnerProfileResponse'];
 export type DomainKnowledgeGraphResponse = components['schemas']['DomainKnowledgeGraphResponse'];
+export type DomainKnowledgeResponse = components['schemas']['DomainKnowledgeResponse'];
+export type DomainKnowledgeConceptResponse = components['schemas']['DomainKnowledgeConceptResponse'];
+export type DomainKnowledgeConceptListResponse = components['schemas']['DomainKnowledgeConceptListResponse'];
+export type DomainKnowledgeEdgeResponse = components['schemas']['DomainKnowledgeEdgeResponse'];
+export type DomainKnowledgeEdgeListResponse = components['schemas']['DomainKnowledgeEdgeListResponse'];
+export type CreateDomainKnowledgeRequest = components['schemas']['CreateDomainKnowledgeRequest'];
+export type UpdateDomainKnowledgeRequest = components['schemas']['UpdateDomainKnowledgeRequest'];
+export type CreateDomainKnowledgeConceptRequest = components['schemas']['CreateDomainKnowledgeConceptRequest'];
+export type UpdateDomainKnowledgeConceptRequest = components['schemas']['UpdateDomainKnowledgeConceptRequest'];
+export type CreateDomainKnowledgeEdgeRequest = components['schemas']['CreateDomainKnowledgeEdgeRequest'];
+export type UpdateDomainKnowledgeEdgeRequest = components['schemas']['UpdateDomainKnowledgeEdgeRequest'];
 export type DomainKnowledgeActiveAssessment = {
   session_id: string;
   session_url: string;
@@ -161,6 +172,178 @@ export async function getDomainKnowledgeList(userId?: number): Promise<DomainKno
   const params = userId ? `?user_id=${userId}` : '';
   return founderClient.get<DomainKnowledgeListResponse>(
     `/v1/founder/domain-knowledge${params}`
+  );
+}
+
+/**
+ * Get a single domain by slug
+ * GET /v1/founder/domain-knowledge/{slug}
+ */
+export async function getDomainKnowledgeBySlug(slug: string): Promise<DomainKnowledgeResponse> {
+  return founderClient.get<DomainKnowledgeResponse>(
+    `/v1/founder/domain-knowledge/${encodeURIComponent(slug)}`
+  );
+}
+
+/**
+ * Create a new domain knowledge graph
+ * POST /v1/founder/domain-knowledge
+ */
+export async function createDomainKnowledge(
+  body: CreateDomainKnowledgeRequest
+): Promise<DomainKnowledgeResponse> {
+  return founderClient.post<DomainKnowledgeResponse>(
+    '/v1/founder/domain-knowledge',
+    body
+  );
+}
+
+/**
+ * Update domain metadata (slug is immutable)
+ * PUT /v1/founder/domain-knowledge/{slug}
+ */
+export async function updateDomainKnowledge(
+  slug: string,
+  body: UpdateDomainKnowledgeRequest
+): Promise<DomainKnowledgeResponse> {
+  return founderClient.put<DomainKnowledgeResponse>(
+    `/v1/founder/domain-knowledge/${encodeURIComponent(slug)}`,
+    body
+  );
+}
+
+/**
+ * Delete a domain and its concepts and edges
+ * DELETE /v1/founder/domain-knowledge/{slug}
+ */
+export async function deleteDomainKnowledge(slug: string): Promise<void> {
+  await founderClient.delete<Record<string, never>>(
+    `/v1/founder/domain-knowledge/${encodeURIComponent(slug)}`
+  );
+}
+
+/**
+ * List concepts in a domain
+ * GET /v1/founder/domain-knowledge/{slug}/concepts
+ */
+export async function getDomainKnowledgeConcepts(
+  slug: string,
+  params?: { sub_domain?: string }
+): Promise<DomainKnowledgeConceptListResponse> {
+  const search = params?.sub_domain
+    ? `?sub_domain=${encodeURIComponent(params.sub_domain)}`
+    : '';
+  return founderClient.get<DomainKnowledgeConceptListResponse>(
+    `/v1/founder/domain-knowledge/${encodeURIComponent(slug)}/concepts${search}`
+  );
+}
+
+/**
+ * Get a single concept by slug
+ * GET /v1/founder/domain-knowledge/{slug}/concepts/{conceptSlug}
+ */
+export async function getDomainKnowledgeConcept(
+  slug: string,
+  conceptSlug: string
+): Promise<DomainKnowledgeConceptResponse> {
+  return founderClient.get<DomainKnowledgeConceptResponse>(
+    `/v1/founder/domain-knowledge/${encodeURIComponent(slug)}/concepts/${encodeURIComponent(conceptSlug)}`
+  );
+}
+
+/**
+ * Create a concept in a domain
+ * POST /v1/founder/domain-knowledge/{slug}/concepts
+ */
+export async function createDomainKnowledgeConcept(
+  slug: string,
+  body: CreateDomainKnowledgeConceptRequest
+): Promise<DomainKnowledgeConceptResponse> {
+  return founderClient.post<DomainKnowledgeConceptResponse>(
+    `/v1/founder/domain-knowledge/${encodeURIComponent(slug)}/concepts`,
+    body
+  );
+}
+
+/**
+ * Update a concept (slug is immutable)
+ * PUT /v1/founder/domain-knowledge/{slug}/concepts/{conceptSlug}
+ */
+export async function updateDomainKnowledgeConcept(
+  slug: string,
+  conceptSlug: string,
+  body: UpdateDomainKnowledgeConceptRequest
+): Promise<DomainKnowledgeConceptResponse> {
+  return founderClient.put<DomainKnowledgeConceptResponse>(
+    `/v1/founder/domain-knowledge/${encodeURIComponent(slug)}/concepts/${encodeURIComponent(conceptSlug)}`,
+    body
+  );
+}
+
+/**
+ * Delete a concept and its edges
+ * DELETE /v1/founder/domain-knowledge/{slug}/concepts/{conceptSlug}
+ */
+export async function deleteDomainKnowledgeConcept(
+  slug: string,
+  conceptSlug: string
+): Promise<void> {
+  await founderClient.delete<Record<string, never>>(
+    `/v1/founder/domain-knowledge/${encodeURIComponent(slug)}/concepts/${encodeURIComponent(conceptSlug)}`
+  );
+}
+
+/**
+ * List edges in a domain
+ * GET /v1/founder/domain-knowledge/{slug}/edges
+ */
+export async function getDomainKnowledgeEdges(
+  slug: string
+): Promise<DomainKnowledgeEdgeListResponse> {
+  return founderClient.get<DomainKnowledgeEdgeListResponse>(
+    `/v1/founder/domain-knowledge/${encodeURIComponent(slug)}/edges`
+  );
+}
+
+/**
+ * Create an edge between concepts
+ * POST /v1/founder/domain-knowledge/{slug}/edges
+ */
+export async function createDomainKnowledgeEdge(
+  slug: string,
+  body: CreateDomainKnowledgeEdgeRequest
+): Promise<DomainKnowledgeEdgeResponse> {
+  return founderClient.post<DomainKnowledgeEdgeResponse>(
+    `/v1/founder/domain-knowledge/${encodeURIComponent(slug)}/edges`,
+    body
+  );
+}
+
+/**
+ * Update an edge
+ * PUT /v1/founder/domain-knowledge/{slug}/edges/{edgeUUID}
+ */
+export async function updateDomainKnowledgeEdge(
+  slug: string,
+  edgeUUID: string,
+  body: UpdateDomainKnowledgeEdgeRequest
+): Promise<DomainKnowledgeEdgeResponse> {
+  return founderClient.put<DomainKnowledgeEdgeResponse>(
+    `/v1/founder/domain-knowledge/${encodeURIComponent(slug)}/edges/${encodeURIComponent(edgeUUID)}`,
+    body
+  );
+}
+
+/**
+ * Delete an edge
+ * DELETE /v1/founder/domain-knowledge/{slug}/edges/{edgeUUID}
+ */
+export async function deleteDomainKnowledgeEdge(
+  slug: string,
+  edgeUUID: string
+): Promise<void> {
+  await founderClient.delete<Record<string, never>>(
+    `/v1/founder/domain-knowledge/${encodeURIComponent(slug)}/edges/${encodeURIComponent(edgeUUID)}`
   );
 }
 
@@ -357,9 +540,22 @@ export const knowledgeAPI = {
   getPracticeImpact,
   getLearnerProfile,
   getDomainKnowledgeList,
+  getDomainKnowledgeBySlug,
+  createDomainKnowledge,
+  updateDomainKnowledge,
+  deleteDomainKnowledge,
   getDomainKnowledgeGraph,
   getDomainKnowledgeFounderGraph,
   getDomainKnowledgeMetrics,
+  getDomainKnowledgeConcepts,
+  getDomainKnowledgeConcept,
+  createDomainKnowledgeConcept,
+  updateDomainKnowledgeConcept,
+  deleteDomainKnowledgeConcept,
+  getDomainKnowledgeEdges,
+  createDomainKnowledgeEdge,
+  updateDomainKnowledgeEdge,
+  deleteDomainKnowledgeEdge,
   generateDomainKnowledgeAssessment,
   startDomainKnowledgeAssessment,
   verifyDomainKnowledgeAssessment,

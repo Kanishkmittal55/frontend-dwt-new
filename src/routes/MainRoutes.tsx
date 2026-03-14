@@ -33,6 +33,7 @@ const DailyTasksDashboard = Loadable(lazy(() => import('views/founder/today/Dail
 // Memory (was Knowledge / Memory Matrix)
 const KnowledgeDashboard = Loadable(lazy(() => import('views/founder/knowledge/KnowledgeDashboard')));
 const DomainKnowledgeDashboard = Loadable(lazy(() => import('views/founder/knowledge/DomainKnowledgeDashboard')));
+const TerminalWrapper = Loadable(lazy(() => import('views/founder/knowledge/TerminalWrapper')));
 const PracticeImpact = Loadable(lazy(() => import('views/founder/knowledge/PracticeImpact')));
 
 // Radar (goal-driven signals — replaces Ideas)
@@ -97,6 +98,11 @@ const MainRoutes = {
         {
           path: 'domains',
           element: <DomainKnowledgeDashboard />
+        },
+        // Terminal wrapper (xterm.js + ttyd) — loaded in iframe for assessment
+        {
+          path: 'terminal',
+          element: <TerminalWrapper />
         },
         // CoFounder (AI partner)
         {
