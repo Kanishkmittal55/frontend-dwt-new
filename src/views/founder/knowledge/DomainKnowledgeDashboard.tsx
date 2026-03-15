@@ -21,6 +21,7 @@ import Tab from '@mui/material/Tab';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
 import Snackbar from '@mui/material/Snackbar';
 
 // Icons
@@ -33,6 +34,7 @@ import StorageIcon from '@mui/icons-material/Storage';
 import {
   getDomainKnowledgeList,
   getDomainKnowledgeGraph,
+  getDomainKnowledgeFounderGraph,
   getDomainKnowledgeMetrics,
   createDomainKnowledge,
   updateDomainKnowledge,
@@ -42,12 +44,15 @@ import {
   verifyDomainKnowledgeAssessment,
   endDomainKnowledgeAssessment
 } from 'api/founder/knowledgeAPI';
+import { syncSeeds } from 'api/founder';
 import type {
   DomainKnowledgeListResponse,
   DomainKnowledgeGraphResponse,
+  DomainKnowledgeFounderGraphResponse,
   DomainKnowledgeAssessmentGenerateResponse,
   DomainKnowledgeAssessmentScenario
 } from 'api/founder/knowledgeAPI';
+import type { GraphColorMode } from './DomainKnowledgeAssessmentChatView';
 import type { CreateDomainKnowledgeRequest } from '@/api/founder/schemas';
 import { getStoredUserId } from 'api/founder/founderClient';
 
@@ -64,15 +69,18 @@ import DomainKnowledgeAssessmentDialog from './DomainKnowledgeAssessmentDialog';
 import DomainKnowledgeAssessmentConfigDialog, {
   type AssessmentConfigOverrides
 } from './DomainKnowledgeAssessmentConfigDialog';
+import DomainKnowledgeAssessmentModeDialog, { type AssessmentMode } from './DomainKnowledgeAssessmentModeDialog';
 import DomainKnowledgeAssessmentView, {
   type AssessmentSession
 } from './DomainKnowledgeAssessmentView';
+import DomainKnowledgeAssessmentChatView from './DomainKnowledgeAssessmentChatView';
 import DomainKnowledgeMetricsDialog from './DomainKnowledgeMetricsDialog';
 
 // Icons (additional)
 import QuizIcon from '@mui/icons-material/Quiz';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import AddIcon from '@mui/icons-material/Add';
+import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -148,9 +156,10 @@ export default function DomainKnowledgeDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
-  const [graph, setGraph] = useState<DomainKnowledgeGraphResponse | null>(null);
+  const [graph, setGraph] = useState<DomainKnowledgeGraphResponse | DomainKnowledgeFounderGraphResponse | null>(null);
   const [graphLoading, setGraphLoading] = useState(false);
   const [graphError, setGraphError] = useState<string | null>(null);
+  const [graphColorMode, setGraphColorMode] = useState<GraphColorMode>('difficulty');
 
   const [assessment, setAssessment] = useState<DomainKnowledgeAssessmentGenerateResponse | null>(null);
   const [assessmentSlug, setAssessmentSlug] = useState<string | null>(null);
@@ -158,6 +167,10 @@ export default function DomainKnowledgeDashboard() {
   const [assessmentError, setAssessmentError] = useState<string | null>(null);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const [configDialogSlug, setConfigDialogSlug] = useState<string | null>(null);
+  const [modeDialogOpen, setModeDialogOpen] = useState(false);
+  const [modeDialogSlug, setModeDialogSlug] = useState<string | null>(null);
+  const [chatAssessmentSlug, setChatAssessmentSlug] = useState<string | null>(null);
+  const [chatAssessmentDomainName, setChatAssessmentDomainName] = useState<string | null>(null);
 
   const [activeAssessment, setActiveAssessment] = useState<AssessmentSession | null>(null);
   const [endingAssessment, setEndingAssessment] = useState(false);
@@ -170,6 +183,8 @@ export default function DomainKnowledgeDashboard() {
   const [deleteDomainOpen, setDeleteDomainOpen] = useState(false);
   const [deleteDomainSlug, setDeleteDomainSlug] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState(0); // 0 = graph, 1 = manage
+  const [syncing, setSyncing] = useState(false);
+  const [syncNotification, setSyncNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const terminalIframeRef = useRef<HTMLIFrameElement>(null);
   const founderAgent = useFounderAgent({
@@ -183,11 +198,11 @@ export default function DomainKnowledgeDashboard() {
   const userId = getStoredUserId();
 
   // Block navigation while assessment is active — user must complete or end gracefully
-  const blocker = useBlocker(!!activeAssessment);
+  const blocker = useBlocker(!!activeAssessment || !!chatAssessmentSlug);
 
   // Warn on tab close / reload during active assessment
   useEffect(() => {
-    if (!activeAssessment) return;
+    if (!activeAssessment && !chatAssessmentSlug) return;
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = 'You have an active knowledge assessment. End it first to avoid leaving resources running.';
@@ -195,7 +210,7 @@ export default function DomainKnowledgeDashboard() {
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [activeAssessment]);
+  }, [activeAssessment, chatAssessmentSlug]);
 
   const loadDomains = useCallback(async () => {
     setLoading(true);
@@ -266,28 +281,71 @@ export default function DomainKnowledgeDashboard() {
     setMetricsDialogSlug(slug);
   }, []);
 
-  const handleCardClick = useCallback(async (slug: string) => {
-    setSelectedSlug(slug);
-    setGraph(null);
-    setGraphError(null);
-    setGraphLoading(true);
+  const loadGraph = useCallback(
+    async (slug: string, colorMode: GraphColorMode) => {
+      setGraph(null);
+      setGraphError(null);
+      setGraphLoading(true);
+      try {
+        const g =
+          colorMode === 'coverage' && userId && userId > 0
+            ? await getDomainKnowledgeFounderGraph(slug, userId)
+            : await getDomainKnowledgeGraph(slug);
+        setGraph(g);
+      } catch (err) {
+        console.error('[DomainKnowledgeDashboard] graph error:', err);
+        setGraphError(
+          err instanceof Error ? err.message : (err as { message?: string })?.message ?? 'Failed to load graph'
+        );
+      } finally {
+        setGraphLoading(false);
+      }
+    },
+    [userId]
+  );
 
-    try {
-      const g = await getDomainKnowledgeGraph(slug);
-      setGraph(g);
-    } catch (err) {
-      console.error('[DomainKnowledgeDashboard] graph error:', err);
-      setGraphError(err instanceof Error ? err.message : (err as { message?: string })?.message ?? 'Failed to load graph');
-    } finally {
-      setGraphLoading(false);
-    }
-  }, []);
+  const handleCardClick = useCallback(
+    async (slug: string) => {
+      setSelectedSlug(slug);
+      await loadGraph(slug, graphColorMode);
+    },
+    [loadGraph, graphColorMode]
+  );
+
+  const handleGraphColorModeChange = useCallback(
+    (mode: GraphColorMode) => {
+      setGraphColorMode(mode);
+      if (selectedSlug) loadGraph(selectedSlug, mode);
+    },
+    [selectedSlug, loadGraph]
+  );
 
   const handleCloseDialog = useCallback(() => {
     setSelectedSlug(null);
     setGraph(null);
     setGraphError(null);
     setDetailTab(0);
+  }, []);
+
+  const handleSyncSeeds = useCallback(async () => {
+    setSyncing(true);
+    setSyncNotification(null);
+    try {
+      const result = await syncSeeds();
+      const tableCount = result.results?.length || 0;
+      setSyncNotification({
+        type: 'success',
+        message: `Synced ${tableCount} tables to CSV in ${result.total_time ?? 'N/A'}`
+      });
+    } catch (err) {
+      console.error('[DomainKnowledgeDashboard] Sync failed:', err);
+      setSyncNotification({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to sync to CSV'
+      });
+    } finally {
+      setSyncing(false);
+    }
   }, []);
 
   const handleCreateDomain = useCallback(
@@ -327,10 +385,40 @@ export default function DomainKnowledgeDashboard() {
 
   const handleTestKnowledgeClick = useCallback((e: React.MouseEvent, slug: string) => {
     e.stopPropagation();
-    setConfigDialogSlug(slug);
-    setConfigDialogOpen(true);
+    setModeDialogSlug(slug);
+    setModeDialogOpen(true);
     setAssessmentError(null);
   }, []);
+
+  const handleModeSelect = useCallback(
+    (mode: AssessmentMode) => {
+      if (!modeDialogSlug) return;
+      const domainName = domains.find((d) => d.slug === modeDialogSlug)?.name ?? modeDialogSlug;
+      setModeDialogOpen(false);
+      if (mode === 'rig') {
+        setConfigDialogSlug(modeDialogSlug);
+        setConfigDialogOpen(true);
+        setModeDialogSlug(null);
+      } else {
+        setChatAssessmentSlug(modeDialogSlug);
+        setChatAssessmentDomainName(domainName);
+        setModeDialogSlug(null);
+      }
+    },
+    [modeDialogSlug, domains]
+  );
+
+  const handleCloseModeDialog = useCallback(() => {
+    setModeDialogOpen(false);
+    setModeDialogSlug(null);
+  }, []);
+
+  const handleDoneChatAssessment = useCallback(async () => {
+    setChatAssessmentSlug(null);
+    setChatAssessmentDomainName(null);
+    setDoneSnackbar(true);
+    loadDomains();
+  }, [loadDomains]);
 
   const handleCloseConfigDialog = useCallback(() => {
     setConfigDialogOpen(false);
@@ -444,6 +532,44 @@ export default function DomainKnowledgeDashboard() {
   );
 
   // ========== Render ==========
+  if (chatAssessmentSlug && chatAssessmentDomainName) {
+    return (
+      <>
+        <DomainKnowledgeAssessmentChatView
+          slug={chatAssessmentSlug}
+          domainName={chatAssessmentDomainName}
+          userId={userId ?? undefined}
+          onDone={handleDoneChatAssessment}
+          onError={setAssessmentError}
+        />
+        <Snackbar
+          open={doneSnackbar}
+          autoHideDuration={4000}
+          onClose={() => setDoneSnackbar(false)}
+          message="Assessment complete"
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        />
+        <Snackbar
+          open={blocker.state === 'blocked'}
+          autoHideDuration={4000}
+          onClose={() => {
+            if (blocker.state === 'blocked' && typeof blocker.reset === 'function') blocker.reset();
+          }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert
+            severity="warning"
+            onClose={() => {
+              if (blocker.state === 'blocked' && typeof blocker.reset === 'function') blocker.reset();
+            }}
+          >
+            End your assessment first to navigate away
+          </Alert>
+        </Snackbar>
+      </>
+    );
+  }
+
   if (activeAssessment) {
     return (
       <>
@@ -465,10 +591,17 @@ export default function DomainKnowledgeDashboard() {
         <Snackbar
           open={blocker.state === 'blocked'}
           autoHideDuration={4000}
-          onClose={() => blocker.reset()}
+          onClose={() => {
+            if (blocker.state === 'blocked' && typeof blocker.reset === 'function') blocker.reset();
+          }}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         >
-          <Alert severity="warning" onClose={() => blocker.reset()}>
+          <Alert
+            severity="warning"
+            onClose={() => {
+              if (blocker.state === 'blocked' && typeof blocker.reset === 'function') blocker.reset();
+            }}
+          >
             End your assessment first to navigate away
           </Alert>
         </Snackbar>
@@ -532,14 +665,41 @@ export default function DomainKnowledgeDashboard() {
             Curated skill taxonomies — explore concept graphs for each domain
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setCreateDomainOpen(true)}
-        >
-          Create domain
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            color="secondary"
+            startIcon={syncing ? <CircularProgress size={16} /> : <SaveIcon />}
+            onClick={handleSyncSeeds}
+            disabled={syncing}
+          >
+            {syncing ? 'Syncing...' : 'Sync to CSV'}
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setCreateDomainOpen(true)}
+          >
+            Create domain
+          </Button>
+        </Box>
       </Box>
+
+      {/* Sync notification */}
+      <Snackbar
+        open={!!syncNotification}
+        autoHideDuration={5000}
+        onClose={() => setSyncNotification(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          severity={syncNotification?.type ?? 'info'}
+          onClose={() => setSyncNotification(null)}
+          sx={{ width: '100%' }}
+        >
+          {syncNotification?.message}
+        </Alert>
+      </Snackbar>
 
       {/* Domain cards */}
       <Grid container spacing={2}>
@@ -682,6 +842,25 @@ export default function DomainKnowledgeDashboard() {
         <DialogContent dividers>
           {detailTab === 0 && (
             <>
+              <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                <Chip
+                  label="Difficulty"
+                  size="small"
+                  color={graphColorMode === 'difficulty' ? 'primary' : 'default'}
+                  variant={graphColorMode === 'difficulty' ? 'filled' : 'outlined'}
+                  onClick={() => handleGraphColorModeChange('difficulty')}
+                  sx={{ cursor: 'pointer' }}
+                />
+                <Chip
+                  label="Coverage"
+                  size="small"
+                  color={graphColorMode === 'coverage' ? 'primary' : 'default'}
+                  variant={graphColorMode === 'coverage' ? 'filled' : 'outlined'}
+                  onClick={() => handleGraphColorModeChange('coverage')}
+                  disabled={!userId || userId <= 0}
+                  sx={{ cursor: userId && userId > 0 ? 'pointer' : 'default' }}
+                />
+              </Box>
               {graphLoading && (
                 <Skeleton variant="rectangular" height={480} sx={{ borderRadius: 2 }} />
               )}
@@ -691,7 +870,7 @@ export default function DomainKnowledgeDashboard() {
                 </Alert>
               )}
               {graph && !graphLoading && (
-                <DomainKnowledgeNeuralMap graph={graph} height={520} />
+                <DomainKnowledgeNeuralMap graph={graph} height={520} colorMode={graphColorMode} />
               )}
             </>
           )}
@@ -707,6 +886,14 @@ export default function DomainKnowledgeDashboard() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Mode dialog (rig vs chat) */}
+      <DomainKnowledgeAssessmentModeDialog
+        open={modeDialogOpen}
+        onClose={handleCloseModeDialog}
+        domainName={domains.find((d) => d.slug === modeDialogSlug)?.name ?? modeDialogSlug ?? ''}
+        onSelect={handleModeSelect}
+      />
 
       {/* Config dialog (before generating) */}
       <DomainKnowledgeAssessmentConfigDialog

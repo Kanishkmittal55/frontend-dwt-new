@@ -7,16 +7,27 @@ import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
 import CircularProgress from '@mui/material/CircularProgress';
-import { IconSend } from '@tabler/icons-react';
+import Tooltip from '@mui/material/Tooltip';
+import { IconSend, IconRocket } from '@tabler/icons-react';
 import { useTheme } from '@mui/material/styles';
 
 interface ChatInputProps {
   onSend: (message: string) => Promise<void>;
   disabled?: boolean;
   placeholder?: string;
+  /** Optional: rocket button to kick off the flow (e.g. domain knowledge exploration) */
+  onKickOff?: () => void;
+  /** Tooltip label for the kick-off button */
+  kickOffLabel?: string;
 }
 
-export default function ChatInput({ onSend, disabled = false, placeholder = 'Type a message...' }: ChatInputProps) {
+export default function ChatInput({
+  onSend,
+  disabled = false,
+  placeholder = 'Type a message...',
+  onKickOff,
+  kickOffLabel = 'Kick off'
+}: ChatInputProps) {
   const theme = useTheme();
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
@@ -71,6 +82,29 @@ export default function ChatInput({ onSend, disabled = false, placeholder = 'Typ
           }
         }}
       />
+      {onKickOff && (
+        <Tooltip title={kickOffLabel}>
+          <span>
+            <IconButton
+              onClick={onKickOff}
+              disabled={disabled || sending}
+              color="secondary"
+              sx={{
+                bgcolor: theme.palette.secondary.main,
+                color: 'white',
+                '&:hover': {
+                  bgcolor: theme.palette.secondary.dark
+                },
+                '&:disabled': {
+                  bgcolor: theme.palette.action.disabledBackground
+                }
+              }}
+            >
+              <IconRocket size={20} />
+            </IconButton>
+          </span>
+        </Tooltip>
+      )}
       <IconButton
         onClick={handleSend}
         disabled={!message.trim() || disabled || sending}

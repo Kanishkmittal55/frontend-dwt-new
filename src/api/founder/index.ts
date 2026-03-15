@@ -215,6 +215,56 @@ export type {
   AgentEventHandlers
 } from './agentAPI';
 
+// Agents API (CoFounders dashboard - HTTP)
+export {
+  getAgentsList,
+  getAgentById,
+  getAgentConfig,
+  putAgentConfig,
+  getAgentPromptsList,
+  searchAgentPrompts,
+  getAgentPromptByKey,
+  createAgentPrompt,
+  putAgentPrompt,
+  deleteAgentPrompt,
+  getAgentSessions,
+  getAgentSessionByUser
+} from './agentsAPI';
+
+export type {
+  AgentListResponse,
+  AgentDetailResponse,
+  AgentConfigResponse,
+  AgentPromptListResponse,
+  AgentSessionsListResponse,
+  AgentPromptResponse,
+  UpsertAgentConfigRequest,
+  CreateAgentPromptRequest,
+  UpdateAgentPromptRequest
+} from './agentsAPI';
+
+// Context Chains API (CoFounders dashboard)
+export {
+  getContextChainPreview,
+  getContextChainsList,
+  getContextChainByUuid,
+  createContextChain,
+  updateContextChain,
+  deleteContextChain,
+  getCurrentUserId
+} from './contextChainsAPI';
+
+export type {
+  ContextChainResponse,
+  ContextChainListResponse,
+  ContextChainDetailResponse,
+  ContextChainNodeResponse,
+  ContextChainEdgeResponse,
+  ContextChainPreviewResponse,
+  ContextChainPreviewEncounter,
+  ContextChainPreviewAgentConfig
+} from './contextChainsAPI';
+
 // Courses API
 export {
   coursesAPI,

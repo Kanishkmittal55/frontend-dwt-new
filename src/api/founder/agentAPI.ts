@@ -246,9 +246,10 @@ class FounderAgentClient {
 
   /**
    * Send a chat message
+   * @param dryRun when true, requests execution trace in the response (chain flow only)
    */
-  async sendChat(message: string): Promise<AckPayload> {
-    const payload: ChatPayload = { message };
+  async sendChat(message: string, dryRun = false): Promise<AckPayload> {
+    const payload: ChatPayload = { message, ...(dryRun && { dry_run: true }) };
     return this.sendWithAck('chat', payload);
   }
 
@@ -344,7 +345,13 @@ class FounderAgentClient {
         break;
 
       case 'agent.response':
-        this.handlers.onAgentResponse?.(payload as AgentResponsePayload);
+        const agentPayload = payload as AgentResponsePayload;
+        console.log('[agentAPI] agent.response received:', {
+          focus_concept_slug: agentPayload.focus_concept_slug,
+          has_focus: !!agentPayload.focus_concept_slug,
+          payload_keys: Object.keys(agentPayload)
+        });
+        this.handlers.onAgentResponse?.(agentPayload);
         break;
 
       case 'agent.typing':
@@ -381,7 +388,15 @@ class FounderAgentClient {
         break;
 
       case 'founder.agent.tool_call':
-        this.handlers.onAgentToolCall?.(payload as AgentToolCallPayload);
+        const toolPayload = payload as AgentToolCallPayload;
+        if (toolPayload.name === 'focus_concept') {
+          console.log('[agentAPI] focus_concept tool_call:', {
+            name: toolPayload.name,
+            arguments: toolPayload.arguments,
+            concept_slug: toolPayload.arguments?.concept_slug
+          });
+        }
+        this.handlers.onAgentToolCall?.(toolPayload);
         break;
 
       case 'founder.agent.tool_result':

@@ -25,6 +25,13 @@ import type {
 // Types
 // ============================================================================
 
+/** Pipeline step from dry run execution trace */
+export interface PipelineStepPayload {
+  step: number;
+  name: string;
+  output?: Record<string, unknown>;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'agent';
@@ -32,6 +39,8 @@ export interface ChatMessage {
   timestamp: Date;
   agentName?: string;
   actions?: Array<{ type: string; data?: Record<string, unknown> }>;
+  /** Dry run: per-turn pipeline steps (encounter_read → context_subject → prompt → llm → encounter_write) */
+  executionTrace?: PipelineStepPayload[];
 }
 
 /** Phase 4: Streaming agent activity events */
@@ -45,6 +54,8 @@ export interface StreamingEvent {
 
 export interface UseFounderAgentOptions {
   autoConnect?: boolean;
+  /** When true, sendMessage sends dry_run: true to request execution trace (chain flow only) */
+  dryRun?: boolean;
   onError?: (error: ErrorPayload) => void;
   /** Called when agent creates/updates a pursuit or track — use to refetch pursuits */
   onPursuitUpdated?: () => void;
@@ -54,6 +65,8 @@ export interface UseFounderAgentOptions {
   onRadarRunProgress?: (payload: AgentDiscoveriesPayload) => void;
   /** When agent runs terminal_execute; forward command to ttyd iframe (assessment mode) */
   onTerminalInput?: (command: string) => void;
+  /** Called with full payload when agent response arrives — use for focus_concept_slug etc. */
+  onAgentResponse?: (payload: AgentResponsePayload) => void;
 }
 
 export interface UseFounderAgentReturn {
@@ -91,7 +104,7 @@ export interface UseFounderAgentReturn {
 // ============================================================================
 
 export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounderAgentReturn {
-  const { autoConnect = false, onError, onPursuitUpdated, onRadarDiscoveryIngested, onRadarRunProgress, onTerminalInput } = options;
+  const { autoConnect = false, dryRun = false, onError, onPursuitUpdated, onRadarDiscoveryIngested, onRadarRunProgress, onTerminalInput, onAgentResponse } = options;
 
   // Connection state - sync from client on mount (handles return-to-page when already connected)
   const [connectionState, setConnectionState] = useState<ConnectionState>(
@@ -147,7 +160,8 @@ export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounde
         content: payload.text,
         timestamp: new Date(),
         agentName: payload.agent_name,
-        actions: payload.actions as ChatMessage['actions']
+        actions: payload.actions as ChatMessage['actions'],
+        executionTrace: payload.execution_trace
       };
 
       setMessages((prev) => [...prev, newMessage]);
@@ -157,8 +171,9 @@ export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounde
       if (onPursuitUpdated && payload.actions?.some((a) => a.type === 'pursuit_updated')) {
         onPursuitUpdated();
       }
+      onAgentResponse?.(payload);
     },
-    [onPursuitUpdated]
+    [onPursuitUpdated, onAgentResponse]
   );
 
   const eventIdRef = useRef(0);
@@ -315,9 +330,9 @@ export function useFounderAgent(options: UseFounderAgentOptions = {}): UseFounde
     };
     setMessages((prev) => [...prev, userMessage]);
     
-    // Send to server
-    await founderAgentClient.sendChat(message);
-  }, []);
+    // Send to server (dryRun requests execution trace when chain flow is used)
+    await founderAgentClient.sendChat(message, dryRun);
+  }, [dryRun]);
 
   const sendEvent = useCallback(async (type: string, data?: Record<string, unknown>) => {
     // Extract known EventPayload fields to top level, rest goes to data

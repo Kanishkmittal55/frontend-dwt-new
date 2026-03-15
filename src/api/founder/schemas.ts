@@ -574,7 +574,8 @@ export const SessionStartPayloadSchema = z.object({
 
 // Chat payload
 export const ChatPayloadSchema = z.object({
-  message: z.string().min(1)
+  message: z.string().min(1),
+  dry_run: z.boolean().optional()
 });
 
 // Event payload (raw frontend events - signals are derived from aggregating these)
@@ -610,6 +611,13 @@ export const StateChangePayloadSchema = z.object({
   transition_at: z.string()
 });
 
+// Pipeline step payload (dry run execution trace)
+export const PipelineStepPayloadSchema = z.object({
+  step: z.number(),
+  name: z.string(),
+  output: z.record(z.string(), z.unknown()).optional()
+});
+
 // Agent response payload (server)
 export const AgentResponsePayloadSchema = z.object({
   text: z.string(),
@@ -620,7 +628,9 @@ export const AgentResponsePayloadSchema = z.object({
     type: z.string(),
     data: z.record(z.string(), z.unknown()).optional()
   })).optional(),
-  next_prompt: z.string().optional()
+  next_prompt: z.string().optional(),
+  focus_concept_slug: z.string().optional(),
+  execution_trace: z.array(PipelineStepPayloadSchema).optional()
 });
 
 // Agent typing payload (server)
@@ -1255,6 +1265,151 @@ export type CreateDomainKnowledgeConceptRequest = z.infer<typeof CreateDomainKno
 export type UpdateDomainKnowledgeConceptRequest = z.infer<typeof UpdateDomainKnowledgeConceptRequestSchema>;
 export type CreateDomainKnowledgeEdgeRequest = z.infer<typeof CreateDomainKnowledgeEdgeRequestSchema>;
 export type UpdateDomainKnowledgeEdgeRequest = z.infer<typeof UpdateDomainKnowledgeEdgeRequestSchema>;
+
+// ============================================================================
+// Agent Schemas (CoFounders dashboard)
+// ============================================================================
+
+export const AgentSummarySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  domain: z.string(),
+  status: z.enum(['active', 'inactive']).optional().default('active'),
+  backends: z.array(z.string()).optional().default([]),
+  tools: z.array(z.string()).optional().default([]),
+  task_types: z.array(z.string()).optional().default([])
+});
+
+export const AgentListResponseSchema = z.object({
+  agents: z.array(AgentSummarySchema)
+});
+
+export const AgentLLMConfigSchema = z.object({
+  provider: z.string().optional(),
+  model: z.string().optional(),
+  temperature: z.number().optional(),
+  max_tokens: z.number().optional()
+});
+
+export const AgentTaskConfigSchema = z.object({
+  execution_mode: z.enum(['loop', 'one_shot']).optional(),
+  model: z.string().optional(),
+  tools: z.array(z.string()).optional(),
+  prompt_key: z.string().optional()
+});
+
+export const AgentConfigResponseSchema = z.object({
+  agent_id: z.string().optional(),
+  llm: AgentLLMConfigSchema.optional(),
+  tasks: z.record(z.string(), AgentTaskConfigSchema).optional(),
+  source: z.enum(['db', 'yaml', 'merged']).optional()
+});
+
+export const AgentDetailResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  domain: z.string(),
+  status: z.enum(['active', 'inactive']).optional(),
+  backends: z.array(z.string()).optional(),
+  tools: z.array(z.string()).optional(),
+  task_types: z.array(z.string()).optional(),
+  config: AgentConfigResponseSchema.optional()
+});
+
+export const UpsertAgentTaskConfigRequestSchema = z.object({
+  execution_mode: z.enum(['loop', 'one_shot']).optional(),
+  provider: z.string().optional(),
+  model: z.string().optional(),
+  temperature: z.number().optional(),
+  max_tokens: z.number().optional(),
+  tools_enabled: z.array(z.string()).optional(),
+  prompt_key: z.string().optional()
+});
+
+export const UpsertAgentConfigRequestSchema = z.object({
+  llm: AgentLLMConfigSchema.optional(),
+  tasks: z.record(z.string(), UpsertAgentTaskConfigRequestSchema).optional()
+});
+
+export const AgentPromptResponseSchema = z.object({
+  id: z.number().optional(),
+  prompt_key: z.string(),
+  content: z.string(),
+  agent_id: z.string().nullable().optional(),
+  task_type: z.string().nullable().optional(),
+  variant: z.string().optional().default('default'),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional()
+});
+
+export const AgentPromptListResponseSchema = z.object({
+  prompts: z.array(AgentPromptResponseSchema)
+});
+
+export const AgentSessionResponseSchema = z.object({
+  user_id: z.number().optional(),
+  session_id: z.string().optional(),
+  domain: z.string().optional(),
+  goal_id: z.string().optional(),
+  state: z.string().optional(),
+  resolved_subjects: z.array(z.string()).optional().default([]),
+  started_at: z.string().optional(),
+  duration_seconds: z.number().optional()
+});
+
+export const AgentSessionsListResponseSchema = z.object({
+  sessions: z.array(AgentSessionResponseSchema)
+});
+
+export const CreateAgentPromptRequestSchema = z.object({
+  prompt_key: z.string().min(1, 'Prompt key is required'),
+  content: z.string().min(1, 'Content is required'),
+  agent_id: z.string().optional(),
+  task_type: z.string().optional(),
+  variant: z.string().optional()
+});
+
+export const UpdateAgentPromptRequestSchema = z.object({
+  content: z.string().optional(),
+  agent_id: z.string().optional(),
+  task_type: z.string().optional(),
+  variant: z.string().optional()
+});
+
+// Agent type exports
+export type AgentSummary = z.infer<typeof AgentSummarySchema>;
+export type AgentListResponse = z.infer<typeof AgentListResponseSchema>;
+export type AgentDetailResponse = z.infer<typeof AgentDetailResponseSchema>;
+export type AgentLLMConfig = z.infer<typeof AgentLLMConfigSchema>;
+export type AgentTaskConfig = z.infer<typeof AgentTaskConfigSchema>;
+export type AgentConfigResponse = z.infer<typeof AgentConfigResponseSchema>;
+export type UpsertAgentTaskConfigRequest = z.infer<typeof UpsertAgentTaskConfigRequestSchema>;
+export type UpsertAgentConfigRequest = z.infer<typeof UpsertAgentConfigRequestSchema>;
+export type AgentPromptResponse = z.infer<typeof AgentPromptResponseSchema>;
+export type AgentPromptListResponse = z.infer<typeof AgentPromptListResponseSchema>;
+export type AgentSessionResponse = z.infer<typeof AgentSessionResponseSchema>;
+export type AgentSessionsListResponse = z.infer<typeof AgentSessionsListResponseSchema>;
+export type CreateAgentPromptRequest = z.infer<typeof CreateAgentPromptRequestSchema>;
+export type UpdateAgentPromptRequest = z.infer<typeof UpdateAgentPromptRequestSchema>;
+
+// ============================================================================
+// Context Chain Schemas
+// ============================================================================
+
+export const CreateContextChainRequestSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  task_type: z.string().min(1, 'Task type is required'),
+  description: z.string().optional()
+});
+
+export const UpdateContextChainRequestSchema = z.object({
+  name: z.string().min(1).optional(),
+  task_type: z.string().min(1).optional(),
+  description: z.string().optional()
+});
+
+export type CreateContextChainRequest = z.infer<typeof CreateContextChainRequestSchema>;
+export type UpdateContextChainRequest = z.infer<typeof UpdateContextChainRequestSchema>;
 
 // ============================================================================
 // Validation Helpers

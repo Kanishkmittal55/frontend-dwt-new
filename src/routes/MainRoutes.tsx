@@ -16,8 +16,8 @@ const FounderDashboard = Loadable(lazy(() => import('views/founder/dashboard/Fou
 const OnboardingWizard = Loadable(lazy(() => import('views/founder/onboarding/OnboardingWizard')));
 const AgentChat = Loadable(lazy(() => import('views/founder/agent/AgentChat')));
 
-// CoFounder (AI partner)
-const CoFounderView = Loadable(lazy(() => import('views/founder/assistant/AssistantView')));
+// CoFounders (agents dashboard)
+const CoFoundersView = Loadable(lazy(() => import('views/founder/assistant/AssistantView')));
 
 // Mission (was Goals)
 const MissionDashboard = Loadable(lazy(() => import('views/founder/goals/GoalsDashboard')));
@@ -104,10 +104,10 @@ const MainRoutes = {
           path: 'terminal',
           element: <TerminalWrapper />
         },
-        // CoFounder (AI partner)
+        // CoFounders (agents dashboard)
         {
           path: 'cofounder',
-          element: <CoFounderView />
+          element: <CoFoundersView />
         },
         // Mission
         {
@@ -127,6 +127,28 @@ const MainRoutes = {
         {
           path: 'courses/create',
           element: <HTILCourseCreator userId={1} onBack={() => window.history.back()} />
+        },
+        // Memory (under Founder Persona — course-based memory matrix)
+        {
+          path: 'memory',
+          children: [
+            {
+              index: true,
+              element: <KnowledgeDashboard />
+            },
+            {
+              path: 'strength',
+              element: <KnowledgeDashboard />
+            },
+            {
+              path: 'retention',
+              element: <KnowledgeDashboard />
+            },
+            {
+              path: 'concept/:uuid',
+              element: <PracticeImpact />
+            }
+          ]
         },
         // Train (daily tasks)
         {
@@ -156,7 +178,7 @@ const MainRoutes = {
         // ── Legacy routes — backward compat ──
         {
           path: 'assistant',
-          element: <CoFounderView />
+          element: <CoFoundersView />
         },
         {
           path: 'goals',
@@ -184,13 +206,13 @@ const MainRoutes = {
         }
       ]
     },
-    // ── Memory (course-based memory matrix; Domain Knowledge lives under Founder Persona) ──
+    // ── Legacy /memory — redirect to Founder Persona > Memory ──
     {
       path: 'memory',
       children: [
         {
           index: true,
-          element: <KnowledgeDashboard />
+          element: <Navigate to="/founder/memory" replace />
         },
         {
           path: 'domains',
@@ -198,11 +220,11 @@ const MainRoutes = {
         },
         {
           path: 'strength',
-          element: <KnowledgeDashboard />
+          element: <Navigate to="/founder/memory/strength" replace />
         },
         {
           path: 'retention',
-          element: <KnowledgeDashboard />
+          element: <Navigate to="/founder/memory/retention" replace />
         },
         {
           path: 'concept/:uuid',

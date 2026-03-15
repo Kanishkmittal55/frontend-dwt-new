@@ -41,7 +41,7 @@ const founderCore: MenuItem = {
   children: [
     {
       id: 'founder-persona',
-      title: 'Founder Persona',
+      title: "Founder's Persona",
       type: 'collapse',
       icon: icons.IconUser,
       breadcrumbs: false,
@@ -61,23 +61,23 @@ const founderCore: MenuItem = {
           url: '/founder/domains',
           icon: icons.IconNetwork,
           breadcrumbs: false
+        },
+        {
+          id: 'memory',
+          title: 'Memory',
+          type: 'item',
+          url: '/founder/memory',
+          icon: icons.IconBrain,
+          breadcrumbs: false
         }
       ]
     },
     {
       id: 'cofounder',
-      title: 'CoFounder',
+      title: 'CoFounders',
       type: 'item',
       url: '/founder/cofounder',
       icon: icons.IconRobot,
-      breadcrumbs: false
-    },
-    {
-      id: 'memory',
-      title: 'Memory',
-      type: 'item',
-      url: '/memory',
-      icon: icons.IconBrain,
       breadcrumbs: false
     }
   ]

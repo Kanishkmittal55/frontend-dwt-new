@@ -15,7 +15,11 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
 
-import type { DomainKnowledgeGraphResponse } from 'api/founder/knowledgeAPI';
+import type {
+  DomainKnowledgeGraphResponse,
+  DomainKnowledgeFounderGraphResponse
+} from 'api/founder/knowledgeAPI';
+import type { GraphColorMode } from './DomainKnowledgeAssessmentChatView';
 
 // ============================================================================
 // Color helpers — difficulty drives node color
@@ -30,6 +34,13 @@ function difficultyColor(difficulty: string): string {
   return DIFFICULTY_COLORS[difficulty?.toLowerCase()] ?? '#9e9e9e';
 }
 
+/** Coverage: 0–100 → red → amber → green */
+const coverageColorScale = d3.scaleSequential([0, 100], d3.interpolateRgbBasis(['#ef5350', '#ffa726', '#66bb6a']));
+
+function coverageColor(score: number): string {
+  return coverageColorScale(Math.max(0, Math.min(100, score)));
+}
+
 function edgeDash(rel: string): string {
   if (rel === 'prerequisite' || rel === 'builds_on') return '';
   if (rel === 'related') return '6,3';
@@ -41,6 +52,7 @@ function edgeDash(rel: string): string {
 // ============================================================================
 interface GraphNode extends d3.SimulationNodeDatum {
   id: string;
+  slug?: string;
   label: string;
   difficulty: string;
   description?: string;
@@ -55,12 +67,23 @@ interface GraphLink extends d3.SimulationLinkDatum<GraphNode> {
 // ============================================================================
 // Component
 // ============================================================================
+type GraphResponse = DomainKnowledgeGraphResponse | DomainKnowledgeFounderGraphResponse;
+
 interface Props {
-  graph: DomainKnowledgeGraphResponse;
+  graph: GraphResponse;
   height?: number;
+  /** When set, highlights this concept and greys out others (for Q&A flow) */
+  focusConceptSlug?: string | null;
+  /** 'difficulty' = color by difficulty; 'coverage' = color by tested/last_score */
+  colorMode?: GraphColorMode;
 }
 
-export default function DomainKnowledgeNeuralMap({ graph, height = 480 }: Props) {
+export default function DomainKnowledgeNeuralMap({
+  graph,
+  height = 480,
+  focusConceptSlug,
+  colorMode = 'difficulty'
+}: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
 
@@ -75,15 +98,30 @@ export default function DomainKnowledgeNeuralMap({ graph, height = 480 }: Props)
 
     svg.attr('width', width).attr('height', height).attr('viewBox', `0 0 ${width} ${height}`);
 
-    const nodes: GraphNode[] = graph.concepts.map((c: { uuid: string; name: string; difficulty: string; description?: string; sub_domain?: string }) => ({
-      id: c.uuid,
-      label: c.name,
-      difficulty: c.difficulty,
-      description: c.description,
-      subDomain: c.sub_domain
-    }));
+    const nodes: GraphNode[] = graph.concepts.map(
+      (c: {
+        uuid: string;
+        slug?: string;
+        name: string;
+        difficulty: string;
+        description?: string;
+        sub_domain?: string;
+        tested?: boolean;
+        last_score?: number;
+      }) => ({
+        id: c.uuid,
+        slug: c.slug,
+        label: c.name,
+        difficulty: c.difficulty,
+        description: c.description,
+        subDomain: c.sub_domain,
+        tested: c.tested,
+        lastScore: c.last_score
+      })
+    );
 
     const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+    const focusUuid = focusConceptSlug ? nodes.find((n) => n.slug === focusConceptSlug)?.id : null;
 
     const links: GraphLink[] = graph.relationships
       .filter((r: { from_concept_uuid: string; to_concept_uuid: string }) =>
@@ -96,12 +134,25 @@ export default function DomainKnowledgeNeuralMap({ graph, height = 480 }: Props)
         strength: r.strength
       }));
 
+    // Initial layout: spread nodes in a circle to avoid overlap before forces run
+    const n = nodes.length;
+    const cx = width / 2;
+    const cy = height / 2;
+    const radius = Math.min(width, height) * 0.35;
+    nodes.forEach((node, i) => {
+      const angle = (i / n) * 2 * Math.PI - Math.PI / 2;
+      node.x = cx + radius * Math.cos(angle);
+      node.y = cy + radius * Math.sin(angle);
+    });
+
     const sim = d3
       .forceSimulation<GraphNode>(nodes)
-      .force('link', d3.forceLink<GraphNode, GraphLink>(links).id((d) => d.id).distance(120).strength((d) => d.strength * 0.5))
-      .force('charge', d3.forceManyBody().strength(-180))
+      .force('link', d3.forceLink<GraphNode, GraphLink>(links).id((d) => d.id).distance(140).strength((d) => d.strength * 0.6))
+      .force('charge', d3.forceManyBody().strength(-400))
       .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide().radius(28));
+      .force('collision', d3.forceCollide().radius(42))
+      .alphaDecay(0.015)
+      .alphaTarget(0.001);
 
     const g = svg.append('g');
     svg.call(
@@ -123,12 +174,30 @@ export default function DomainKnowledgeNeuralMap({ graph, height = 480 }: Props)
       .attr('d', 'M0,-5L10,0L0,5')
       .attr('fill', '#888');
 
+    // When no focus: all nodes greyed. When focus set: only that node colored, rest greyed.
+    const isFocused = (id: string) => !!focusUuid && id === focusUuid;
+    const isEdgeFocused = (d: GraphLink) => !!focusUuid && (isFocused((d.source as GraphNode).id) && isFocused((d.target as GraphNode).id));
+
+    const nodeColor = (d: GraphNode): string => {
+      const baseColor = colorMode === 'coverage'
+        ? !d.tested
+          ? '#9e9e9e'
+          : d.lastScore != null
+            ? coverageColor(d.lastScore)
+            : '#9e9e9e'
+        : difficultyColor(d.difficulty);
+      if (focusUuid) return isFocused(d.id) ? baseColor : '#bdbdbd';
+      return baseColor;
+    };
+    const nodeEmphasis = (id: string) => !focusUuid || isFocused(id);
+
     const link = g
       .append('g')
       .selectAll('line')
       .data(links)
       .join('line')
-      .attr('stroke', '#bbb')
+      .attr('stroke', (d) => (isEdgeFocused(d) ? '#bbb' : '#ddd'))
+      .attr('stroke-opacity', (d) => (isEdgeFocused(d) ? 1 : 0.35))
       .attr('stroke-width', (d) => Math.max(1, d.strength * 3))
       .attr('stroke-dasharray', (d) => edgeDash(d.relationship))
       .attr('marker-end', (d) => (d.relationship === 'prerequisite' ? 'url(#domain-arrowhead)' : ''));
@@ -139,17 +208,17 @@ export default function DomainKnowledgeNeuralMap({ graph, height = 480 }: Props)
       .data(nodes)
       .join('circle')
       .attr('r', 18)
-      .attr('fill', (d) => difficultyColor(d.difficulty))
-      .attr('fill-opacity', 0.85)
-      .attr('stroke', (d) => difficultyColor(d.difficulty))
-      .attr('stroke-width', 2)
+      .attr('fill', (d) => nodeColor(d))
+      .attr('fill-opacity', (d) => (nodeEmphasis(d.id) ? 0.85 : 0.4))
+      .attr('stroke', (d) => nodeColor(d))
+      .attr('stroke-width', (d) => (nodeEmphasis(d.id) ? 2 : 1))
       .attr('cursor', 'pointer')
       .on('mouseover', function (event, d) {
         d3.select(this).attr('stroke-width', 4);
         setHoveredNode(d);
       })
-      .on('mouseout', function () {
-        d3.select(this).attr('stroke-width', 2);
+      .on('mouseout', function (event, d) {
+        d3.select(this).attr('stroke-width', nodeEmphasis(d.id) ? 2 : 1);
         setHoveredNode(null);
       })
       .call(drag(sim) as any);
@@ -163,7 +232,7 @@ export default function DomainKnowledgeNeuralMap({ graph, height = 480 }: Props)
       .attr('font-size', 10)
       .attr('text-anchor', 'middle')
       .attr('dy', 24)
-      .attr('fill', '#444')
+      .attr('fill', (d) => (nodeEmphasis(d.id) ? '#444' : '#999'))
       .attr('pointer-events', 'none');
 
     sim.on('tick', () => {
@@ -177,7 +246,7 @@ export default function DomainKnowledgeNeuralMap({ graph, height = 480 }: Props)
     });
 
     return () => sim.stop();
-  }, [graph, height]);
+  }, [graph, height, focusConceptSlug, colorMode]);
 
   useEffect(() => {
     const cleanup = buildGraph();
@@ -193,20 +262,29 @@ export default function DomainKnowledgeNeuralMap({ graph, height = 480 }: Props)
     <Card variant="outlined" sx={{ overflow: 'hidden' }}>
       <CardContent sx={{ p: 0, position: 'relative', '&:last-child': { pb: 0 } }}>
         <Box sx={{ display: 'flex', gap: 1, p: 1.5, flexWrap: 'wrap', borderBottom: 1, borderColor: 'divider' }}>
-          {Object.entries(DIFFICULTY_COLORS).map(([level, color]) => (
-            <Chip
-              key={level}
-              label={level}
-              size="small"
-              sx={{
-                bgcolor: color,
-                color: '#fff',
-                fontWeight: 600,
-                fontSize: 11,
-                textTransform: 'capitalize'
-              }}
-            />
-          ))}
+          {colorMode === 'coverage' ? (
+            <>
+              <Chip label="Not tested" size="small" sx={{ bgcolor: '#9e9e9e', color: '#fff', fontWeight: 600, fontSize: 11 }} />
+              <Chip label="Low" size="small" sx={{ bgcolor: '#ef5350', color: '#fff', fontWeight: 600, fontSize: 11 }} />
+              <Chip label="Medium" size="small" sx={{ bgcolor: '#ffa726', color: '#fff', fontWeight: 600, fontSize: 11 }} />
+              <Chip label="High" size="small" sx={{ bgcolor: '#66bb6a', color: '#fff', fontWeight: 600, fontSize: 11 }} />
+            </>
+          ) : (
+            Object.entries(DIFFICULTY_COLORS).map(([level, color]) => (
+              <Chip
+                key={level}
+                label={level}
+                size="small"
+                sx={{
+                  bgcolor: color,
+                  color: '#fff',
+                  fontWeight: 600,
+                  fontSize: 11,
+                  textTransform: 'capitalize'
+                }}
+              />
+            ))
+          )}
         </Box>
 
         {hoveredNode && (
@@ -229,7 +307,11 @@ export default function DomainKnowledgeNeuralMap({ graph, height = 480 }: Props)
               {hoveredNode.label}
             </Typography>
             <Typography variant="caption" color="text.secondary" display="block">
-              {hoveredNode.difficulty}
+              {colorMode === 'coverage'
+                ? hoveredNode.tested
+                  ? `Score: ${hoveredNode.lastScore ?? '—'}%`
+                  : 'Not tested'
+                : hoveredNode.difficulty}
               {hoveredNode.subDomain && ` · ${hoveredNode.subDomain}`}
             </Typography>
             {hoveredNode.description && (

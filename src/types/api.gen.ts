@@ -244,6 +244,296 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List agents
+         * @description Returns all agents (id, name, domain, status, backends, tools, task_types) for CoFounder dashboard.
+         */
+        get: operations["V1GetAgentsList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents/{agent_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get agent detail
+         * @description Returns agent detail with config and tools.
+         */
+        get: operations["V1GetAgentByID"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents/{agent_id}/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get agent config
+         * @description Returns full config (DB + YAML merge) with LLM and task-level settings.
+         */
+        get: operations["V1GetAgentConfig"];
+        /**
+         * Upsert agent config
+         * @description Upserts agent-level config. Replaces or merges config.
+         */
+        put: operations["V1PutAgentConfig"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents/{agent_id}/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get agent task types
+         * @description Returns task types and execution modes for an agent.
+         */
+        get: operations["V1GetAgentTasks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents/{agent_id}/tasks/{task_type}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Upsert task-level config
+         * @description Upserts config for a specific task type (LLM, tools, prompt_key overrides).
+         */
+        put: operations["V1PutAgentTaskConfig"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List active agent sessions
+         * @description Returns all active encounters (user_id, domain, goal_id, state, resolved_subjects).
+         */
+        get: operations["V1GetAgentSessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents/sessions/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get user active session
+         * @description Returns single user active encounter.
+         */
+        get: operations["V1GetAgentSessionByUser"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents/prompts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List agent prompts
+         * @description Returns prompts with optional agent_id and task_type filters.
+         */
+        get: operations["V1GetAgentPromptsList"];
+        put?: never;
+        /**
+         * Create agent prompt
+         * @description Creates a new prompt in the registry.
+         */
+        post: operations["V1PostAgentPrompt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents/prompts/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search agent prompts
+         * @description Full-text search on prompt content. Use q query param for search.
+         */
+        get: operations["V1GetAgentPromptsSearch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agents/prompts/{prompt_key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get prompt by key
+         * @description Returns prompt content by prompt_key.
+         */
+        get: operations["V1GetAgentPromptByKey"];
+        /**
+         * Upsert agent prompt
+         * @description Creates or updates prompt by prompt_key.
+         */
+        put: operations["V1PutAgentPrompt"];
+        post?: never;
+        /**
+         * Delete agent prompt
+         * @description Deletes prompt from registry by prompt_key.
+         */
+        delete: operations["V1DeleteAgentPrompt"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/context/chain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get context chain preview
+         * @description Returns chain preview for the given user. Uses active encounter by default, or goal_id/task_type to derive.
+         *     Runs executor in preview mode (no LLM calls) to build encounter, agent_config, invariants,
+         *     per_turn_pipeline, loop_structure, tool_results_this_session.
+         */
+        get: operations["V1GetContextChainPreview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/context/chains": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List context chains
+         * @description Returns all context chains for UI builder.
+         */
+        get: operations["V1GetContextChainsList"];
+        put?: never;
+        /**
+         * Create context chain
+         * @description Creates a new context chain.
+         */
+        post: operations["V1PostContextChain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/context/chains/{uuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get context chain by UUID
+         * @description Returns chain with nodes and edges.
+         */
+        get: operations["V1GetContextChainByUuid"];
+        /**
+         * Update context chain
+         * @description Updates an existing context chain (partial update).
+         */
+        put: operations["V1PutContextChain"];
+        post?: never;
+        /**
+         * Delete context chain
+         * @description Deletes a context chain and its nodes/edges.
+         */
+        delete: operations["V1DeleteContextChain"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/autograph/{uuid}/prompts": {
         parameters: {
             query?: never;
@@ -941,6 +1231,28 @@ export interface paths {
         get: operations["V1GetFounderDomainKnowledgeFounderGraph"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/founder/domain-knowledge/{slug}/coverage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upsert domain knowledge coverage
+         * @description Records per-concept coverage scores for a user in a domain.
+         *     Used by assessment end flow and chat agent to persist coverage.
+         *     Upserts into founder_domain_knowledge_coverage_graph_concepts.
+         */
+        post: operations["V1PostFounderDomainKnowledgeCoverage"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2503,6 +2815,307 @@ export interface components {
              * @description The creation timestamp of the guest session
              */
             created_at?: string;
+        };
+        /** @description Agent summary for list view */
+        AgentSummary: {
+            /**
+             * @description Agent identifier (e.g. founder_learning, founder_habit)
+             * @example founder_learning
+             */
+            id: string;
+            /**
+             * @description Human-readable agent name
+             * @example Learning Agent
+             */
+            name: string;
+            /**
+             * @description Domain (e.g. learning, habit_breaking)
+             * @example learning
+             */
+            domain: string;
+            /**
+             * @description Agent status
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "inactive";
+            /** @description Backends (e.g. pursuit, rig, coverage) */
+            backends?: string[];
+            /** @description Tool names available to agent */
+            tools?: string[];
+            /** @description Task types (e.g. domain_chat, rig_assessment) */
+            task_types?: string[];
+        };
+        /** @description List of agents for CoFounder dashboard */
+        AgentListResponse: {
+            agents: components["schemas"]["AgentSummary"][];
+        };
+        /** @description LLM configuration */
+        AgentLLMConfig: {
+            /** @example openai */
+            provider?: string;
+            /** @example gpt-4o-mini */
+            model?: string;
+            /**
+             * Format: float
+             * @example 0.7
+             */
+            temperature?: number;
+            /** @example 1000 */
+            max_tokens?: number;
+        };
+        /** @description Task-level config override */
+        AgentTaskConfig: {
+            /** @enum {string} */
+            execution_mode?: "loop" | "one_shot";
+            model?: string;
+            tools?: string[];
+            /** @description Key into agent_prompts registry */
+            prompt_key?: string;
+        };
+        /** @description Agent config (DB + YAML merge) */
+        AgentConfigResponse: {
+            /** @example founder_learning */
+            agent_id?: string;
+            llm?: components["schemas"]["AgentLLMConfig"];
+            /** @description Task-level config keyed by task_type */
+            tasks?: {
+                [key: string]: components["schemas"]["AgentTaskConfig"];
+            };
+            /**
+             * @description Config source
+             * @enum {string}
+             */
+            source?: "db" | "yaml" | "merged";
+        };
+        /** @description Full agent detail with config and tools */
+        AgentDetailResponse: {
+            /** @example founder_learning */
+            id: string;
+            /** @example Learning Agent */
+            name: string;
+            /** @example learning */
+            domain: string;
+            /** @enum {string} */
+            status?: "active" | "inactive";
+            backends?: string[];
+            tools?: string[];
+            task_types?: string[];
+            config?: components["schemas"]["AgentConfigResponse"];
+        };
+        /** @description Upsert task-level config */
+        UpsertAgentTaskConfigRequest: {
+            /** @enum {string} */
+            execution_mode?: "loop" | "one_shot";
+            provider?: string;
+            model?: string;
+            /** Format: float */
+            temperature?: number;
+            max_tokens?: number;
+            tools_enabled?: string[];
+            prompt_key?: string;
+        };
+        /** @description Upsert agent config request */
+        UpsertAgentConfigRequest: {
+            llm?: components["schemas"]["AgentLLMConfig"];
+            tasks?: {
+                [key: string]: components["schemas"]["UpsertAgentTaskConfigRequest"];
+            };
+        };
+        /** @description Task types and execution modes for an agent */
+        AgentTasksResponse: {
+            tasks: {
+                /** @example domain_chat */
+                task_type: string;
+                /** @enum {string} */
+                execution_mode: "loop" | "one_shot";
+            }[];
+        };
+        /** @description Active agent encounter/session */
+        AgentSessionResponse: {
+            /** Format: int32 */
+            user_id?: number;
+            /** Format: uuid */
+            session_id?: string;
+            domain?: string;
+            goal_id?: string;
+            /** @example idle */
+            state?: string;
+            resolved_subjects?: string[];
+            /** Format: date-time */
+            started_at?: string;
+            duration_seconds?: number;
+        };
+        /** @description List of active agent sessions */
+        AgentSessionsListResponse: {
+            sessions: components["schemas"]["AgentSessionResponse"][];
+        };
+        /** @description Agent prompt from registry */
+        AgentPromptResponse: {
+            /** Format: int64 */
+            id?: number;
+            /** @example learning.rig_assessment */
+            prompt_key: string;
+            /** @description Prompt text (may support template placeholders) */
+            content: string;
+            agent_id?: string | null;
+            task_type?: string | null;
+            /** @default default */
+            variant: string;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        /** @description List of agent prompts */
+        AgentPromptListResponse: {
+            prompts: components["schemas"]["AgentPromptResponse"][];
+        };
+        /** @description Create agent prompt request */
+        CreateAgentPromptRequest: {
+            /** @example learning.rig_assessment */
+            prompt_key: string;
+            /** @description Prompt text (supports Go template placeholders) */
+            content: string;
+            agent_id?: string;
+            task_type?: string;
+            /** @default default */
+            variant: string;
+        };
+        /** @description Update agent prompt request (partial) */
+        UpdateAgentPromptRequest: {
+            content?: string;
+            agent_id?: string;
+            task_type?: string;
+            variant?: string;
+        };
+        /** @description Encounter metadata from chain preview */
+        ContextChainPreviewEncounter: {
+            goal_id?: string;
+            domain?: string;
+            task_type?: string;
+            resolved_subjects?: string[];
+            duration_seconds?: number;
+        };
+        /** @description Agent config for the chain task */
+        ContextChainPreviewAgentConfig: {
+            agent_id?: string;
+            task_type?: string;
+            provider?: string;
+            model?: string;
+            tools_enabled?: string[];
+        };
+        /** @description Single step in the per-turn pipeline */
+        ContextChainPreviewPipelineStep: {
+            step?: number;
+            name?: string;
+            output?: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description Chain preview for observability (no LLM calls) */
+        ContextChainPreviewResponse: {
+            encounter?: components["schemas"]["ContextChainPreviewEncounter"];
+            agent_config?: components["schemas"]["ContextChainPreviewAgentConfig"];
+            /** @description Chain invariants (e.g. required subjects) */
+            invariants?: {
+                [key: string]: unknown;
+            };
+            per_turn_pipeline?: {
+                steps?: components["schemas"]["ContextChainPreviewPipelineStep"][];
+            };
+            /** @description Tool loop structure (tools, max_iterations) */
+            loop_structure?: {
+                [key: string]: unknown;
+            };
+            tool_results_this_session?: {
+                tool?: string;
+                args?: Record<string, never>;
+                turn?: number;
+            }[];
+        };
+        /** @description Context chain (DAG definition) */
+        ContextChainResponse: {
+            /** Format: uuid */
+            uuid?: string;
+            /** Format: int64 */
+            id?: number;
+            name?: string;
+            task_type?: string;
+            description?: string;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        /** @description List of context chains */
+        ContextChainListResponse: {
+            chains: components["schemas"]["ContextChainResponse"][];
+        };
+        /** @description Create context chain request */
+        CreateContextChainRequest: {
+            name: string;
+            task_type: string;
+            description?: string;
+        };
+        /** @description Node in a context chain DAG */
+        ContextChainNodeResponse: {
+            /** Format: uuid */
+            uuid?: string;
+            /** Format: int64 */
+            id?: number;
+            /** Format: uuid */
+            chain_id?: string;
+            /** @enum {string} */
+            node_type?: "encounter_read" | "context_subject" | "prompt" | "llm" | "tool" | "encounter_write";
+            config?: {
+                [key: string]: unknown;
+            };
+            position_x?: number;
+            position_y?: number;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        /** @description Edge between context chain nodes */
+        ContextChainEdgeResponse: {
+            /** Format: uuid */
+            uuid?: string;
+            /** Format: int64 */
+            id?: number;
+            /** Format: uuid */
+            chain_id?: string;
+            /** Format: uuid */
+            from_node_id?: string;
+            /** Format: uuid */
+            to_node_id?: string;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        /** @description Context chain with nodes and edges */
+        ContextChainDetailResponse: {
+            /** Format: uuid */
+            uuid?: string;
+            /** Format: int64 */
+            id?: number;
+            name?: string;
+            task_type?: string;
+            description?: string;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+            nodes?: components["schemas"]["ContextChainNodeResponse"][];
+            edges?: components["schemas"]["ContextChainEdgeResponse"][];
+        };
+        /** @description Update context chain request (partial) */
+        UpdateContextChainRequest: {
+            name?: string;
+            task_type?: string;
+            description?: string;
         };
         /** @description The prompt that can be used with the autograph pipeline */
         PromptResponse: {
@@ -4451,8 +5064,51 @@ export interface components {
                 strength: number;
             }[];
         };
+        /** @description Coverage for a single concept */
+        DomainKnowledgeCoverageConceptScore: {
+            /**
+             * @description Concept slug (must exist in domain)
+             * @example images
+             */
+            concept_slug: string;
+            /**
+             * @description known = tested/scored, unknown = grey
+             * @default known
+             * @enum {string}
+             */
+            coverage_status: "known" | "unknown";
+            /**
+             * Format: int32
+             * @description Score 0-100 when known (nullable for unknown)
+             */
+            coverage_score?: number;
+        };
+        /** @description Request to upsert per-concept coverage scores for a user in a domain */
+        PostDomainKnowledgeCoverageRequest: {
+            /**
+             * Format: int32
+             * @description User ID
+             */
+            user_id: number;
+            /** @description Per-concept coverage to upsert */
+            concept_scores: components["schemas"]["DomainKnowledgeCoverageConceptScore"][];
+        };
+        /** @description Response after upserting coverage */
+        PostDomainKnowledgeCoverageResponse: {
+            /**
+             * Format: int32
+             * @description Number of concepts upserted
+             */
+            updated: number;
+        };
         /** @description Optional overrides for assessment generation when generating domain knowledge tests */
         DomainKnowledgeAssessmentGenerateRequest: {
+            /**
+             * @description Assessment mode. rig = terminal scenarios; chat = Q&A flow.
+             * @default rig
+             * @enum {string}
+             */
+            mode: "rig" | "chat";
             /**
              * Format: int32
              * @description Number of scenarios to generate (default 3)
@@ -7353,6 +8009,788 @@ export interface operations {
             };
         };
     };
+    V1GetAgentsList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of agents */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentListResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1GetAgentByID: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent identifier */
+                agent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Agent detail */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentDetailResponse"];
+                };
+            };
+            /** @description Agent not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1GetAgentConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Agent config */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentConfigResponse"];
+                };
+            };
+            /** @description Agent not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PutAgentConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertAgentConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description Config updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentConfigResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1GetAgentTasks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Task types and execution modes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTasksResponse"];
+                };
+            };
+            /** @description Agent not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PutAgentTaskConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agent_id: string;
+                task_type: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertAgentTaskConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description Task config updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTaskConfig"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1GetAgentSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of active sessions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentSessionsListResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1GetAgentSessionByUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description User active session */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentSessionResponse"];
+                };
+            };
+            /** @description No active session for user */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1GetAgentPromptsList: {
+        parameters: {
+            query?: {
+                agent_id?: string;
+                task_type?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of prompts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentPromptListResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PostAgentPrompt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAgentPromptRequest"];
+            };
+        };
+        responses: {
+            /** @description Prompt created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentPromptResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Prompt key already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1GetAgentPromptsSearch: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matching prompts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentPromptListResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1GetAgentPromptByKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prompt_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Prompt details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentPromptResponse"];
+                };
+            };
+            /** @description Prompt not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PutAgentPrompt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prompt_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAgentPromptRequest"];
+            };
+        };
+        responses: {
+            /** @description Prompt upserted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentPromptResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1DeleteAgentPrompt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prompt_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Prompt deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Prompt not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1GetContextChainPreview: {
+        parameters: {
+            query: {
+                /** @description User ID (current user) */
+                user_id: number;
+                /** @description Optional goal_id (default from active encounter) */
+                goal_id?: string;
+                /** @description Optional task_type (default derived from encounter) */
+                task_type?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Chain preview */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContextChainPreviewResponse"];
+                };
+            };
+            /** @description No active session or binding not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1GetContextChainsList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of chains */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContextChainListResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PostContextChain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateContextChainRequest"];
+            };
+        };
+        responses: {
+            /** @description Created chain */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContextChainResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1GetContextChainByUuid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Chain with nodes and edges */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContextChainDetailResponse"];
+                };
+            };
+            /** @description Chain not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1PutContextChain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateContextChainRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated chain */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContextChainResponse"];
+                };
+            };
+            /** @description Chain not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    V1DeleteContextChain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Chain not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     v1GetPromptsByUuid: {
         parameters: {
             query?: never;
@@ -9411,6 +10849,60 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    V1PostFounderDomainKnowledgeCoverage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Domain slug (e.g. docker, golang) */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PostDomainKnowledgeCoverageRequest"];
+            };
+        };
+        responses: {
+            /** @description Coverage upserted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostDomainKnowledgeCoverageResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Domain or concept not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
             };
         };
     };
